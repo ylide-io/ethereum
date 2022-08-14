@@ -1,20 +1,16 @@
-import { ProviderRpcClient } from 'everscale-inpage-provider';
-
 import {
 	IGenericAccount,
 	AbstractWalletController,
 	PublicKey,
-	PublicKeyType,
 	MessageKey,
 	MessageChunks,
 	WalletControllerFactory,
 	sha256,
-	unpackSymmetricalyEncryptedData,
 	Uint256,
+	bigIntToUint256,
 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { EthereumBlockchainController } from '.';
-import Web3 from 'web3';
 
 export class EthereumWalletController extends AbstractWalletController {
 	constructor(
@@ -34,13 +30,13 @@ export class EthereumWalletController extends AbstractWalletController {
 		if (!me) {
 			throw new Error(`Can't derive without auth`);
 		}
-		const result = await this.blockchainController.web3.eth.personal.sign(magicString, me.address, 'null');
+		const result = await this.blockchainController.writeWeb3.eth.personal.sign(magicString, me.address, 'null');
 		return sha256(SmartBuffer.ofHexString(result).bytes);
 	}
 
 	// account block
 	async getAuthenticatedAccount(): Promise<IGenericAccount | null> {
-		const accounts: string[] = await this.blockchainController.web3.eth.getAccounts();
+		const accounts: string[] = await this.blockchainController.writeWeb3.eth.getAccounts();
 		if (accounts.length) {
 			return {
 				blockchain: 'ethereum',
@@ -61,7 +57,7 @@ export class EthereumWalletController extends AbstractWalletController {
 	}
 
 	async requestAuthentication(): Promise<null | IGenericAccount> {
-		const accounts: string[] = await this.blockchainController.web3.eth.requestAccounts();
+		const accounts: string[] = await this.blockchainController.writeWeb3.eth.requestAccounts();
 		if (accounts.length) {
 			return {
 				blockchain: 'everscale',
@@ -82,7 +78,6 @@ export class EthereumWalletController extends AbstractWalletController {
 		contentData: Uint8Array,
 		recipients: { address: Uint256; messageKey: MessageKey }[],
 	): Promise<Uint256 | null> {
-		console.log('ffff');
 		const uniqueId = Math.floor(Math.random() * 4 * 10 ** 9);
 		const chunks = MessageChunks.splitMessageChunks(contentData);
 		if (chunks.length === 1 && recipients.length === 1) {
@@ -93,15 +88,8 @@ export class EthereumWalletController extends AbstractWalletController {
 				recipients[0].messageKey.toBytes(),
 				chunks[0],
 			);
-
-			const om = transaction.childTransaction.outMessages;
-			const contentMsg = om.length ? om[0] : null;
-			if (!contentMsg || !contentMsg.body) {
-				throw new Error('Content event was not found');
-			}
-			return null;
-			// const decodedEvent = this.blockchainController.mailerContract.decodeContentMessageBody(contentMsg.body!);
-			// return decodedEvent.msgId;
+			// console.log('transaction: ', transaction);
+			return bigIntToUint256(transaction.events.MailContent.returnValues.msgId);
 		} else if (chunks.length === 1 && recipients.length < Math.ceil((15.5 * 1024 - chunks[0].byteLength) / 70)) {
 			const transaction = await this.blockchainController.mailerContract.sendBulkMail(
 				me.address,
@@ -110,15 +98,8 @@ export class EthereumWalletController extends AbstractWalletController {
 				recipients.map(r => r.messageKey.toBytes()),
 				chunks[0],
 			);
-
-			const om = transaction.childTransaction.outMessages;
-			const contentMsg = om.length ? om[0] : null;
-			if (!contentMsg || !contentMsg.body) {
-				throw new Error('Content event was not found');
-			}
-			return null;
-			// const decodedEvent = this.blockchainController.mailerContract.decodeContentMessageBody(contentMsg.body!);
-			// return decodedEvent.msgId;
+			// console.log('transaction: ', transaction);
+			return bigIntToUint256(transaction.events.MailContent.returnValues.msgId);
 		} else {
 			const initTime = Math.floor(Date.now() / 1000);
 			const msgId = await this.blockchainController.mailerContract.buildHash(me.address, uniqueId, initTime);
@@ -142,6 +123,34 @@ export class EthereumWalletController extends AbstractWalletController {
 					recs.map(r => r.messageKey.toBytes()),
 				);
 			}
+			return msgId;
+		}
+	}
+
+	async broadcastMessage(me: IGenericAccount, contentData: Uint8Array): Promise<Uint256 | null> {
+		const uniqueId = Math.floor(Math.random() * 4 * 10 ** 9);
+		const chunks = MessageChunks.splitMessageChunks(contentData);
+		if (chunks.length === 1) {
+			const transaction = await this.blockchainController.mailerContract.broadcastMail(
+				me.address,
+				uniqueId,
+				chunks[0],
+			);
+			return bigIntToUint256(transaction.events.MailBroadcast.returnValues.msgId);
+		} else {
+			const initTime = Math.floor(Date.now() / 1000);
+			const msgId = await this.blockchainController.mailerContract.buildHash(me.address, uniqueId, initTime);
+			for (let i = 0; i < chunks.length; i++) {
+				await this.blockchainController.mailerContract.sendMultipartMailPart(
+					me.address,
+					uniqueId,
+					initTime,
+					chunks.length,
+					i,
+					chunks[i],
+				);
+			}
+			await this.blockchainController.mailerContract.broadcastMailHeader(me.address, uniqueId, initTime);
 			return msgId;
 		}
 	}

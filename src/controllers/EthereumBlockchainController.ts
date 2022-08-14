@@ -2,7 +2,6 @@ import SmartBuffer from '@ylide/smart-buffer';
 import {
 	AbstractBlockchainController,
 	IMessage,
-	RetrievingMessagesOptions,
 	IMessageContent,
 	IMessageCorruptedContent,
 	MessageContentFailure,
@@ -15,17 +14,25 @@ import {
 	Uint256,
 	hexToUint256,
 	bigIntToUint256,
+	uint256ToHex,
+	ISourceSubject,
+	uint256ToUint8Array,
+	BlockchainSourceSubjectType,
 } from '@ylide/sdk';
 import { DEV_MAILER_ADDRESS, DEV_REGISTRY_ADDRESS, MAILER_ADDRESS, REGISTRY_ADDRESS } from '../misc/constants';
-import { MailerContract, RegistryContract } from '../contracts';
+import { MailerContract, MAILER_ABI, RegistryContract } from '../contracts';
 import { IEthereumContentMessageBody, IEthereumMessage } from '../misc';
 import Web3 from 'web3';
-import { Transaction } from 'web3-core';
+import { Transaction, provider } from 'web3-core';
 import { BlockTransactionString } from 'web3-eth';
 import { EventData } from 'web3-eth-contract';
+import { AbiItem } from 'web3-utils';
 
 export class EthereumBlockchainController extends AbstractBlockchainController {
-	web3: Web3;
+	writeWeb3: Web3;
+	web3Readers: Web3[];
+
+	private blocksCache: Record<number, BlockTransactionString> = {};
 
 	readonly MESSAGES_FETCH_LIMIT = 50;
 
@@ -33,17 +40,23 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	readonly registryContract: RegistryContract;
 
 	constructor(
-		options: {
+		private readonly options: {
 			dev?: boolean;
 			mailerContractAddress?: string;
 			registryContractAddress?: string;
-			web3Provider?: any;
+			mailerStartBlock?: number;
+			writeWeb3Provider?: any;
+			web3Readers?: provider[];
 		} = {},
 	) {
 		super(options);
 
 		// @ts-ignore
-		this.web3 = window.www3 = new Web3(options?.web3Provider || Web3.givenProvider);
+		this.writeWeb3 = global.www3 = new Web3(options?.writeWeb3Provider || Web3.givenProvider);
+
+		this.web3Readers = options.web3Readers
+			? options.web3Readers.map(r => new Web3(r))
+			: [new Web3(Web3.givenProvider)];
 
 		this.mailerContract = new MailerContract(
 			this,
@@ -53,6 +66,17 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			this,
 			options.registryContractAddress || (options.dev ? DEV_REGISTRY_ADDRESS : REGISTRY_ADDRESS),
 		);
+	}
+
+	async executeWeb3Op<T>(callback: (w3: Web3) => Promise<T>): Promise<T> {
+		for (const w3 of this.web3Readers) {
+			try {
+				return await callback(w3);
+			} catch (err) {
+				continue;
+			}
+		}
+		throw new Error('Was not able to execute in all of web3 providers');
 	}
 
 	async getRecipientReadingRules(address: string): Promise<any> {
@@ -71,13 +95,21 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return PublicKey.fromBytes(PublicKeyType.YLIDE, rawKey);
 	}
 
-	private async binSearchMessages(fromBlock?: number, toBlock?: number) {
-		if (!toBlock) {
-			toBlock = await this.web3.eth.getBlockNumber();
+	private async getBlock(n: number): Promise<BlockTransactionString> {
+		if (!this.blocksCache[n]) {
+			try {
+				this.blocksCache[n] = await this.executeWeb3Op(w3 => w3.eth.getBlock(n));
+			} catch (err) {
+				console.log('getBlock err: ', err);
+				throw err;
+			}
 		}
-		if (!fromBlock) {
-			fromBlock = 0;
-		}
+
+		return this.blocksCache[n];
+	}
+
+	private async getLastBlockNumber() {
+		return this.executeWeb3Op(w3 => w3.eth.getBlockNumber());
 	}
 
 	private async getBlockNumberByTime(
@@ -85,22 +117,29 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		firstBlock?: BlockTransactionString,
 		lastBlock?: BlockTransactionString,
 	): Promise<BlockTransactionString> {
+		console.log(`getBlockNumberByTime ${firstBlock?.number} ${lastBlock?.number}`);
+
 		if (!firstBlock) {
-			firstBlock = await this.web3.eth.getBlock(0, false);
+			firstBlock = await this.getBlock(this.options.mailerStartBlock || 0);
 		}
 		if (time <= firstBlock.timestamp) {
 			return firstBlock;
 		}
 		if (!lastBlock) {
-			const lastBlockNumber = await this.web3.eth.getBlockNumber();
-			lastBlock = await this.web3.eth.getBlock(lastBlockNumber, false);
+			const lastBlockNumber = await this.getLastBlockNumber();
+			lastBlock = await this.getBlock(lastBlockNumber);
 		}
 		if (time >= lastBlock.timestamp) {
 			return lastBlock;
 		}
 		const middleBlockNumber = Math.floor((firstBlock.number + lastBlock.number) / 2);
-		const middleBlock = await this.web3.eth.getBlock(middleBlockNumber, false);
-		if (time >= middleBlock.timestamp) {
+		const middleBlock = await this.getBlock(middleBlockNumber);
+		console.log('middleBlockNumber: ', middleBlockNumber);
+		console.log('time: ', time);
+		console.log('middleBlock.timestamp: ', middleBlock.timestamp);
+		if (middleBlockNumber === firstBlock.number) {
+			return firstBlock;
+		} else if (time >= middleBlock.timestamp) {
 			return this.getBlockNumberByTime(time, middleBlock, lastBlock);
 		} else {
 			return this.getBlockNumberByTime(time, firstBlock, middleBlock);
@@ -108,71 +147,254 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	private async binSearchBlocks(fromTime?: number, toTime?: number) {
-		const firstBlock = await this.web3.eth.getBlock(0, false);
-		const lastBlockNumber = await this.web3.eth.getBlockNumber();
-		const lastBlock = await this.web3.eth.getBlock(lastBlockNumber, false);
+		const firstBlock = await this.getBlock(this.options.mailerStartBlock || 0);
+		const lastBlockNumber = await this.getLastBlockNumber();
+		const lastBlock = await this.getBlock(lastBlockNumber);
 		const fromBlock = await this.getBlockNumberByTime(fromTime || 0, firstBlock, lastBlock);
 		const toBlock = await this.getBlockNumberByTime(toTime || Number(lastBlock.timestamp), firstBlock, lastBlock);
 		return { fromBlock, toBlock };
 	}
 
-	async retrieveMessageHistoryByTime(
-		recipient: Uint256 | null,
+	private async tryRequest(
+		mailerAddress: string,
+		subject: ISourceSubject,
+		fromBlockNumber: number,
+		toBlockNumber: number,
+	): Promise<{ result: false } | { result: true; data: EventData[] }> {
+		try {
+			return {
+				result: true,
+				data: await this.executeWeb3Op(async w3 => {
+					const ctrct = new w3.eth.Contract(MAILER_ABI.abi as AbiItem[], mailerAddress);
+					return await ctrct.getPastEvents(
+						subject.type === BlockchainSourceSubjectType.RECIPIENT ? 'MailPush' : 'MailBroadcast',
+						{
+							filter: subject.address
+								? subject.type === BlockchainSourceSubjectType.RECIPIENT
+									? {
+											recipient: '0x' + uint256ToHex(subject.address),
+									  }
+									: { sender: this.uint256ToAddress(subject.address) }
+								: undefined,
+							fromBlock: fromBlockNumber,
+							toBlock: toBlockNumber,
+						},
+					);
+				}),
+			};
+		} catch (err) {
+			// debugger;
+			// console.log('err: ', err);
+			return {
+				result: false,
+			};
+		}
+	}
+
+	private eventCmpr(a: EventData, b: EventData): number {
+		if (a.blockNumber === b.blockNumber) {
+			if (a.transactionIndex === b.transactionIndex) {
+				return b.logIndex - a.logIndex;
+			} else {
+				return b.transactionIndex - a.transactionIndex;
+			}
+		} else {
+			return b.blockNumber - a.blockNumber;
+		}
+	}
+
+	private async retrieveEventsByBounds(
+		mailerAddress: string,
+		subject: ISourceSubject,
+		fromBlockNumber: number,
+		toBlockNumber: number,
+		limit?: number,
+	): Promise<EventData[]> {
+		const full = await this.tryRequest(mailerAddress, subject, fromBlockNumber, toBlockNumber);
+		if (full.result) {
+			const sortedData = full.data.sort(this.eventCmpr);
+			return limit ? sortedData.slice(0, limit) : sortedData;
+		} else {
+			if (fromBlockNumber === toBlockNumber) {
+				return [];
+			}
+			const middleBlockNumber = Math.floor((toBlockNumber + fromBlockNumber) / 2);
+			const middleBlockRealNumber =
+				middleBlockNumber === fromBlockNumber
+					? fromBlockNumber
+					: middleBlockNumber === toBlockNumber
+					? toBlockNumber
+					: middleBlockNumber;
+			const leftSide = await this.retrieveEventsByBounds(
+				mailerAddress,
+				subject,
+				fromBlockNumber,
+				middleBlockRealNumber,
+				limit,
+			);
+			if (!limit || leftSide.length < limit) {
+				if (middleBlockRealNumber === fromBlockNumber) {
+					return leftSide;
+				} else {
+					const rightSide = await this.retrieveEventsByBounds(
+						mailerAddress,
+						subject,
+						middleBlockRealNumber,
+						toBlockNumber,
+						limit ? limit - leftSide.length : undefined,
+					);
+					return leftSide.concat(rightSide);
+				}
+			} else {
+				return leftSide;
+			}
+		}
+	}
+
+	getDefaultMailerAddress() {
+		return this.mailerContract.contractAddress;
+	}
+
+	private async _retrieveMessageHistoryByTime(
+		mailerAddress: string,
+		subject: ISourceSubject,
 		fromTimestamp?: number,
 		toTimestamp?: number,
+		limit?: number,
 	): Promise<IMessage[]> {
-		const { fromNumber, toNumber } = await this.binSearchBlockNumbers(fromTimestamp, toTimestamp);
+		if (!mailerAddress) {
+			mailerAddress = this.getDefaultMailerAddress();
+		}
+		const { fromBlock, toBlock } = await this.binSearchBlocks(fromTimestamp, toTimestamp);
+		const events = await this.retrieveEventsByBounds(
+			mailerAddress,
+			subject,
+			fromBlock.number,
+			toBlock.number,
+			limit,
+		);
+		const msgs = await this.processMessages(events);
+		const result = msgs.map(m => this.formatPushMessage(m));
+		return result.filter(
+			r =>
+				(!fromTimestamp || r.blockchainMeta.block.timestamp > fromTimestamp) &&
+				(!toTimestamp || r.blockchainMeta.block.timestamp <= toTimestamp),
+		);
 	}
 
-	retrieveMessageHistoryByBounds(
-		recipient: Uint256 | null,
+	private async _retrieveMessageHistoryByBounds(
+		mailerAddress: string,
+		subject: ISourceSubject,
 		fromMessage?: IMessage,
 		toMessage?: IMessage,
+		limit?: number,
 	): Promise<IMessage[]> {
-		//
+		const fromBlockNumber = fromMessage ? fromMessage.blockchainMeta.block.number : 0;
+		const toBlockNumber = toMessage ? toMessage.blockchainMeta.block.number : await this.getLastBlockNumber();
+		// console.log('fromBlockNumber: ', fromBlockNumber);
+		// console.log('toBlockNumber: ', toBlockNumber);
+		const rawEvents = await this.retrieveEventsByBounds(
+			mailerAddress,
+			subject,
+			fromBlockNumber,
+			toBlockNumber,
+			limit,
+		);
+
+		const topBound = toMessage
+			? rawEvents.findIndex(r => bigIntToUint256(r.returnValues.msgId) === toMessage.msgId)
+			: -1;
+		const bottomBound = fromMessage
+			? rawEvents.findIndex(r => bigIntToUint256(r.returnValues.msgId) === fromMessage.msgId)
+			: -1;
+
+		const events = rawEvents.slice(
+			topBound === -1 ? 0 : topBound + 1,
+			bottomBound === -1 ? undefined : bottomBound,
+		);
+
+		const msgs = await this.processMessages(events);
+		const result = msgs.map(m => this.formatPushMessage(m));
+		// console.log('result: ', result);
+		const output = result.slice(topBound === -1 ? 0 : topBound + 1, bottomBound === -1 ? undefined : bottomBound);
+		// console.log('output: ', output);
+		return output;
 	}
 
-	// message history block
-	// Query messages by interval options.since (included) - options.to (excluded)
-	async retrieveMessageHistoryByDates(
-		recipientAddress: Uint256,
-		options?: RetrieveByDatesOptions,
+	async retrieveMessageHistoryByTime(
+		recipient: Uint256 | null,
+		mailerAddress?: string,
+		fromTimestamp?: number,
+		toTimestamp?: number,
+		limit?: number,
 	): Promise<IMessage[]> {
-		const fullMessages: IMessage[] = [];
-
-		console.log('bbb');
-
-		while (true) {
-			const messages = await this.queryMessagesList(recipientAddress, null, null);
-
-			if (!messages.length) break;
-
-			let foundDuplicate = false;
-
-			fullMessages.push(
-				...(await Promise.all(
-					messages.map(async m => {
-						if (m.msgId === options?.toMessage?.msgId) {
-							foundDuplicate = true;
-						}
-						console.log('ggg');
-						const content = await this.retrieveMessageContentByMsgId(m.msgId);
-						if (content && !content.corrupted) {
-							m.isContentLoaded = true;
-							m.contentLink = content;
-						}
-						return m;
-					}),
-				)),
-			);
-
-			if (foundDuplicate) break;
-			if (messages.length < this.MESSAGES_FETCH_LIMIT) break;
-
-			// untilDate = messages[0].created_at * 1000;
+		if (!mailerAddress) {
+			mailerAddress = this.getDefaultMailerAddress();
 		}
+		return this._retrieveMessageHistoryByTime(
+			mailerAddress,
+			{ type: BlockchainSourceSubjectType.RECIPIENT, address: recipient },
+			fromTimestamp,
+			toTimestamp,
+			limit,
+		);
+	}
 
-		return fullMessages;
+	async retrieveMessageHistoryByBounds(
+		recipient: Uint256 | null,
+		mailerAddress?: string,
+		fromMessage?: IMessage,
+		toMessage?: IMessage,
+		limit?: number,
+	): Promise<IMessage[]> {
+		if (!mailerAddress) {
+			mailerAddress = this.getDefaultMailerAddress();
+		}
+		return this._retrieveMessageHistoryByBounds(
+			mailerAddress,
+			{ type: BlockchainSourceSubjectType.RECIPIENT, address: recipient },
+			fromMessage,
+			toMessage,
+			limit,
+		);
+	}
+
+	async retrieveBroadcastHistoryByTime(
+		sender: Uint256 | null,
+		mailerAddress?: string,
+		fromTimestamp?: number,
+		toTimestamp?: number,
+		limit?: number,
+	): Promise<IMessage[]> {
+		if (!mailerAddress) {
+			mailerAddress = this.getDefaultMailerAddress();
+		}
+		return this._retrieveMessageHistoryByTime(
+			mailerAddress,
+			{ type: BlockchainSourceSubjectType.AUTHOR, address: sender },
+			fromTimestamp,
+			toTimestamp,
+			limit,
+		);
+	}
+
+	async retrieveBroadcastHistoryByBounds(
+		sender: Uint256 | null,
+		mailerAddress?: string,
+		fromMessage?: IMessage,
+		toMessage?: IMessage,
+		limit?: number,
+	): Promise<IMessage[]> {
+		if (!mailerAddress) {
+			mailerAddress = this.getDefaultMailerAddress();
+		}
+		return this._retrieveMessageHistoryByBounds(
+			mailerAddress,
+			{ type: BlockchainSourceSubjectType.AUTHOR, address: sender },
+			fromMessage,
+			toMessage,
+			limit,
+		);
 	}
 
 	async retrieveAndVerifyMessageContent(msg: IMessage): Promise<IMessageContent | IMessageCorruptedContent | null> {
@@ -195,17 +417,15 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	async retrieveMessageContentByMsgId(msgId: string): Promise<IMessageContent | IMessageCorruptedContent | null> {
-		console.log('hhh');
-		const msgIdAsUint256 = BigInt('0x' + msgId).toString(10);
-		console.log('iii: ', msgId);
 		const messages = await this.processMessages(
 			await this.mailerContract.contract.getPastEvents('MailContent', {
 				filter: {
 					msgId: '0x' + msgId,
 				},
+				fromBlock: 0,
+				toBlock: 'latest',
 			}),
 		);
-		console.log('aaa');
 		if (!messages.length) {
 			return null;
 		}
@@ -265,7 +485,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return {
 			msgId,
 			corrupted: false,
-			storage: 'everscale',
+			storage: 'ethereum',
 			createdAt: Math.min(...decodedChunks.map(d => Number(d.msg.block.timestamp))),
 			senderAddress: sender,
 			parts,
@@ -298,50 +518,56 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	isAddressValid(address: string): boolean {
-		return this.web3.utils.isAddress(address);
+		return Web3.utils.isAddress(address);
 	}
 
-	private async processMessages(msgs: EventData[]): Promise<IEthereumMessage[]> {
+	async processMessages(msgs: EventData[]): Promise<IEthereumMessage[]> {
+		if (!msgs.length) {
+			return [];
+		}
 		const txHashes = msgs.map(e => e.transactionHash).filter((e, i, a) => a.indexOf(e) === i);
 		const blockHashes = msgs.map(e => e.blockHash).filter((e, i, a) => a.indexOf(e) === i);
-		const batch = new this.web3.BatchRequest();
-		const txsPromise: Promise<Transaction[]> = Promise.all(
-			txHashes.map(
-				txHash =>
-					new Promise<Transaction>((resolve, reject) => {
-						batch.add(
-							// @ts-ignore
-							this.web3.eth.getTransaction.request(txHash, (err, tx) => {
-								if (err) {
-									return reject(err);
-								} else {
-									return resolve(tx);
-								}
-							}),
-						);
-					}),
-			),
-		);
-		const blocksPromise: Promise<BlockTransactionString[]> = Promise.all(
-			blockHashes.map(
-				blockHash =>
-					new Promise<BlockTransactionString>((resolve, reject) => {
-						batch.add(
-							// @ts-ignore
-							this.web3.eth.getBlock.request(blockHash, false, (err, block) => {
-								if (err) {
-									return reject(err);
-								} else {
-									return resolve(block);
-								}
-							}),
-						);
-					}),
-			),
-		);
-		batch.execute();
-		const txs = await txsPromise;
-		const blocks = await blocksPromise;
+		const { txs, blocks } = await this.executeWeb3Op(async w3 => {
+			const batch = new w3.BatchRequest();
+			const txsPromise: Promise<Transaction[]> = Promise.all(
+				txHashes.map(
+					txHash =>
+						new Promise<Transaction>((resolve, reject) => {
+							batch.add(
+								// @ts-ignore
+								w3.eth.getTransaction.request(txHash, (err, tx) => {
+									if (err) {
+										return reject(err);
+									} else {
+										return resolve(tx);
+									}
+								}),
+							);
+						}),
+				),
+			);
+			const blocksPromise: Promise<BlockTransactionString[]> = Promise.all(
+				blockHashes.map(
+					blockHash =>
+						new Promise<BlockTransactionString>((resolve, reject) => {
+							batch.add(
+								// @ts-ignore
+								w3.eth.getBlock.request(blockHash, false, (err, block) => {
+									if (err) {
+										return reject(err);
+									} else {
+										return resolve(block);
+									}
+								}),
+							);
+						}),
+				),
+			);
+			batch.execute();
+			const txs = await txsPromise;
+			const blocks = await blocksPromise;
+			return { txs, blocks };
+		});
 		const txMap: Record<string, Transaction> = txs.reduce(
 			(p, c) => ({
 				...p,
@@ -358,27 +584,6 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		);
 
 		return msgs.map(ev => ({ event: ev, tx: txMap[ev.transactionHash], block: blockMap[ev.blockHash] }));
-	}
-
-	// Query messages by interval sinceDate(excluded) - untilDate (excluded)
-	private async queryMessagesList(
-		recipientAddress: Uint256,
-		fromBlock: number | null,
-		toBlock: number | 'latest' | null,
-	): Promise<IMessage[]> {
-		const events = await this.mailerContract.contract.getPastEvents('MailPush', {
-			filter: {
-				recipient: '0x' + recipientAddress,
-			},
-			fromBlock: fromBlock || 0,
-			toBlock: toBlock || 'latest',
-		});
-
-		const msgs = await this.processMessages(events);
-
-		const messages = msgs.map(ev => this.formatPushMessage(ev));
-
-		return messages;
 	}
 
 	async getExtraEncryptionStrategiesFromAddress(address: string): Promise<IExtraEncryptionStrateryEntry[]> {
@@ -404,15 +609,22 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		throw new Error('No native strategies supported for Ethereum');
 	}
 
-	uint256ToAddress(value: Uint8Array, withPrefix: boolean = true): string {
-		return '0x' + new SmartBuffer(value.slice(12)).toHexString();
+	uint256ToAddress(value: Uint256): string {
+		return '0x' + new SmartBuffer(uint256ToUint8Array(value).slice(12)).toHexString();
 	}
 
 	addressToUint256(address: string): Uint256 {
 		const lowerAddress = address.toLowerCase();
 		const cleanHexAddress = lowerAddress.startsWith('0x') ? lowerAddress.substring(2) : lowerAddress;
-		console.log('yonny: ', ''.padStart(24, '0') + cleanHexAddress);
 		return hexToUint256(''.padStart(24, '0') + cleanHexAddress);
+	}
+
+	compareMessagesTime(a: IMessage, b: IMessage): number {
+		if (a.createdAt === b.createdAt) {
+			return a.blockchainMeta.event.logIndex - b.blockchainMeta.event.logIndex;
+		} else {
+			return a.createdAt - b.createdAt;
+		}
 	}
 }
 
