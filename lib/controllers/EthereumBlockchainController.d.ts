@@ -14,7 +14,6 @@ export declare class EthereumBlockchainController extends AbstractBlockchainCont
     readonly chainId: number;
     constructor(options?: {
         network?: EVMNetwork;
-        dev?: boolean;
         mailerContractAddress?: string;
         registryContractAddress?: string;
         mailerStartBlock?: number;

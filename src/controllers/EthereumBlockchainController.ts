@@ -20,7 +20,7 @@ import {
 	BlockchainSourceSubjectType,
 } from '@ylide/sdk';
 import Web3 from 'web3';
-import { DEV_MAILER_ADDRESS, DEV_REGISTRY_ADDRESS, EVM_CONTRACTS, IEthereumContractLink } from '../misc/constants';
+import { EVM_CONTRACTS, IEthereumContractLink } from '../misc/constants';
 import { MAILER_ABI, REGISTRY_ABI } from '../contracts';
 import { EVMNetwork, EVM_CHAINS, EVM_NAMES, EVM_RPCS, IEthereumContentMessageBody, IEthereumMessage } from '../misc';
 import { Transaction, provider } from 'web3-core';
@@ -45,7 +45,6 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	constructor(
 		private readonly options: {
 			network?: EVMNetwork;
-			dev?: boolean;
 			mailerContractAddress?: string;
 			registryContractAddress?: string;
 			mailerStartBlock?: number;
@@ -73,12 +72,8 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 					}
 			  });
 
-		this.mailerContractAddress =
-			options.mailerContractAddress ||
-			(options.dev ? DEV_MAILER_ADDRESS : EVM_CONTRACTS[this.network].mailer.address);
-		this.registryContractAddress =
-			options.registryContractAddress ||
-			(options.dev ? DEV_REGISTRY_ADDRESS : EVM_CONTRACTS[this.network].registry.address);
+		this.mailerContractAddress = options.mailerContractAddress || EVM_CONTRACTS[this.network].mailer.address;
+		this.registryContractAddress = options.registryContractAddress || EVM_CONTRACTS[this.network].registry.address;
 	}
 
 	async executeWeb3Op<T>(callback: (w3: Web3) => Promise<T>): Promise<T> {
@@ -142,7 +137,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			try {
 				this.blocksCache[n] = await this.executeWeb3Op(w3 => w3.eth.getBlock(n));
 			} catch (err) {
-				console.log('getBlock err: ', err);
+				// console.log('getBlock err: ', err);
 				throw err;
 			}
 		}
@@ -608,9 +603,9 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				),
 			);
 			batch.execute();
-			const txs = await txsPromise;
-			const blocks = await blocksPromise;
-			return { txs, blocks };
+			const _txs = await txsPromise;
+			const _blocks = await blocksPromise;
+			return { txs: _txs, blocks: _blocks };
 		});
 		const txMap: Record<string, Transaction> = txs.reduce(
 			(p, c) => ({

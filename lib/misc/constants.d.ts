@@ -1,6 +1,4 @@
 import { EVMNetwork } from './types';
-export declare const DEV_MAILER_ADDRESS = "0x67d269191c92Caf3cD7723F116c85e6E9bf55933";
-export declare const DEV_REGISTRY_ADDRESS = "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1";
 export interface IEthereumContractLink {
     address: string;
     fromBlock?: number;

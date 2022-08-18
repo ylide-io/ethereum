@@ -242,7 +242,7 @@ export class EthereumWalletController extends AbstractWalletController {
 export const ethereumWalletFactory: WalletControllerFactory = {
 	create: (options?: any) => new EthereumWalletController(options),
 	// @ts-ignore
-	isWalletAvailable: async () => !!(window['ethereum'] || window['web3']),
+	isWalletAvailable: async () => !!(window['ethereum'] || window['web3']), // tslint:disable-line
 	blockchainGroup: 'evm',
 	wallet: 'web3',
 };

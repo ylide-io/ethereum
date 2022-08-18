@@ -1,9 +1,5 @@
 import { EVMNetwork } from './types';
 
-// Dev addresses
-export const DEV_MAILER_ADDRESS = '0x67d269191c92Caf3cD7723F116c85e6E9bf55933'; //'0x0165878A594ca255338adfa4d48449f69242Eb8F';
-export const DEV_REGISTRY_ADDRESS = '0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1';
-
 export interface IEthereumContractLink {
 	address: string;
 	fromBlock?: number;
