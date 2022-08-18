@@ -8,21 +8,64 @@ import {
 	sha256,
 	Uint256,
 	bigIntToUint256,
+	hexToUint256,
 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
-import { EthereumBlockchainController } from '.';
+import Web3 from 'web3';
+import { MailerContract, RegistryContract } from '../contracts';
+import { EVMNetwork, EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CONTRACTS } from '../misc';
+
+export type NetworkSwitchHandler = (
+	reason: string,
+	currentNetwork: EVMNetwork | undefined,
+	needNetwork: EVMNetwork,
+	needChainId: number,
+) => Promise<void>;
 
 export class EthereumWalletController extends AbstractWalletController {
+	readonly writeWeb3: Web3;
+	readonly defaultMailerContract?: MailerContract;
+	readonly defaultRegistryContract?: RegistryContract;
+
+	private readonly mailerContractAddress?: string;
+	private readonly registryContractAddress?: string;
+	private readonly onNetworkSwitchRequest: NetworkSwitchHandler;
+
 	constructor(
-		public readonly blockchainController: EthereumBlockchainController,
 		options: {
 			dev?: boolean;
 			mailerContractAddress?: string;
 			registryContractAddress?: string;
+			writeWeb3Provider?: any;
 			endpoint?: string;
+			onNetworkSwitchRequest?: NetworkSwitchHandler;
 		} = {},
 	) {
-		super(blockchainController, options);
+		super(options);
+
+		if (!options || !options.onNetworkSwitchRequest) {
+			throw new Error(
+				'You have to pass valid onNetworkSwitchRequest param to the options of EthereumWalletController constructor',
+			);
+		}
+
+		this.onNetworkSwitchRequest = options.onNetworkSwitchRequest;
+
+		this.writeWeb3 = new Web3(options?.writeWeb3Provider || Web3.givenProvider);
+
+		this.mailerContractAddress = options.mailerContractAddress;
+		this.registryContractAddress = options.registryContractAddress;
+
+		if (this.mailerContractAddress) {
+			this.defaultMailerContract = new MailerContract(this.writeWeb3, this.mailerContractAddress);
+		}
+		if (this.registryContractAddress) {
+			this.defaultRegistryContract = new RegistryContract(this.writeWeb3, this.registryContractAddress);
+		}
+	}
+
+	async requestYlidePrivateKey(me: IGenericAccount): Promise<Uint8Array | null> {
+		throw new Error('Method not available.');
 	}
 
 	async signMagicString(magicString: string): Promise<Uint8Array> {
@@ -30,16 +73,22 @@ export class EthereumWalletController extends AbstractWalletController {
 		if (!me) {
 			throw new Error(`Can't derive without auth`);
 		}
-		const result = await this.blockchainController.writeWeb3.eth.personal.sign(magicString, me.address, 'null');
+		const result = await this.writeWeb3.eth.personal.sign(magicString, me.address, 'null');
 		return sha256(SmartBuffer.ofHexString(result).bytes);
+	}
+
+	addressToUint256(address: string): Uint256 {
+		const lowerAddress = address.toLowerCase();
+		const cleanHexAddress = lowerAddress.startsWith('0x') ? lowerAddress.substring(2) : lowerAddress;
+		return hexToUint256(''.padStart(24, '0') + cleanHexAddress);
 	}
 
 	// account block
 	async getAuthenticatedAccount(): Promise<IGenericAccount | null> {
-		const accounts: string[] = await this.blockchainController.writeWeb3.eth.getAccounts();
+		const accounts: string[] = await this.writeWeb3.eth.getAccounts();
 		if (accounts.length) {
 			return {
-				blockchain: 'ethereum',
+				blockchain: 'evm',
 				address: accounts[0].toString(),
 				publicKey: null,
 			};
@@ -48,16 +97,51 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 	}
 
-	async attachPublicKey(publicKey: Uint8Array) {
+	private async getCurrentChainId() {
+		return await this.writeWeb3.eth.net.getId();
+	}
+
+	private async getCurrentNetwork(): Promise<EVMNetwork> {
+		const chainId = await this.getCurrentChainId();
+		const res = EVM_CHAIN_ID_TO_NETWORK[chainId];
+		if (res === undefined) {
+			throw new Error(`ChainID ${chainId} is not supported.`);
+		}
+		return res;
+	}
+
+	private async ensureNetworkOptions(reason: string, options?: any) {
+		if (!options || !EVM_CONTRACTS[options.network as EVMNetwork]) {
+			throw new Error(`Please, pass network param in options in order to execute this request`);
+		}
+		const { network: expectedNetwork } = options;
+		const network = await this.getCurrentNetwork();
+		if (expectedNetwork !== network) {
+			await this.onNetworkSwitchRequest(reason, network, expectedNetwork, EVM_CHAINS[network]);
+		}
+		const newNetwork = await this.getCurrentNetwork();
+		if (expectedNetwork !== newNetwork) {
+			throw new Error('Sorry, but you have to switch to the appropriate network before executing this operation');
+		}
+		return newNetwork;
+	}
+
+	async attachPublicKey(publicKey: Uint8Array, options?: any) {
 		const me = await this.getAuthenticatedAccount();
 		if (!me) {
 			throw new Error('Not authorized');
 		}
-		await this.blockchainController.registryContract.attachPublicKey(me.address, publicKey);
+		if (this.defaultRegistryContract) {
+			await this.defaultRegistryContract.attachPublicKey(me.address, publicKey);
+			return;
+		}
+		const network = await this.ensureNetworkOptions('Attach public key', options);
+		const registryContract = new RegistryContract(this.writeWeb3, EVM_CONTRACTS[network].registry.address);
+		await registryContract.attachPublicKey(me.address, publicKey);
 	}
 
 	async requestAuthentication(): Promise<null | IGenericAccount> {
-		const accounts: string[] = await this.blockchainController.writeWeb3.eth.requestAccounts();
+		const accounts: string[] = await this.writeWeb3.eth.requestAccounts();
 		if (accounts.length) {
 			return {
 				blockchain: 'everscale',
@@ -77,45 +161,42 @@ export class EthereumWalletController extends AbstractWalletController {
 		me: IGenericAccount,
 		contentData: Uint8Array,
 		recipients: { address: Uint256; messageKey: MessageKey }[],
+		options?: any,
 	): Promise<Uint256 | null> {
 		const uniqueId = Math.floor(Math.random() * 4 * 10 ** 9);
 		const chunks = MessageChunks.splitMessageChunks(contentData);
+		let mailer = this.defaultMailerContract;
+		if (!mailer) {
+			const network = await this.ensureNetworkOptions('Publish message', options);
+			mailer = new MailerContract(this.writeWeb3, EVM_CONTRACTS[network].mailer.address);
+		}
 		if (chunks.length === 1 && recipients.length === 1) {
-			const transaction = await this.blockchainController.mailerContract.sendSmallMail(
+			const transaction = await mailer.sendSmallMail(
 				me.address,
 				uniqueId,
 				recipients[0].address,
 				recipients[0].messageKey.toBytes(),
 				chunks[0],
 			);
-			// console.log('transaction: ', transaction);
 			return bigIntToUint256(transaction.events.MailContent.returnValues.msgId);
 		} else if (chunks.length === 1 && recipients.length < Math.ceil((15.5 * 1024 - chunks[0].byteLength) / 70)) {
-			const transaction = await this.blockchainController.mailerContract.sendBulkMail(
+			const transaction = await mailer.sendBulkMail(
 				me.address,
 				uniqueId,
 				recipients.map(r => r.address),
 				recipients.map(r => r.messageKey.toBytes()),
 				chunks[0],
 			);
-			// console.log('transaction: ', transaction);
 			return bigIntToUint256(transaction.events.MailContent.returnValues.msgId);
 		} else {
 			const initTime = Math.floor(Date.now() / 1000);
-			const msgId = await this.blockchainController.mailerContract.buildHash(me.address, uniqueId, initTime);
+			const msgId = await mailer.buildHash(me.address, uniqueId, initTime);
 			for (let i = 0; i < chunks.length; i++) {
-				await this.blockchainController.mailerContract.sendMultipartMailPart(
-					me.address,
-					uniqueId,
-					initTime,
-					chunks.length,
-					i,
-					chunks[i],
-				);
+				await mailer.sendMultipartMailPart(me.address, uniqueId, initTime, chunks.length, i, chunks[i]);
 			}
 			for (let i = 0; i < recipients.length; i += 210) {
 				const recs = recipients.slice(i, i + 210);
-				await this.blockchainController.mailerContract.addRecipients(
+				await mailer.addRecipients(
 					me.address,
 					uniqueId,
 					initTime,
@@ -127,30 +208,24 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 	}
 
-	async broadcastMessage(me: IGenericAccount, contentData: Uint8Array): Promise<Uint256 | null> {
+	async broadcastMessage(me: IGenericAccount, contentData: Uint8Array, options?: any): Promise<Uint256 | null> {
 		const uniqueId = Math.floor(Math.random() * 4 * 10 ** 9);
 		const chunks = MessageChunks.splitMessageChunks(contentData);
+		let mailer = this.defaultMailerContract;
+		if (!mailer) {
+			const network = await this.ensureNetworkOptions('Broadcast message', options);
+			mailer = new MailerContract(this.writeWeb3, EVM_CONTRACTS[network].mailer.address);
+		}
 		if (chunks.length === 1) {
-			const transaction = await this.blockchainController.mailerContract.broadcastMail(
-				me.address,
-				uniqueId,
-				chunks[0],
-			);
+			const transaction = await mailer.broadcastMail(me.address, uniqueId, chunks[0]);
 			return bigIntToUint256(transaction.events.MailBroadcast.returnValues.msgId);
 		} else {
 			const initTime = Math.floor(Date.now() / 1000);
-			const msgId = await this.blockchainController.mailerContract.buildHash(me.address, uniqueId, initTime);
+			const msgId = await mailer.buildHash(me.address, uniqueId, initTime);
 			for (let i = 0; i < chunks.length; i++) {
-				await this.blockchainController.mailerContract.sendMultipartMailPart(
-					me.address,
-					uniqueId,
-					initTime,
-					chunks.length,
-					i,
-					chunks[i],
-				);
+				await mailer.sendMultipartMailPart(me.address, uniqueId, initTime, chunks.length, i, chunks[i]);
 			}
-			await this.blockchainController.mailerContract.broadcastMailHeader(me.address, uniqueId, initTime);
+			await mailer.broadcastMailHeader(me.address, uniqueId, initTime);
 			return msgId;
 		}
 	}
@@ -168,6 +243,6 @@ export const ethereumWalletFactory: WalletControllerFactory = {
 	create: (options?: any) => new EthereumWalletController(options),
 	// @ts-ignore
 	isWalletAvailable: async () => !!(window['ethereum'] || window['web3']),
-	blockchain: 'ethereum',
+	blockchainGroup: 'evm',
 	wallet: 'web3',
 };

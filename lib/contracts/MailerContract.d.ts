@@ -1,12 +1,11 @@
 import { Uint256 } from '@ylide/sdk';
-import { Contract, EventData } from 'web3-eth-contract';
-import { EthereumBlockchainController } from '../controllers/EthereumBlockchainController';
-import { IEthereumContentMessageBody } from '../misc';
+import { Contract } from 'web3-eth-contract';
+import Web3 from 'web3';
 export declare class MailerContract {
-    private readonly blockchainController;
+    private readonly web3;
     readonly contractAddress: string;
     readonly contract: Contract;
-    constructor(blockchainController: EthereumBlockchainController, contractAddress: string);
+    constructor(web3: Web3, contractAddress: string);
     buildHash(address: string, uniqueId: number, time: number): Promise<Uint256>;
     estimateAndCall(address: string, method: string, args: any[]): Promise<any>;
     setFees(address: string, _contentPartFee: bigint, _recipientFee: bigint): Promise<any>;
@@ -18,7 +17,6 @@ export declare class MailerContract {
     broadcastMailHeader(address: string, uniqueId: number, initTime: number): Promise<any>;
     sendSmallMail(address: string, uniqueId: number, recipient: Uint256, key: Uint8Array, content: Uint8Array): Promise<any>;
     sendBulkMail(address: string, uniqueId: number, recipients: Uint256[], keys: Uint8Array[], content: Uint8Array): Promise<any>;
-    decodeContentMessageBody(ev: EventData): IEthereumContentMessageBody;
 }
 export declare const MAILER_ABI: {
     _format: string;

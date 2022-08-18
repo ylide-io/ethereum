@@ -1,15 +1,51 @@
 import { Contract } from 'web3-eth-contract';
-import { EthereumBlockchainController } from '../controllers';
+import Web3 from 'web3';
 export declare class RegistryContract {
-    private readonly blockchainController;
+    private readonly web3;
     private readonly contractAddress;
     readonly contract: Contract;
-    constructor(blockchainController: EthereumBlockchainController, contractAddress: string);
+    constructor(web3: Web3, contractAddress: string);
     estimateAndCall(address: string, method: string, args: any[]): Promise<any>;
-    getAddressByPublicKey(publicKey: Uint8Array): Promise<string | null>;
-    getPublicKeyByAddress(address: string): Promise<Uint8Array | null>;
     attachPublicKey(address: string, publicKey: Uint8Array): Promise<boolean>;
     attachAddress(address: string, publicKey: Uint8Array): Promise<boolean>;
-    private decodePublicKeyToAddressMessageBody;
-    private decodeAddressToPublicKeyMessageBody;
 }
+export declare const REGISTRY_ABI: {
+    _format: string;
+    contractName: string;
+    sourceName: string;
+    abi: ({
+        inputs: never[];
+        stateMutability: string;
+        type: string;
+        anonymous?: undefined;
+        name?: undefined;
+        outputs?: undefined;
+    } | {
+        anonymous: boolean;
+        inputs: {
+            indexed: boolean;
+            internalType: string;
+            name: string;
+            type: string;
+        }[];
+        name: string;
+        type: string;
+        stateMutability?: undefined;
+        outputs?: undefined;
+    } | {
+        inputs: {
+            internalType: string;
+            name: string;
+            type: string;
+        }[];
+        name: string;
+        outputs: never[];
+        stateMutability: string;
+        type: string;
+        anonymous?: undefined;
+    })[];
+    bytecode: string;
+    deployedBytecode: string;
+    linkReferences: {};
+    deployedLinkReferences: {};
+};

@@ -1,20 +1,17 @@
 import { Uint256, bigIntToUint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
-import { Contract, EventData } from 'web3-eth-contract';
+import { Contract } from 'web3-eth-contract';
 import { AbiItem } from 'web3-utils';
-import { EthereumBlockchainController } from '../controllers/EthereumBlockchainController';
-import { IEthereumContentMessageBody, publicKeyToBigIntString } from '../misc';
+import Web3 from 'web3';
+import { publicKeyToBigIntString } from '../misc';
 
 export class MailerContract {
 	readonly contractAddress: string;
 	readonly contract: Contract;
 
-	constructor(private readonly blockchainController: EthereumBlockchainController, contractAddress: string) {
+	constructor(private readonly web3: Web3, contractAddress: string) {
 		this.contractAddress = contractAddress;
-		this.contract = new this.blockchainController.writeWeb3.eth.Contract(
-			MAILER_ABI.abi as AbiItem[],
-			this.contractAddress,
-		);
+		this.contract = new this.web3.eth.Contract(MAILER_ABI.abi as AbiItem[], this.contractAddress);
 	}
 
 	async buildHash(address: string, uniqueId: number, time: number): Promise<Uint256> {
@@ -31,12 +28,12 @@ export class MailerContract {
 	}
 
 	async estimateAndCall(address: string, method: string, args: any[]) {
-		const data = this.blockchainController.writeWeb3.eth.abi.encodeFunctionCall(
+		const data = this.web3.eth.abi.encodeFunctionCall(
 			(MAILER_ABI.abi as AbiItem[]).find(t => t.name === method)!,
 			args,
 		);
-		const gasPrice = await this.blockchainController.writeWeb3.eth.getGasPrice();
-		const gas = await this.blockchainController.writeWeb3.eth.estimateGas({
+		const gasPrice = await this.web3.eth.getGasPrice();
+		const gas = await this.web3.eth.estimateGas({
 			to: this.contract.options.address,
 			data,
 		});
@@ -118,24 +115,12 @@ export class MailerContract {
 		keys: Uint8Array[],
 		content: Uint8Array,
 	) {
-		console.log('abc');
 		return await this.estimateAndCall(address, 'sendBulkMail', [
 			uniqueId,
 			recipients.map(r => '0x' + r),
 			keys.map(k => '0x' + new SmartBuffer(k).toHexString()),
 			'0x' + new SmartBuffer(content).toHexString(),
 		]);
-	}
-
-	decodeContentMessageBody(ev: EventData): IEthereumContentMessageBody {
-		const { msgId, sender, parts, partIdx, content } = ev.returnValues;
-		return {
-			sender,
-			msgId: bigIntToUint256(msgId),
-			parts: Number(parts),
-			partIdx: Number(partIdx),
-			content: SmartBuffer.ofHexString(content.substring(2)).bytes,
-		};
 	}
 }
 

@@ -1,27 +1,29 @@
 import { AbstractBlockchainController, IMessage, IMessageContent, IMessageCorruptedContent, IExtraEncryptionStrateryBulk, IExtraEncryptionStrateryEntry, MessageKey, PublicKey, BlockchainControllerFactory, Uint256 } from '@ylide/sdk';
-import { MailerContract, RegistryContract } from '../contracts';
-import { IEthereumMessage } from '../misc';
 import Web3 from 'web3';
+import { EVMNetwork, IEthereumMessage } from '../misc';
 import { provider } from 'web3-core';
 import { EventData } from 'web3-eth-contract';
 export declare class EthereumBlockchainController extends AbstractBlockchainController {
     private readonly options;
-    writeWeb3: Web3;
     web3Readers: Web3[];
     private blocksCache;
     readonly MESSAGES_FETCH_LIMIT = 50;
-    readonly mailerContract: MailerContract;
-    readonly registryContract: RegistryContract;
+    readonly mailerContractAddress: string;
+    readonly registryContractAddress: string;
+    readonly network: EVMNetwork;
+    readonly chainId: number;
     constructor(options?: {
+        network?: EVMNetwork;
         dev?: boolean;
         mailerContractAddress?: string;
         registryContractAddress?: string;
         mailerStartBlock?: number;
-        writeWeb3Provider?: any;
         web3Readers?: provider[];
     });
     executeWeb3Op<T>(callback: (w3: Web3) => Promise<T>): Promise<T>;
     getRecipientReadingRules(address: string): Promise<any>;
+    getAddressByPublicKey(publicKey: Uint8Array): Promise<string | null>;
+    getPublicKeyByAddress(registryAddress: string, address: string): Promise<Uint8Array | null>;
     extractAddressFromPublicKey(publicKey: PublicKey): Promise<string | null>;
     extractPublicKeyFromAddress(address: string): Promise<PublicKey | null>;
     private getBlock;
@@ -34,10 +36,11 @@ export declare class EthereumBlockchainController extends AbstractBlockchainCont
     getDefaultMailerAddress(): string;
     private _retrieveMessageHistoryByTime;
     private _retrieveMessageHistoryByBounds;
-    retrieveMessageHistoryByTime(recipient: Uint256 | null, mailerAddress?: string, fromTimestamp?: number, toTimestamp?: number, limit?: number): Promise<IMessage[]>;
-    retrieveMessageHistoryByBounds(recipient: Uint256 | null, mailerAddress?: string, fromMessage?: IMessage, toMessage?: IMessage, limit?: number): Promise<IMessage[]>;
-    retrieveBroadcastHistoryByTime(sender: Uint256 | null, mailerAddress?: string, fromTimestamp?: number, toTimestamp?: number, limit?: number): Promise<IMessage[]>;
-    retrieveBroadcastHistoryByBounds(sender: Uint256 | null, mailerAddress?: string, fromMessage?: IMessage, toMessage?: IMessage, limit?: number): Promise<IMessage[]>;
+    private iterateMailers;
+    retrieveMessageHistoryByTime(recipient: Uint256 | null, fromTimestamp?: number, toTimestamp?: number, limit?: number): Promise<IMessage[]>;
+    retrieveMessageHistoryByBounds(recipient: Uint256 | null, fromMessage?: IMessage, toMessage?: IMessage, limit?: number): Promise<IMessage[]>;
+    retrieveBroadcastHistoryByTime(sender: Uint256 | null, fromTimestamp?: number, toTimestamp?: number, limit?: number): Promise<IMessage[]>;
+    retrieveBroadcastHistoryByBounds(sender: Uint256 | null, fromMessage?: IMessage, toMessage?: IMessage, limit?: number): Promise<IMessage[]>;
     retrieveAndVerifyMessageContent(msg: IMessage): Promise<IMessageContent | IMessageCorruptedContent | null>;
     retrieveMessageContentByMsgId(msgId: string): Promise<IMessageContent | IMessageCorruptedContent | null>;
     private formatPushMessage;
@@ -51,4 +54,4 @@ export declare class EthereumBlockchainController extends AbstractBlockchainCont
     addressToUint256(address: string): Uint256;
     compareMessagesTime(a: IMessage, b: IMessage): number;
 }
-export declare const ethereumBlockchainFactory: BlockchainControllerFactory;
+export declare const evmFactories: Record<EVMNetwork, BlockchainControllerFactory>;

@@ -2,58 +2,29 @@ import { Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { Contract, EventData } from 'web3-eth-contract';
 import { AbiItem } from 'web3-utils';
-import { EthereumBlockchainController } from '../controllers';
+import Web3 from 'web3';
 import { publicKeyToBigIntString } from '../misc';
 
 export class RegistryContract {
 	private readonly contractAddress: string;
 	readonly contract: Contract;
 
-	constructor(private readonly blockchainController: EthereumBlockchainController, contractAddress: string) {
+	constructor(private readonly web3: Web3, contractAddress: string) {
 		this.contractAddress = contractAddress;
-		this.contract = new this.blockchainController.writeWeb3.eth.Contract(
-			REGISTRY_ABI.abi as AbiItem[],
-			this.contractAddress,
-		);
+		this.contract = new this.web3.eth.Contract(REGISTRY_ABI.abi as AbiItem[], this.contractAddress);
 	}
 
 	async estimateAndCall(address: string, method: string, args: any[]) {
-		const data = this.blockchainController.writeWeb3.eth.abi.encodeFunctionCall(
+		const data = this.web3.eth.abi.encodeFunctionCall(
 			(REGISTRY_ABI.abi as AbiItem[]).find(t => t.name === method)!,
 			args,
 		);
-		const gasPrice = await this.blockchainController.writeWeb3.eth.getGasPrice();
-		const gas = await this.blockchainController.writeWeb3.eth.estimateGas({
+		const gasPrice = await this.web3.eth.getGasPrice();
+		const gas = await this.web3.eth.estimateGas({
 			to: this.contract.options.address,
 			data,
 		});
 		return await this.contract.methods[method](...args).send({ from: address, gas, gasPrice });
-	}
-
-	async getAddressByPublicKey(publicKey: Uint8Array): Promise<string | null> {
-		// const messages = await this.blockchainController.gqlQueryMessages(
-		// 	getContractMessagesQuery(this.publicKeyToAddress(publicKey), this.contractAddress),
-		// );
-		// if (messages.length) {
-		// 	return this.decodePublicKeyToAddressMessageBody(messages[0].body);
-		// } else {
-		return null;
-		// }
-	}
-
-	async getPublicKeyByAddress(address: string): Promise<Uint8Array | null> {
-		const events = await this.contract.getPastEvents('AddressToPublicKey', {
-			filter: {
-				addr: address,
-			},
-			fromBlock: 0,
-			toBlock: 'latest',
-		});
-		if (events.length) {
-			return this.decodeAddressToPublicKeyMessageBody(events[events.length - 1]);
-		} else {
-			return null;
-		}
 	}
 
 	async attachPublicKey(address: string, publicKey: Uint8Array): Promise<boolean> {
@@ -65,19 +36,9 @@ export class RegistryContract {
 		await this.estimateAndCall(address, 'attachAddress', [publicKeyToBigIntString(publicKey)]);
 		return true;
 	}
-
-	private decodePublicKeyToAddressMessageBody(ev: EventData): string {
-		const { addr } = ev.returnValues;
-		return addr;
-	}
-
-	private decodeAddressToPublicKeyMessageBody(ev: EventData): Uint8Array {
-		const { publicKey } = ev.returnValues;
-		return SmartBuffer.ofHexString(BigInt(publicKey).toString(16).padStart(64, '0')).bytes;
-	}
 }
 
-const REGISTRY_ABI = {
+export const REGISTRY_ABI = {
 	_format: 'hh-sol-artifact-1',
 	contractName: 'YlideRegistryV1',
 	sourceName: 'contracts/YlideRegistryV1.sol',
