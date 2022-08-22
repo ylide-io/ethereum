@@ -51,7 +51,8 @@ export class EthereumWalletController extends AbstractWalletController {
 
 		this.onNetworkSwitchRequest = options.onNetworkSwitchRequest;
 
-		this.writeWeb3 = new Web3(options?.writeWeb3Provider || Web3.givenProvider);
+		// @ts-ignore
+		this.writeWeb3 = window.www3 = new Web3(options?.writeWeb3Provider || Web3.givenProvider);
 
 		this.mailerContractAddress = options.mailerContractAddress;
 		this.registryContractAddress = options.registryContractAddress;
@@ -64,16 +65,20 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 	}
 
+	private async ensureAccount(needAccount: IGenericAccount) {
+		const me = await this.getAuthenticatedAccount();
+		if (!me || me.address !== needAccount.address) {
+			throw new Error(`Need ${needAccount.address} account, got from wallet ${me?.address}`);
+		}
+	}
+
 	async requestYlidePrivateKey(me: IGenericAccount): Promise<Uint8Array | null> {
 		throw new Error('Method not available.');
 	}
 
-	async signMagicString(magicString: string): Promise<Uint8Array> {
-		const me = await this.getAuthenticatedAccount();
-		if (!me) {
-			throw new Error(`Can't derive without auth`);
-		}
-		const result = await this.writeWeb3.eth.personal.sign(magicString, me.address, 'null');
+	async signMagicString(account: IGenericAccount, magicString: string): Promise<Uint8Array> {
+		await this.ensureAccount(account);
+		const result = await this.writeWeb3.eth.personal.sign(magicString, account.address, 'null');
 		return sha256(SmartBuffer.ofHexString(result).bytes);
 	}
 
@@ -126,11 +131,8 @@ export class EthereumWalletController extends AbstractWalletController {
 		return newNetwork;
 	}
 
-	async attachPublicKey(publicKey: Uint8Array, options?: any) {
-		const me = await this.getAuthenticatedAccount();
-		if (!me) {
-			throw new Error('Not authorized');
-		}
+	async attachPublicKey(me: IGenericAccount, publicKey: Uint8Array, options?: any) {
+		await this.ensureAccount(me);
 		if (this.defaultRegistryContract) {
 			await this.defaultRegistryContract.attachPublicKey(me.address, publicKey);
 			return;
@@ -153,7 +155,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 	}
 
-	async disconnectAccount(): Promise<void> {
+	async disconnectAccount(account: IGenericAccount): Promise<void> {
 		// await this.blockchainController.web3.eth.;
 	}
 
@@ -163,6 +165,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		recipients: { address: Uint256; messageKey: MessageKey }[],
 		options?: any,
 	): Promise<Uint256 | null> {
+		await this.ensureAccount(me);
 		const uniqueId = Math.floor(Math.random() * 4 * 10 ** 9);
 		const chunks = MessageChunks.splitMessageChunks(contentData);
 		let mailer = this.defaultMailerContract;
@@ -209,6 +212,7 @@ export class EthereumWalletController extends AbstractWalletController {
 	}
 
 	async broadcastMessage(me: IGenericAccount, contentData: Uint8Array, options?: any): Promise<Uint256 | null> {
+		await this.ensureAccount(me);
 		const uniqueId = Math.floor(Math.random() * 4 * 10 ** 9);
 		const chunks = MessageChunks.splitMessageChunks(contentData);
 		let mailer = this.defaultMailerContract;
@@ -218,7 +222,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 		if (chunks.length === 1) {
 			const transaction = await mailer.broadcastMail(me.address, uniqueId, chunks[0]);
-			return bigIntToUint256(transaction.events.MailBroadcast.returnValues.msgId);
+			return bigIntToUint256(transaction.events.MailContent.returnValues.msgId);
 		} else {
 			const initTime = Math.floor(Date.now() / 1000);
 			const msgId = await mailer.buildHash(me.address, uniqueId, initTime);
@@ -231,8 +235,8 @@ export class EthereumWalletController extends AbstractWalletController {
 	}
 
 	decryptMessageKey(
-		senderPublicKey: PublicKey,
 		recipientAccount: IGenericAccount,
+		senderPublicKey: PublicKey,
 		encryptedKey: Uint8Array,
 	): Promise<Uint8Array> {
 		throw new Error('Native decryption is unavailable in Ethereum.');

@@ -5,21 +5,25 @@ import { provider } from 'web3-core';
 import { EventData } from 'web3-eth-contract';
 export declare class EthereumBlockchainController extends AbstractBlockchainController {
     private readonly options;
-    web3Readers: Web3[];
+    web3Readers: {
+        web3: Web3;
+        blockLimit: number;
+    }[];
     private blocksCache;
     readonly MESSAGES_FETCH_LIMIT = 50;
     readonly mailerContractAddress: string;
+    readonly mailerFirstBlock: number;
     readonly registryContractAddress: string;
+    readonly registryFirstBlock: number;
     readonly network: EVMNetwork;
     readonly chainId: number;
     constructor(options?: {
         network?: EVMNetwork;
         mailerContractAddress?: string;
         registryContractAddress?: string;
-        mailerStartBlock?: number;
         web3Readers?: provider[];
     });
-    executeWeb3Op<T>(callback: (w3: Web3) => Promise<T>): Promise<T>;
+    executeWeb3Op<T>(callback: (w3: Web3, blockLimit: number, doBreak: () => void) => Promise<T>): Promise<T>;
     getRecipientReadingRules(address: string): Promise<any>;
     getAddressByPublicKey(publicKey: Uint8Array): Promise<string | null>;
     getPublicKeyByAddress(registryAddress: string, address: string): Promise<Uint8Array | null>;
@@ -43,6 +47,7 @@ export declare class EthereumBlockchainController extends AbstractBlockchainCont
     retrieveAndVerifyMessageContent(msg: IMessage): Promise<IMessageContent | IMessageCorruptedContent | null>;
     retrieveMessageContentByMsgId(msgId: string): Promise<IMessageContent | IMessageCorruptedContent | null>;
     private formatPushMessage;
+    private formatBroadcastMessage;
     isAddressValid(address: string): boolean;
     processMessages(msgs: EventData[]): Promise<IEthereumMessage[]>;
     getExtraEncryptionStrategiesFromAddress(address: string): Promise<IExtraEncryptionStrateryEntry[]>;

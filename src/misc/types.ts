@@ -8,22 +8,22 @@ export enum EVMNetwork {
 	ETHEREUM,
 	BNBCHAIN,
 	POLYGON,
-	AVALANCHE,
+	ARBITRUM,
 	OPTIMISM,
 
-	ARBITRUM,
-	AURORA,
-	KLAYTN,
-	GNOSIS,
-	CRONOS,
+	AVALANCHE,
+	// AURORA,
+	// KLAYTN,
+	// GNOSIS,
+	// CRONOS,
 
-	CELO,
-	MOONRIVER,
-	MOONBEAM,
-	ASTAR,
-	HECO,
+	// CELO,
+	// MOONRIVER,
+	// MOONBEAM,
+	// ASTAR,
+	// HECO,
 
-	METIS,
+	// METIS,
 }
 
 export type IEthereumMessage = { event: EventData; tx: Transaction; block: BlockTransactionString };

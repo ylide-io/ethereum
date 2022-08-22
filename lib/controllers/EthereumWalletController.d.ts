@@ -18,21 +18,22 @@ export declare class EthereumWalletController extends AbstractWalletController {
         endpoint?: string;
         onNetworkSwitchRequest?: NetworkSwitchHandler;
     });
+    private ensureAccount;
     requestYlidePrivateKey(me: IGenericAccount): Promise<Uint8Array | null>;
-    signMagicString(magicString: string): Promise<Uint8Array>;
+    signMagicString(account: IGenericAccount, magicString: string): Promise<Uint8Array>;
     addressToUint256(address: string): Uint256;
     getAuthenticatedAccount(): Promise<IGenericAccount | null>;
     private getCurrentChainId;
     private getCurrentNetwork;
     private ensureNetworkOptions;
-    attachPublicKey(publicKey: Uint8Array, options?: any): Promise<void>;
+    attachPublicKey(me: IGenericAccount, publicKey: Uint8Array, options?: any): Promise<void>;
     requestAuthentication(): Promise<null | IGenericAccount>;
-    disconnectAccount(): Promise<void>;
+    disconnectAccount(account: IGenericAccount): Promise<void>;
     publishMessage(me: IGenericAccount, contentData: Uint8Array, recipients: {
         address: Uint256;
         messageKey: MessageKey;
     }[], options?: any): Promise<Uint256 | null>;
     broadcastMessage(me: IGenericAccount, contentData: Uint8Array, options?: any): Promise<Uint256 | null>;
-    decryptMessageKey(senderPublicKey: PublicKey, recipientAccount: IGenericAccount, encryptedKey: Uint8Array): Promise<Uint8Array>;
+    decryptMessageKey(recipientAccount: IGenericAccount, senderPublicKey: PublicKey, encryptedKey: Uint8Array): Promise<Uint8Array>;
 }
 export declare const ethereumWalletFactory: WalletControllerFactory;
