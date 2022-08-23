@@ -12,8 +12,9 @@ import {
 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import Web3 from 'web3';
-import { MailerContract, RegistryContract } from '../contracts';
-import { EVMNetwork, EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CONTRACTS } from '../misc';
+import { AbiItem } from 'web3-utils';
+import { MailerContract, MAILER_ABI, RegistryContract, REGISTRY_ABI } from '../contracts';
+import { EVMNetwork, EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CONTRACTS, EVM_NAMES } from '../misc';
 
 export type NetworkSwitchHandler = (
 	reason: string,
@@ -52,7 +53,8 @@ export class EthereumWalletController extends AbstractWalletController {
 		this.onNetworkSwitchRequest = options.onNetworkSwitchRequest;
 
 		// @ts-ignore
-		this.writeWeb3 = window.www3 = new Web3(options?.writeWeb3Provider || Web3.givenProvider);
+		window.ethWallet = this;
+		this.writeWeb3 = new Web3(options?.writeWeb3Provider || Web3.givenProvider);
 
 		this.mailerContractAddress = options.mailerContractAddress;
 		this.registryContractAddress = options.registryContractAddress;
@@ -63,6 +65,30 @@ export class EthereumWalletController extends AbstractWalletController {
 		if (this.registryContractAddress) {
 			this.defaultRegistryContract = new RegistryContract(this.writeWeb3, this.registryContractAddress);
 		}
+	}
+
+	async deployMailer() {
+		const newInstance = new this.writeWeb3.eth.Contract(MAILER_ABI.abi as AbiItem[]);
+		const tx = await newInstance
+			.deploy({
+				data: MAILER_ABI.bytecode,
+			})
+			.send({
+				from: (await this.getAuthenticatedAccount())!.address,
+			});
+		console.log('contract address: ', tx.options.address); // tslint:disable-line
+	}
+
+	async deployRegistry() {
+		const newInstance = new this.writeWeb3.eth.Contract(REGISTRY_ABI.abi as AbiItem[]);
+		const tx = await newInstance
+			.deploy({
+				data: REGISTRY_ABI.bytecode,
+			})
+			.send({
+				from: (await this.getAuthenticatedAccount())!.address,
+			});
+		console.log('contract address: ', tx.options.address); // tslint:disable-line
 	}
 
 	private async ensureAccount(needAccount: IGenericAccount) {
@@ -115,6 +141,10 @@ export class EthereumWalletController extends AbstractWalletController {
 		return res;
 	}
 
+	async getCurrentBlockchain(): Promise<string> {
+		return EVM_NAMES[await this.getCurrentNetwork()];
+	}
+
 	private async ensureNetworkOptions(reason: string, options?: any) {
 		if (!options || !EVM_CONTRACTS[options.network as EVMNetwork]) {
 			throw new Error(`Please, pass network param in options in order to execute this request`);
@@ -146,7 +176,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		const accounts: string[] = await this.writeWeb3.eth.requestAccounts();
 		if (accounts.length) {
 			return {
-				blockchain: 'everscale',
+				blockchain: 'evm',
 				address: accounts[0].toString(),
 				publicKey: null,
 			};

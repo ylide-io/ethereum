@@ -18,6 +18,8 @@ export declare class EthereumWalletController extends AbstractWalletController {
         endpoint?: string;
         onNetworkSwitchRequest?: NetworkSwitchHandler;
     });
+    deployMailer(): Promise<void>;
+    deployRegistry(): Promise<void>;
     private ensureAccount;
     requestYlidePrivateKey(me: IGenericAccount): Promise<Uint8Array | null>;
     signMagicString(account: IGenericAccount, magicString: string): Promise<Uint8Array>;
@@ -25,6 +27,7 @@ export declare class EthereumWalletController extends AbstractWalletController {
     getAuthenticatedAccount(): Promise<IGenericAccount | null>;
     private getCurrentChainId;
     private getCurrentNetwork;
+    getCurrentBlockchain(): Promise<string>;
     private ensureNetworkOptions;
     attachPublicKey(me: IGenericAccount, publicKey: Uint8Array, options?: any): Promise<void>;
     requestAuthentication(): Promise<null | IGenericAccount>;

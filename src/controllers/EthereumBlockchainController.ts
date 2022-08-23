@@ -93,11 +93,13 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	async executeWeb3Op<T>(callback: (w3: Web3, blockLimit: number, doBreak: () => void) => Promise<T>): Promise<T> {
+		let lastError;
 		for (const w3 of this.web3Readers) {
 			let doBreak = false;
 			try {
 				return await callback(w3.web3, w3.blockLimit, () => (doBreak = true));
 			} catch (err: any) {
+				lastError = err;
 				if (err && typeof err.message === 'string' && err.message.includes('blocks range')) {
 					throw err;
 				}
@@ -108,6 +110,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				}
 			}
 		}
+		// console.error('lastError: ', lastError);
 		throw new Error('Was not able to execute in all of web3 providers');
 	}
 
@@ -129,61 +132,72 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	async getPublicKeyByAddress(registryAddress: string, address: string): Promise<Uint8Array | null> {
 		return await this.executeWeb3Op(async (w3, blockLimit) => {
 			const contract = new w3.eth.Contract(REGISTRY_ABI.abi as AbiItem[], registryAddress);
-			let events: EventData[] = [];
-			if (blockLimit) {
-				const latestBlockNumber = await w3.eth.getBlockNumber();
-				for (let i = latestBlockNumber; i > this.registryFirstBlock; i -= blockLimit) {
-					const tempEvents = await contract.getPastEvents('AddressToPublicKey', {
-						filter: {
-							addr: address,
-						},
-						fromBlock: Math.max(i - blockLimit, 0),
-						toBlock: i,
-					});
-					if (tempEvents.length) {
-						events = tempEvents;
-						break;
-					}
-				}
-			} else {
-				try {
-					events = await contract.getPastEvents('AddressToPublicKey', {
-						filter: {
-							addr: address,
-						},
-						fromBlock: this.registryFirstBlock,
-						toBlock: 'latest',
-					});
-				} catch (err: any) {
-					if (err && typeof err.message === 'string' && err.message.includes('range')) {
-						const max = err.message.includes('max: ')
-							? parseInt(err.message.split('max: ')[1], 10) - 1
-							: 9999;
-						const lastBlock = await w3.eth.getBlockNumber();
-						for (let i = lastBlock; i > this.registryFirstBlock; i -= max) {
-							const tempEvents = await contract.getPastEvents('AddressToPublicKey', {
-								filter: {
-									addr: address,
-								},
-								fromBlock: Math.max(i - max, 0),
-								toBlock: i,
-							});
-							if (tempEvents.length) {
-								events = tempEvents;
-								break;
-							}
-						}
-					} else {
-						throw err;
-					}
-				}
-			}
-			if (events.length) {
-				return decodeAddressToPublicKeyMessageBody(events[events.length - 1]);
-			} else {
+			const result = await contract.methods.addressToPublicKey(address).call();
+			if (result === '0' || result === '0x0') {
 				return null;
+			} else {
+				const hex = w3.utils.toHex(result);
+				return SmartBuffer.ofHexString(hex.substring(2).padStart(64, '0')).bytes;
 			}
 		});
+
+		// return await this.executeWeb3Op(async (w3, blockLimit) => {
+		// 	const contract = new w3.eth.Contract(REGISTRY_ABI.abi as AbiItem[], registryAddress);
+		// 	let events: EventData[] = [];
+		// 	if (blockLimit) {
+		// 		const latestBlockNumber = await w3.eth.getBlockNumber();
+		// 		for (let i = latestBlockNumber; i > this.registryFirstBlock; i -= blockLimit) {
+		// 			const tempEvents = await contract.getPastEvents('AddressToPublicKey', {
+		// 				filter: {
+		// 					addr: address,
+		// 				},
+		// 				fromBlock: Math.max(i - blockLimit, 0),
+		// 				toBlock: i,
+		// 			});
+		// 			if (tempEvents.length) {
+		// 				events = tempEvents;
+		// 				break;
+		// 			}
+		// 		}
+		// 	} else {
+		// 		try {
+		// 			events = await contract.getPastEvents('AddressToPublicKey', {
+		// 				filter: {
+		// 					addr: address,
+		// 				},
+		// 				fromBlock: this.registryFirstBlock,
+		// 				toBlock: 'latest',
+		// 			});
+		// 		} catch (err: any) {
+		// 			if (err && typeof err.message === 'string' && err.message.includes('range')) {
+		// 				const max = err.message.includes('max: ')
+		// 					? parseInt(err.message.split('max: ')[1], 10) - 1
+		// 					: 9999;
+		// 				const lastBlock = await w3.eth.getBlockNumber();
+		// 				for (let i = lastBlock; i > this.registryFirstBlock; i -= max) {
+		// 					const tempEvents = await contract.getPastEvents('AddressToPublicKey', {
+		// 						filter: {
+		// 							addr: address,
+		// 						},
+		// 						fromBlock: Math.max(i - max, 0),
+		// 						toBlock: i,
+		// 					});
+		// 					if (tempEvents.length) {
+		// 						events = tempEvents;
+		// 						break;
+		// 					}
+		// 				}
+		// 			} else {
+		// 				throw err;
+		// 			}
+		// 		}
+		// 	}
+		// 	if (events.length) {
+		// 		return decodeAddressToPublicKeyMessageBody(events[events.length - 1]);
+		// 	} else {
+		// 		return null;
+		// 	}
+		// });
 	}
 
 	async extractAddressFromPublicKey(publicKey: PublicKey): Promise<string | null> {
