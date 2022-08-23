@@ -23,7 +23,7 @@ import Web3 from 'web3';
 import { EVM_CONTRACTS, IEthereumContractLink } from '../misc/constants';
 import { MAILER_ABI, REGISTRY_ABI } from '../contracts';
 import { EVMNetwork, EVM_CHAINS, EVM_NAMES, EVM_RPCS, IEthereumContentMessageBody, IEthereumMessage } from '../misc';
-import { Transaction, provider } from 'web3-core';
+import { Transaction, provider, BlockNumber } from 'web3-core';
 import { BlockTransactionString } from 'web3-eth';
 import { EventData } from 'web3-eth-contract';
 import { AbiItem } from 'web3-utils';
@@ -225,7 +225,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return this.blocksCache[n];
 	}
 
-	private async getLastBlockNumber() {
+	async getLastBlockNumber() {
 		return this.executeWeb3Op(w3 => w3.eth.getBlockNumber());
 	}
 
@@ -267,6 +267,30 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return { fromBlock, toBlock };
 	}
 
+	private async doEventsRequest(
+		mailerAddress: string,
+		subject: ISourceSubject,
+		w3: Web3,
+		fromBlock: BlockNumber,
+		toBlock: BlockNumber,
+	) {
+		const ctrct = new w3.eth.Contract(MAILER_ABI.abi as AbiItem[], mailerAddress);
+		return await ctrct.getPastEvents(
+			subject.type === BlockchainSourceSubjectType.RECIPIENT ? 'MailPush' : 'MailBroadcast',
+			{
+				filter: subject.address
+					? subject.type === BlockchainSourceSubjectType.RECIPIENT
+						? {
+								recipient: '0x' + uint256ToHex(subject.address),
+						  }
+						: { sender: this.uint256ToAddress(subject.address) }
+					: undefined,
+				fromBlock,
+				toBlock,
+			},
+		);
+	}
+
 	private async tryRequest(
 		mailerAddress: string,
 		subject: ISourceSubject,
@@ -281,22 +305,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 						doBreak();
 						throw new Error(`Block limit is ${blockLimit}`);
 					}
-					const ctrct = new w3.eth.Contract(MAILER_ABI.abi as AbiItem[], mailerAddress);
-					const val = await ctrct.getPastEvents(
-						subject.type === BlockchainSourceSubjectType.RECIPIENT ? 'MailPush' : 'MailBroadcast',
-						{
-							filter: subject.address
-								? subject.type === BlockchainSourceSubjectType.RECIPIENT
-									? {
-											recipient: '0x' + uint256ToHex(subject.address),
-									  }
-									: { sender: this.uint256ToAddress(subject.address) }
-								: undefined,
-							fromBlock: fromBlockNumber,
-							toBlock: toBlockNumber,
-						},
-					);
-					return val;
+					return this.doEventsRequest(mailerAddress, subject, w3, fromBlockNumber, toBlockNumber);
 				}),
 			};
 		} catch (err) {
@@ -320,7 +329,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 	}
 
-	private async retrieveEventsByBounds(
+	async retrieveEventsByBounds(
 		mailerAddress: string,
 		subject: ISourceSubject,
 		fromBlockNumber: number,
@@ -368,6 +377,19 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 	}
 
+	private async _retrieveEventsSinceBlock(
+		mailerAddress: string,
+		subject: ISourceSubject,
+		fromBlockNumber: number,
+		limit?: number,
+	): Promise<EventData[]> {
+		const full = await this.executeWeb3Op(async w3 => {
+			return await this.doEventsRequest(mailerAddress, subject, w3, fromBlockNumber, 'latest');
+		});
+		const sortedData = full.sort(this.eventCmpr);
+		return limit ? sortedData.slice(0, limit) : sortedData;
+	}
+
 	getDefaultMailerAddress() {
 		return this.mailerContractAddress;
 	}
@@ -400,6 +422,23 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			r =>
 				(!fromTimestamp || r.blockchainMeta.block.timestamp > fromTimestamp) &&
 				(!toTimestamp || r.blockchainMeta.block.timestamp <= toTimestamp),
+		);
+	}
+
+	async retrieveHistorySinceBlock(subject: ISourceSubject, fromBlock: number, firstMessage?: IMessage) {
+		const rawEvents = await this._retrieveEventsSinceBlock(this.getDefaultMailerAddress(), subject, fromBlock);
+
+		const bottomBound = firstMessage
+			? rawEvents.findIndex(r => bigIntToUint256(r.returnValues.msgId) === firstMessage.msgId)
+			: -1;
+
+		const events = rawEvents.slice(0, bottomBound === -1 ? undefined : bottomBound);
+
+		const msgs = await this.processMessages(events);
+		return msgs.map(m =>
+			subject.type === BlockchainSourceSubjectType.RECIPIENT
+				? this.formatPushMessage(m)
+				: this.formatBroadcastMessage(m),
 		);
 	}
 
@@ -438,7 +477,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				? this.formatPushMessage(m)
 				: this.formatBroadcastMessage(m),
 		);
-		const output = result.slice(topBound === -1 ? 0 : topBound + 1, bottomBound === -1 ? undefined : bottomBound);
+		const output = result;
 		return output;
 	}
 

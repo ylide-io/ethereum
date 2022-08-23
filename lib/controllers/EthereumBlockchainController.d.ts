@@ -1,4 +1,4 @@
-import { AbstractBlockchainController, IMessage, IMessageContent, IMessageCorruptedContent, IExtraEncryptionStrateryBulk, IExtraEncryptionStrateryEntry, MessageKey, PublicKey, BlockchainControllerFactory, Uint256 } from '@ylide/sdk';
+import { AbstractBlockchainController, IMessage, IMessageContent, IMessageCorruptedContent, IExtraEncryptionStrateryBulk, IExtraEncryptionStrateryEntry, MessageKey, PublicKey, BlockchainControllerFactory, Uint256, ISourceSubject } from '@ylide/sdk';
 import Web3 from 'web3';
 import { EVMNetwork, IEthereumMessage } from '../misc';
 import { provider } from 'web3-core';
@@ -30,14 +30,17 @@ export declare class EthereumBlockchainController extends AbstractBlockchainCont
     extractAddressFromPublicKey(publicKey: PublicKey): Promise<string | null>;
     extractPublicKeyFromAddress(address: string): Promise<PublicKey | null>;
     private getBlock;
-    private getLastBlockNumber;
+    getLastBlockNumber(): Promise<number>;
     private getBlockNumberByTime;
     private binSearchBlocks;
+    private doEventsRequest;
     private tryRequest;
     private eventCmpr;
-    private retrieveEventsByBounds;
+    retrieveEventsByBounds(mailerAddress: string, subject: ISourceSubject, fromBlockNumber: number, toBlockNumber: number, limit?: number): Promise<EventData[]>;
+    private _retrieveEventsSinceBlock;
     getDefaultMailerAddress(): string;
     private _retrieveMessageHistoryByTime;
+    retrieveHistorySinceBlock(subject: ISourceSubject, fromBlock: number, firstMessage?: IMessage): Promise<import("@ylide/sdk").IMessageBase[]>;
     private _retrieveMessageHistoryByBounds;
     private iterateMailers;
     retrieveMessageHistoryByTime(recipient: Uint256 | null, fromTimestamp?: number, toTimestamp?: number, limit?: number): Promise<IMessage[]>;
