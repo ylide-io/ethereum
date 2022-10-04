@@ -1,3 +1,4 @@
+import { SwitchAccountCallback } from '@ylide/sdk';
 import {
 	IGenericAccount,
 	AbstractWalletController,
@@ -9,6 +10,9 @@ import {
 	Uint256,
 	bigIntToUint256,
 	hexToUint256,
+	WalletEvent,
+	YlideError,
+	YlideErrorType,
 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import Web3 from 'web3';
@@ -32,6 +36,8 @@ export class EthereumWalletController extends AbstractWalletController {
 	private readonly registryContractAddress?: string;
 	private readonly onNetworkSwitchRequest: NetworkSwitchHandler;
 
+	private lastCurrentAccount: IGenericAccount | null = null;
+
 	constructor(
 		options: {
 			dev?: boolean;
@@ -40,9 +46,12 @@ export class EthereumWalletController extends AbstractWalletController {
 			writeWeb3Provider?: any;
 			endpoint?: string;
 			onNetworkSwitchRequest?: NetworkSwitchHandler;
+			onSwitchAccountRequest?: SwitchAccountCallback;
 		} = {},
 	) {
 		super(options);
+
+		this.onSwitchAccountRequest = options?.onSwitchAccountRequest || null;
 
 		if (!options || !options.onNetworkSwitchRequest) {
 			throw new Error(
@@ -64,6 +73,40 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 		if (this.registryContractAddress) {
 			this.defaultRegistryContract = new RegistryContract(this.writeWeb3, this.registryContractAddress);
+		}
+	}
+
+	async init() {
+		// @ts-ignore
+		const eth = window && window['ethereum'];
+
+		this.lastCurrentAccount = await this.getAuthenticatedAccount();
+
+		if (eth) {
+			eth.on('accountsChanged', (data: string[]) => {
+				if (data.length && !this.lastCurrentAccount) {
+					this.lastCurrentAccount = {
+						blockchain: 'evm',
+						address: data[0].toString().toLowerCase(),
+						publicKey: null,
+					};
+					this.emit(WalletEvent.LOGIN, this.lastCurrentAccount);
+				} else if (!data.length && this.lastCurrentAccount) {
+					this.lastCurrentAccount = null;
+					this.emit(WalletEvent.LOGOUT);
+				} else if (data.length && this.lastCurrentAccount) {
+					this.lastCurrentAccount = {
+						blockchain: 'evm',
+						address: data[0].toString().toLowerCase(),
+						publicKey: null,
+					};
+					this.emit(WalletEvent.ACCOUNT_CHANGED, this.lastCurrentAccount);
+				}
+			});
+			eth.on('chainChanged', (chainId: string) => {
+				const evmNetwork = EVM_CHAIN_ID_TO_NETWORK[Number(BigInt(chainId).toString(10))];
+				this.emit(WalletEvent.BLOCKCHAIN_CHANGED, EVM_NAMES[evmNetwork] || chainId);
+			});
 		}
 	}
 
@@ -92,9 +135,13 @@ export class EthereumWalletController extends AbstractWalletController {
 	}
 
 	private async ensureAccount(needAccount: IGenericAccount) {
-		const me = await this.getAuthenticatedAccount();
+		let me = await this.getAuthenticatedAccount();
 		if (!me || me.address !== needAccount.address) {
-			throw new Error(`Need ${needAccount.address} account, got from wallet ${me?.address}`);
+			await this.switchAccountRequest(me, needAccount);
+			me = await this.getAuthenticatedAccount();
+		}
+		if (!me || me.address !== needAccount.address) {
+			throw new YlideError(YlideErrorType.ACCOUNT_UNREACHABLE, { currentAccount: me, needAccount });
 		}
 	}
 
@@ -118,12 +165,14 @@ export class EthereumWalletController extends AbstractWalletController {
 	async getAuthenticatedAccount(): Promise<IGenericAccount | null> {
 		const accounts: string[] = await this.writeWeb3.eth.getAccounts();
 		if (accounts.length) {
-			return {
+			this.lastCurrentAccount = {
 				blockchain: 'evm',
-				address: accounts[0].toString(),
+				address: accounts[0].toString().toLowerCase(),
 				publicKey: null,
 			};
+			return this.lastCurrentAccount;
 		} else {
+			this.lastCurrentAccount = null;
 			return null;
 		}
 	}
@@ -175,18 +224,23 @@ export class EthereumWalletController extends AbstractWalletController {
 	async requestAuthentication(): Promise<null | IGenericAccount> {
 		const accounts: string[] = await this.writeWeb3.eth.requestAccounts();
 		if (accounts.length) {
-			return {
+			this.lastCurrentAccount = {
 				blockchain: 'evm',
-				address: accounts[0].toString(),
+				address: accounts[0].toString().toLowerCase(),
 				publicKey: null,
 			};
+			return this.lastCurrentAccount;
 		} else {
 			throw new Error('Not authenticated');
 		}
 	}
 
+	isMultipleAccountsSupported() {
+		return true;
+	}
+
 	async disconnectAccount(account: IGenericAccount): Promise<void> {
-		// await this.blockchainController.web3.eth.;
+		//
 	}
 
 	async publishMessage(
@@ -274,7 +328,7 @@ export class EthereumWalletController extends AbstractWalletController {
 }
 
 export const ethereumWalletFactory: WalletControllerFactory = {
-	create: (options?: any) => new EthereumWalletController(options),
+	create: async (options?: any) => new EthereumWalletController(options),
 	// @ts-ignore
 	isWalletAvailable: async () => !!(window['ethereum'] || window['web3']), // tslint:disable-line
 	blockchainGroup: 'evm',

@@ -1,4 +1,4 @@
-import { BlockchainSource, BlockchainSourceSubjectType, GenericEntryPure, IMessage, ISourceSubject } from '@ylide/sdk';
+import { BlockchainSource, GenericEntryPure, IMessage, ISourceSubject } from '@ylide/sdk';
 import { EthereumBlockchainController } from './EthereumBlockchainController';
 
 export class EthereumBlockchainSource extends BlockchainSource {
@@ -9,8 +9,9 @@ export class EthereumBlockchainSource extends BlockchainSource {
 		public readonly subject: ISourceSubject,
 		protected _pullCycle: number = 5000,
 		public readonly limit = 50,
+		public readonly meta: any = null,
 	) {
-		super(reader, subject, _pullCycle, limit);
+		super(reader, subject, _pullCycle, limit, meta);
 	}
 
 	// async getBefore(entry: GenericEntryPure<IMessage>, limit: number): Promise<GenericEntryPure<IMessage>[]> {

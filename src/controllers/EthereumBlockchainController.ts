@@ -17,10 +17,10 @@ import {
 	uint256ToHex,
 	ISourceSubject,
 	uint256ToUint8Array,
-	BlockchainSourceSubjectType,
+	BlockchainSourceType,
 } from '@ylide/sdk';
 import Web3 from 'web3';
-import { EVM_CONTRACTS, IEthereumContractLink } from '../misc/constants';
+import { EVM_CONTRACTS, EVM_ENS, IEthereumContractLink } from '../misc/constants';
 import { MAILER_ABI, REGISTRY_ABI } from '../contracts';
 import { EVMNetwork, EVM_CHAINS, EVM_NAMES, EVM_RPCS, IEthereumContentMessageBody, IEthereumMessage } from '../misc';
 import { Transaction, provider, BlockNumber } from 'web3-core';
@@ -28,6 +28,7 @@ import { BlockTransactionString } from 'web3-eth';
 import { EventData } from 'web3-eth-contract';
 import { AbiItem } from 'web3-utils';
 import { decodeAddressToPublicKeyMessageBody, decodeContentMessageBody } from '../contracts/contractUtils';
+import { EthereumNameService } from './EthereumNameService';
 
 export class EthereumBlockchainController extends AbstractBlockchainController {
 	web3Readers: {
@@ -47,11 +48,14 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	readonly network: EVMNetwork;
 	readonly chainId: number;
 
+	readonly nameService: EthereumNameService | null = null;
+
 	constructor(
 		private readonly options: {
 			network?: EVMNetwork;
 			mailerContractAddress?: string;
 			registryContractAddress?: string;
+			nameServiceAddress?: string;
 			web3Readers?: provider[];
 		} = {},
 	) {
@@ -90,10 +94,31 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		this.registryContractAddress = options.registryContractAddress || EVM_CONTRACTS[this.network].registry.address;
 		this.registryFirstBlock = EVM_CONTRACTS[this.network].registry.fromBlock || 0;
 		this.mailerFirstBlock = EVM_CONTRACTS[this.network].mailer.fromBlock || 0;
+
+		this.nameService = options?.nameServiceAddress
+			? new EthereumNameService(this, options?.nameServiceAddress)
+			: this.tryGetNameService();
+	}
+
+	private tryGetNameService(): EthereumNameService | null {
+		return EVM_ENS[this.network] ? new EthereumNameService(this, EVM_ENS[this.network]!) : null;
+	}
+
+	defaultNameService(): EthereumNameService | null {
+		return this.nameService;
+	}
+
+	async init(): Promise<void> {
+		// np
+	}
+
+	async getBalance(address: string): Promise<string> {
+		return Web3.utils.fromWei(await this.executeWeb3Op(w3 => w3.eth.getBalance(address)));
 	}
 
 	async executeWeb3Op<T>(callback: (w3: Web3, blockLimit: number, doBreak: () => void) => Promise<T>): Promise<T> {
 		let lastError;
+		const errors = [];
 		for (const w3 of this.web3Readers) {
 			let doBreak = false;
 			try {
@@ -103,6 +128,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				if (err && typeof err.message === 'string' && err.message.includes('blocks range')) {
 					throw err;
 				}
+				errors.push(err);
 				if (doBreak) {
 					break;
 				} else {
@@ -111,6 +137,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			}
 		}
 		// console.error('lastError: ', lastError);
+		errors.forEach(err => console.error('w3 err: ', err));
 		throw new Error('Was not able to execute in all of web3 providers');
 	}
 
@@ -275,20 +302,20 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		toBlock: BlockNumber,
 	) {
 		const ctrct = new w3.eth.Contract(MAILER_ABI.abi as AbiItem[], mailerAddress);
-		return await ctrct.getPastEvents(
-			subject.type === BlockchainSourceSubjectType.RECIPIENT ? 'MailPush' : 'MailBroadcast',
-			{
-				filter: subject.address
-					? subject.type === BlockchainSourceSubjectType.RECIPIENT
+		return await ctrct.getPastEvents(subject.type === BlockchainSourceType.DIRECT ? 'MailPush' : 'MailBroadcast', {
+			filter:
+				subject.type === BlockchainSourceType.DIRECT
+					? subject.recipient
 						? {
-								recipient: '0x' + uint256ToHex(subject.address),
+								recipient: '0x' + uint256ToHex(subject.recipient),
 						  }
-						: { sender: this.uint256ToAddress(subject.address) }
-					: undefined,
-				fromBlock,
-				toBlock,
-			},
-		);
+						: {}
+					: subject.sender
+					? { sender: this.uint256ToAddress(subject.sender) }
+					: {},
+			fromBlock,
+			toBlock,
+		});
 	}
 
 	private async tryRequest(
@@ -414,14 +441,12 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		);
 		const msgs = await this.processMessages(events);
 		const result = msgs.map(m =>
-			subject.type === BlockchainSourceSubjectType.RECIPIENT
-				? this.formatPushMessage(m)
-				: this.formatBroadcastMessage(m),
+			subject.type === BlockchainSourceType.DIRECT ? this.formatPushMessage(m) : this.formatBroadcastMessage(m),
 		);
 		return result.filter(
 			r =>
-				(!fromTimestamp || r.blockchainMeta.block.timestamp > fromTimestamp) &&
-				(!toTimestamp || r.blockchainMeta.block.timestamp <= toTimestamp),
+				(!fromTimestamp || r.$$blockchainMetaDontUseThisField.block.timestamp > fromTimestamp) &&
+				(!toTimestamp || r.$$blockchainMetaDontUseThisField.block.timestamp <= toTimestamp),
 		);
 	}
 
@@ -436,9 +461,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 		const msgs = await this.processMessages(events);
 		return msgs.map(m =>
-			subject.type === BlockchainSourceSubjectType.RECIPIENT
-				? this.formatPushMessage(m)
-				: this.formatBroadcastMessage(m),
+			subject.type === BlockchainSourceType.DIRECT ? this.formatPushMessage(m) : this.formatBroadcastMessage(m),
 		);
 	}
 
@@ -449,8 +472,12 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		toMessage?: IMessage,
 		limit?: number,
 	): Promise<IMessage[]> {
-		const fromBlockNumber = fromMessage ? fromMessage.blockchainMeta.block.number : this.mailerFirstBlock || 0;
-		const toBlockNumber = toMessage ? toMessage.blockchainMeta.block.number : await this.getLastBlockNumber();
+		const fromBlockNumber = fromMessage
+			? fromMessage.$$blockchainMetaDontUseThisField.block.number
+			: this.mailerFirstBlock || 0;
+		const toBlockNumber = toMessage
+			? toMessage.$$blockchainMetaDontUseThisField.block.number
+			: await this.getLastBlockNumber();
 		const rawEvents = await this.retrieveEventsByBounds(
 			mailerAddress,
 			subject,
@@ -473,9 +500,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 		const msgs = await this.processMessages(events);
 		const result = msgs.map(m =>
-			subject.type === BlockchainSourceSubjectType.RECIPIENT
-				? this.formatPushMessage(m)
-				: this.formatBroadcastMessage(m),
+			subject.type === BlockchainSourceType.DIRECT ? this.formatPushMessage(m) : this.formatBroadcastMessage(m),
 		);
 		const output = result;
 		return output;
@@ -495,6 +520,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	async retrieveMessageHistoryByTime(
+		sender: Uint256 | null,
 		recipient: Uint256 | null,
 		fromTimestamp?: number,
 		toTimestamp?: number,
@@ -503,7 +529,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return this.iterateMailers(limit, mailer =>
 			this._retrieveMessageHistoryByTime(
 				mailer.address,
-				{ type: BlockchainSourceSubjectType.RECIPIENT, address: recipient },
+				{ type: BlockchainSourceType.DIRECT, sender, recipient },
 				fromTimestamp,
 				toTimestamp,
 				limit,
@@ -512,6 +538,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	async retrieveMessageHistoryByBounds(
+		sender: Uint256 | null,
 		recipient: Uint256 | null,
 		fromMessage?: IMessage,
 		toMessage?: IMessage,
@@ -520,7 +547,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return this.iterateMailers(limit, mailer =>
 			this._retrieveMessageHistoryByBounds(
 				mailer.address,
-				{ type: BlockchainSourceSubjectType.RECIPIENT, address: recipient },
+				{ type: BlockchainSourceType.DIRECT, sender, recipient },
 				fromMessage,
 				toMessage,
 				limit,
@@ -537,7 +564,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return this.iterateMailers(limit, mailer =>
 			this._retrieveMessageHistoryByTime(
 				mailer.address,
-				{ type: BlockchainSourceSubjectType.AUTHOR, address: sender },
+				{ type: BlockchainSourceType.BROADCAST, sender },
 				fromTimestamp,
 				toTimestamp,
 				limit,
@@ -554,7 +581,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return this.iterateMailers(limit, mailer =>
 			this._retrieveMessageHistoryByBounds(
 				mailer.address,
-				{ type: BlockchainSourceSubjectType.AUTHOR, address: sender },
+				{ type: BlockchainSourceType.BROADCAST, sender },
 				fromMessage,
 				toMessage,
 				limit,
@@ -703,13 +730,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 			key: SmartBuffer.ofHexString(key.substring(2)).bytes,
 
-			isContentLoaded: false,
-			isContentDecrypted: false,
-			contentLink: null,
-			decryptedContent: null,
-
-			blockchainMeta: message,
-			userspaceMeta: null,
+			$$blockchainMetaDontUseThisField: message,
 		};
 	}
 
@@ -728,13 +749,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 			key: new Uint8Array(),
 
-			isContentLoaded: false,
-			isContentDecrypted: false,
-			contentLink: null,
-			decryptedContent: null,
-
-			blockchainMeta: message,
-			userspaceMeta: null,
+			$$blockchainMetaDontUseThisField: message,
 		};
 	}
 
@@ -842,7 +857,9 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 	compareMessagesTime(a: IMessage, b: IMessage): number {
 		if (a.createdAt === b.createdAt) {
-			return a.blockchainMeta.event.logIndex - b.blockchainMeta.event.logIndex;
+			return (
+				a.$$blockchainMetaDontUseThisField.event.logIndex - b.$$blockchainMetaDontUseThisField.event.logIndex
+			);
 		} else {
 			return a.createdAt - b.createdAt;
 		}
@@ -851,7 +868,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 function getBlockchainFactory(network: EVMNetwork): BlockchainControllerFactory {
 	return {
-		create: (options?: any) => new EthereumBlockchainController(Object.assign({ network }, options || {})),
+		create: async (options?: any) => new EthereumBlockchainController(Object.assign({ network }, options || {})),
 		blockchain: EVM_NAMES[network],
 		blockchainGroup: 'evm',
 	};

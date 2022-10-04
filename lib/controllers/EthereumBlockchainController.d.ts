@@ -3,6 +3,7 @@ import Web3 from 'web3';
 import { EVMNetwork, IEthereumMessage } from '../misc';
 import { provider } from 'web3-core';
 import { EventData } from 'web3-eth-contract';
+import { EthereumNameService } from './EthereumNameService';
 export declare class EthereumBlockchainController extends AbstractBlockchainController {
     private readonly options;
     web3Readers: {
@@ -17,12 +18,18 @@ export declare class EthereumBlockchainController extends AbstractBlockchainCont
     readonly registryFirstBlock: number;
     readonly network: EVMNetwork;
     readonly chainId: number;
+    readonly nameService: EthereumNameService | null;
     constructor(options?: {
         network?: EVMNetwork;
         mailerContractAddress?: string;
         registryContractAddress?: string;
+        nameServiceAddress?: string;
         web3Readers?: provider[];
     });
+    private tryGetNameService;
+    defaultNameService(): EthereumNameService | null;
+    init(): Promise<void>;
+    getBalance(address: string): Promise<string>;
     executeWeb3Op<T>(callback: (w3: Web3, blockLimit: number, doBreak: () => void) => Promise<T>): Promise<T>;
     getRecipientReadingRules(address: string): Promise<any>;
     getAddressByPublicKey(publicKey: Uint8Array): Promise<string | null>;
@@ -43,8 +50,8 @@ export declare class EthereumBlockchainController extends AbstractBlockchainCont
     retrieveHistorySinceBlock(subject: ISourceSubject, fromBlock: number, firstMessage?: IMessage): Promise<import("@ylide/sdk").IMessageBase[]>;
     private _retrieveMessageHistoryByBounds;
     private iterateMailers;
-    retrieveMessageHistoryByTime(recipient: Uint256 | null, fromTimestamp?: number, toTimestamp?: number, limit?: number): Promise<IMessage[]>;
-    retrieveMessageHistoryByBounds(recipient: Uint256 | null, fromMessage?: IMessage, toMessage?: IMessage, limit?: number): Promise<IMessage[]>;
+    retrieveMessageHistoryByTime(sender: Uint256 | null, recipient: Uint256 | null, fromTimestamp?: number, toTimestamp?: number, limit?: number): Promise<IMessage[]>;
+    retrieveMessageHistoryByBounds(sender: Uint256 | null, recipient: Uint256 | null, fromMessage?: IMessage, toMessage?: IMessage, limit?: number): Promise<IMessage[]>;
     retrieveBroadcastHistoryByTime(sender: Uint256 | null, fromTimestamp?: number, toTimestamp?: number, limit?: number): Promise<IMessage[]>;
     retrieveBroadcastHistoryByBounds(sender: Uint256 | null, fromMessage?: IMessage, toMessage?: IMessage, limit?: number): Promise<IMessage[]>;
     retrieveAndVerifyMessageContent(msg: IMessage): Promise<IMessageContent | IMessageCorruptedContent | null>;

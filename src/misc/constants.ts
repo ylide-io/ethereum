@@ -82,6 +82,30 @@ export const EVM_NAMES: Record<EVMNetwork, string> = {
 	// [EVMNetwork.METIS]: 'METIS',
 };
 
+export const EVM_ENS: Record<EVMNetwork, string | null> = {
+	[EVMNetwork.LOCAL_HARDHAT]: null,
+
+	[EVMNetwork.ETHEREUM]: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e',
+	[EVMNetwork.BNBCHAIN]: null,
+	[EVMNetwork.POLYGON]: null,
+	[EVMNetwork.AVALANCHE]: null,
+	[EVMNetwork.OPTIMISM]: null,
+	[EVMNetwork.ARBITRUM]: null,
+
+	// [EVMNetwork.AURORA]: 'AURORA',
+	// [EVMNetwork.KLAYTN]: 'KLAYTN',
+	// [EVMNetwork.GNOSIS]: 'GNOSIS',
+	// [EVMNetwork.CRONOS]: 'CRONOS',
+
+	// [EVMNetwork.CELO]: 'CELO',
+	// [EVMNetwork.MOONRIVER]: 'MOONRIVER',
+	// [EVMNetwork.MOONBEAM]: 'MOONBEAM',
+	// [EVMNetwork.ASTAR]: 'ASTAR',
+	// [EVMNetwork.HECO]: 'HECO',
+
+	// [EVMNetwork.METIS]: 'METIS',
+};
+
 export const EVM_CHAINS: Record<EVMNetwork, number> = {
 	[EVMNetwork.LOCAL_HARDHAT]: 31337,
 

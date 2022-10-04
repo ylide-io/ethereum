@@ -1,3 +1,4 @@
+import { SwitchAccountCallback } from '@ylide/sdk';
 import { IGenericAccount, AbstractWalletController, PublicKey, MessageKey, WalletControllerFactory, Uint256 } from '@ylide/sdk';
 import Web3 from 'web3';
 import { MailerContract, RegistryContract } from '../contracts';
@@ -10,6 +11,7 @@ export declare class EthereumWalletController extends AbstractWalletController {
     private readonly mailerContractAddress?;
     private readonly registryContractAddress?;
     private readonly onNetworkSwitchRequest;
+    private lastCurrentAccount;
     constructor(options?: {
         dev?: boolean;
         mailerContractAddress?: string;
@@ -17,7 +19,9 @@ export declare class EthereumWalletController extends AbstractWalletController {
         writeWeb3Provider?: any;
         endpoint?: string;
         onNetworkSwitchRequest?: NetworkSwitchHandler;
+        onSwitchAccountRequest?: SwitchAccountCallback;
     });
+    init(): Promise<void>;
     deployMailer(): Promise<void>;
     deployRegistry(): Promise<void>;
     private ensureAccount;
@@ -31,6 +35,7 @@ export declare class EthereumWalletController extends AbstractWalletController {
     private ensureNetworkOptions;
     attachPublicKey(me: IGenericAccount, publicKey: Uint8Array, options?: any): Promise<void>;
     requestAuthentication(): Promise<null | IGenericAccount>;
+    isMultipleAccountsSupported(): boolean;
     disconnectAccount(account: IGenericAccount): Promise<void>;
     publishMessage(me: IGenericAccount, contentData: Uint8Array, recipients: {
         address: Uint256;
