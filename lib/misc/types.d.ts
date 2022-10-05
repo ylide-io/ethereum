@@ -8,7 +8,16 @@ export declare enum EVMNetwork {
     POLYGON = 3,
     ARBITRUM = 4,
     OPTIMISM = 5,
-    AVALANCHE = 6
+    AVALANCHE = 6,
+    FANTOM = 7,
+    KLAYTN = 8,
+    GNOSIS = 9,
+    AURORA = 10,
+    CELO = 11,
+    MOONBEAM = 12,
+    MOONRIVER = 13,
+    METIS = 14,
+    ASTAR = 15
 }
 export declare type IEthereumMessage = {
     event: EventData;

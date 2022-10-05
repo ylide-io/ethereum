@@ -12,18 +12,19 @@ export enum EVMNetwork {
 	OPTIMISM,
 
 	AVALANCHE,
-	// AURORA,
-	// KLAYTN,
-	// GNOSIS,
+
 	// CRONOS,
+	FANTOM,
+	KLAYTN,
+	GNOSIS,
+	AURORA,
+	CELO,
+	MOONBEAM,
+	MOONRIVER,
+	METIS,
+	ASTAR,
 
-	// CELO,
-	// MOONRIVER,
-	// MOONBEAM,
-	// ASTAR,
 	// HECO,
-
-	// METIS,
 }
 
 export type IEthereumMessage = { event: EventData; tx: Transaction; block: BlockTransactionString };

@@ -44,18 +44,44 @@ export const EVM_CONTRACTS: Record<
 		registry: { address: '0xDFEe2128E3D441078dC286171F27F612B35fD7bD', fromBlock: 20707262 },
 	},
 
-	// [EVMNetwork.AURORA]: { mailer: { address: '' }, registry: { address: '' } },
-	// [EVMNetwork.KLAYTN]: { mailer: { address: '' }, registry: { address: '' } },
-	// [EVMNetwork.GNOSIS]: { mailer: { address: '' }, registry: { address: '' } },
 	// [EVMNetwork.CRONOS]: { mailer: { address: '' }, registry: { address: '' } },
+	[EVMNetwork.FANTOM]: {
+		mailer: { address: '0x79935f5d685452c361058c0fe5a50b803aa214a1', fromBlock: 48407617 },
+		registry: { address: '0x28d9bb1aed64c115dd70e886c546ee0420623bc2', fromBlock: 48407617 },
+	},
+	[EVMNetwork.KLAYTN]: {
+		mailer: { address: '0x28d9bb1aed64c115dd70e886c546ee0420623bc2', fromBlock: 102997948 },
+		registry: { address: '0x79935f5d685452c361058c0fe5a50b803aa214a1', fromBlock: 102997948 },
+	},
+	[EVMNetwork.GNOSIS]: {
+		mailer: { address: '0x79935f5d685452c361058c0fe5a50b803aa214a1', fromBlock: 24463497 },
+		registry: { address: '0x28d9bb1aed64c115dd70e886c546ee0420623bc2', fromBlock: 24463497 },
+	},
+	[EVMNetwork.AURORA]: {
+		mailer: { address: '0x28d9bb1aed64c115dd70e886c546ee0420623bc2', fromBlock: 75521930 },
+		registry: { address: '0x79935f5d685452c361058c0fe5a50b803aa214a1', fromBlock: 75521930 },
+	},
 
-	// [EVMNetwork.CELO]: { mailer: { address: '' }, registry: { address: '' } },
-	// [EVMNetwork.MOONRIVER]: { mailer: { address: '' }, registry: { address: '' } },
-	// [EVMNetwork.MOONBEAM]: { mailer: { address: '' }, registry: { address: '' } },
-	// [EVMNetwork.ASTAR]: { mailer: { address: '' }, registry: { address: '' } },
-	// [EVMNetwork.HECO]: { mailer: { address: '' }, registry: { address: '' } },
-
-	// [EVMNetwork.METIS]: { mailer: { address: '' }, registry: { address: '' } },
+	[EVMNetwork.CELO]: {
+		mailer: { address: '0x79935f5d685452c361058c0fe5a50b803aa214a1', fromBlock: 15446515 },
+		registry: { address: '0x28d9bb1aed64c115dd70e886c546ee0420623bc2', fromBlock: 15446515 },
+	},
+	[EVMNetwork.MOONBEAM]: {
+		mailer: { address: '0x28d9bb1aed64c115dd70e886c546ee0420623bc2', fromBlock: 2007459 },
+		registry: { address: '0x79935f5d685452c361058c0fe5a50b803aa214a1', fromBlock: 2007459 },
+	},
+	[EVMNetwork.MOONRIVER]: {
+		mailer: { address: '0x79935f5d685452c361058c0fe5a50b803aa214a1', fromBlock: 2703756 },
+		registry: { address: '0x28d9bb1aed64c115dd70e886c546ee0420623bc2', fromBlock: 2703756 },
+	},
+	[EVMNetwork.METIS]: {
+		mailer: { address: '0x28d9bb1aed64c115dd70e886c546ee0420623bc2', fromBlock: 3712292 },
+		registry: { address: '0x79935f5d685452c361058c0fe5a50b803aa214a1', fromBlock: 3712292 },
+	},
+	[EVMNetwork.ASTAR]: {
+		mailer: { address: '0xfb3658fbA39459a6B76e4f5a6813e73Bf49BC6BD', fromBlock: 2000783 },
+		registry: { address: '0x28d9bb1aed64c115dd70e886c546ee0420623bc2', fromBlock: 2000783 },
+	},
 };
 
 export const EVM_NAMES: Record<EVMNetwork, string> = {
@@ -67,6 +93,17 @@ export const EVM_NAMES: Record<EVMNetwork, string> = {
 	[EVMNetwork.AVALANCHE]: 'AVALANCHE',
 	[EVMNetwork.OPTIMISM]: 'OPTIMISM',
 	[EVMNetwork.ARBITRUM]: 'ARBITRUM',
+
+	// [EVMNetwork.CRONOS]: 'CRONOS',
+	[EVMNetwork.FANTOM]: 'FANTOM',
+	[EVMNetwork.KLAYTN]: 'KLAYTN',
+	[EVMNetwork.GNOSIS]: 'GNOSIS',
+	[EVMNetwork.AURORA]: 'AURORA',
+	[EVMNetwork.CELO]: 'CELO',
+	[EVMNetwork.MOONBEAM]: 'MOONBEAM',
+	[EVMNetwork.MOONRIVER]: 'MOONRIVER',
+	[EVMNetwork.METIS]: 'METIS',
+	[EVMNetwork.ASTAR]: 'ASTAR',
 
 	// [EVMNetwork.AURORA]: 'AURORA',
 	// [EVMNetwork.KLAYTN]: 'KLAYTN',
@@ -116,18 +153,18 @@ export const EVM_CHAINS: Record<EVMNetwork, number> = {
 	[EVMNetwork.OPTIMISM]: 10,
 	[EVMNetwork.ARBITRUM]: 42161,
 
-	// [EVMNetwork.AURORA]: 1313161554,
-	// [EVMNetwork.KLAYTN]: 8217,
-	// [EVMNetwork.GNOSIS]: 100,
 	// [EVMNetwork.CRONOS]: 25,
+	[EVMNetwork.FANTOM]: 250,
+	[EVMNetwork.KLAYTN]: 8217,
+	[EVMNetwork.GNOSIS]: 100,
+	[EVMNetwork.AURORA]: 1313161554,
+	[EVMNetwork.CELO]: 42220,
+	[EVMNetwork.MOONBEAM]: 1284,
+	[EVMNetwork.MOONRIVER]: 1285,
+	[EVMNetwork.METIS]: 1088,
+	[EVMNetwork.ASTAR]: 592,
 
-	// [EVMNetwork.CELO]: 42220,
-	// [EVMNetwork.MOONRIVER]: 1285,
-	// [EVMNetwork.MOONBEAM]: 1284,
-	// [EVMNetwork.ASTAR]: 592,
 	// [EVMNetwork.HECO]: 128,
-
-	// [EVMNetwork.METIS]: 1088,
 };
 
 export const EVM_CHAIN_ID_TO_NETWORK: Record<number, EVMNetwork> = Object.keys(EVM_CHAINS)
@@ -136,7 +173,7 @@ export const EVM_CHAIN_ID_TO_NETWORK: Record<number, EVMNetwork> = Object.keys(E
 	}))
 	.reduce((p, c) => ({ ...p, ...c }), {} as Record<number, EVMNetwork>);
 
-export const EVM_RPCS: Record<EVMNetwork, { rpc: string; blockLimit?: number }[]> = {
+export const EVM_RPCS: Record<EVMNetwork, { rpc: string; blockLimit?: number; lastestNotSupported?: boolean }[]> = {
 	[EVMNetwork.LOCAL_HARDHAT]: [{ rpc: 'http://localhost:8545/' }],
 
 	[EVMNetwork.ETHEREUM]: [
@@ -175,40 +212,48 @@ export const EVM_RPCS: Record<EVMNetwork, { rpc: string; blockLimit?: number }[]
 	],
 
 	[EVMNetwork.AVALANCHE]: [
-		// {
-		// 	rpc: 'https://serene-proud-snowflake.avalanche-mainnet.discover.quiknode.pro/205e5b82f885604ee4428c55a512d4ff9d4c4815/',
-		// },
-		{ rpc: 'https://api.avax.network/ext/bc/C/rpc' },
-		// { rpc: 'https://ava-mainnet.public.blastapi.io/ext/bc/C/rpc' },
-		// { rpc: 'https://avalancheapi.terminet.io/ext/bc/C/rpc' },
+		{
+			rpc: 'https://rpc.ankr.com/avalanche',
+		},
+		{
+			rpc: 'https://ava-mainnet.blastapi.io/cc59bb68-a7ff-4278-9f16-278ba49d7635/ext/bc/C/rpc',
+			blockLimit: 500,
+		},
 	],
-	// [EVMNetwork.AURORA]: ['https://mainnet.aurora.dev'],
-	// [EVMNetwork.KLAYTN]: [
-	// 	'https://public-node-api.klaytnapi.com/v1/cypress',
-	// 	'https://klaytn01.fandom.finance',
-	// 	'https://klaytn02.fandom.finance',
-	// ],
-	// [EVMNetwork.GNOSIS]: [
-	// 	'https://rpc.gnosischain.com',
-	// 	'wss://rpc.gnosischain.com/wss',
-	// 	'https://xdai-rpc.gateway.pokt.network',
-	// 	'https://gnosis-mainnet.public.blastapi.io',
-	// ],
-	// [EVMNetwork.CRONOS]: ['https://evm.cronos.org', 'https://cronosrpc-1.xstaking.sg'],
+	// [EVMNetwork.CRONOS]: [{ rpc: 'https://evm.cronos.org' }, { rpc: 'https://cronosrpc-1.xstaking.sg' }],
+	[EVMNetwork.FANTOM]: [{ rpc: 'https://rpc.fantom.network' }],
+	[EVMNetwork.KLAYTN]: [
+		{ rpc: 'https://public-node-api.klaytnapi.com/v1/cypress' },
+		{ rpc: 'https://klaytn01.fandom.finance' },
+		{ rpc: 'https://klaytn02.fandom.finance' },
+	],
+	[EVMNetwork.GNOSIS]: [
+		{ rpc: 'https://rpc.gnosischain.com' },
+		{ rpc: 'wss://rpc.gnosischain.com/wss' },
+		{ rpc: 'https://xdai-rpc.gateway.pokt.network' },
+		{ rpc: 'https://gnosis-mainnet.public.blastapi.io' },
+	],
+	[EVMNetwork.AURORA]: [{ rpc: 'https://mainnet.aurora.dev' }],
 
-	// [EVMNetwork.CELO]: ['wss://forno.celo.org/ws', 'https://forno.celo.org', 'https://rpc.ankr.com/celo'],
-	// [EVMNetwork.MOONRIVER]: ['https://rpc.api.moonriver.moonbeam.network'],
-	// [EVMNetwork.MOONBEAM]: [
-	// 	'wss://wss.api.moonbeam.network',
-	// 	'https://rpc.api.moonbeam.network',
-	// 	'https://moonbeam.public.blastapi.io',
-	// ],
-	// [EVMNetwork.ASTAR]: ['https://rpc.astar.network:8545', 'https://astar.public.blastapi.io'],
+	[EVMNetwork.CELO]: [
+		{ rpc: 'wss://forno.celo.org/ws' },
+		{ rpc: 'https://forno.celo.org' },
+		{ rpc: 'https://rpc.ankr.com/celo' },
+	],
+	[EVMNetwork.MOONBEAM]: [
+		{ rpc: 'wss://wss.api.moonbeam.network' },
+		{ rpc: 'https://rpc.api.moonbeam.network' },
+		{ rpc: 'https://moonbeam.public.blastapi.io' },
+	],
+	[EVMNetwork.MOONRIVER]: [{ rpc: 'https://rpc.api.moonriver.moonbeam.network' }],
+	[EVMNetwork.ASTAR]: [
+		{ rpc: 'https://astar.blastapi.io/cc59bb68-a7ff-4278-9f16-278ba49d7635' },
+		{ rpc: 'https://astar-mainnet.g.alchemy.com/v2/Ib5I59bSB2Vv41PJlF2TWWqjND4ppGdi' },
+	],
+	[EVMNetwork.METIS]: [{ rpc: 'https://andromeda.metis.io/?owner=1088' }],
 	// [EVMNetwork.HECO]: [
 	// 	'wss://ws-mainnet.hecochain.com',
 	// 	'https://http-mainnet.hecochain.com',
 	// 	'https://hecoapi.terminet.io/rpc',
 	// ],
-
-	// [EVMNetwork.METIS]: ['https://andromeda.metis.io/?owner=1088'],
 };
