@@ -4,7 +4,7 @@
 	"publishConfig": {
 		"access": "public"
 	},
-	"version": "0.5.7",
+	"version": "0.6.0",
 	"description": "Ylide Protocol SDK implementation for EVM-based blockchains",
 	"main": "lib/index.js",
 	"types": "lib/index.d.ts",

@@ -128,19 +128,18 @@ export const EVM_ENS: Record<EVMNetwork, string | null> = {
 	[EVMNetwork.AVALANCHE]: null,
 	[EVMNetwork.OPTIMISM]: null,
 	[EVMNetwork.ARBITRUM]: null,
+	[EVMNetwork.AURORA]: null,
+	[EVMNetwork.FANTOM]: null,
+	[EVMNetwork.KLAYTN]: null,
+	[EVMNetwork.GNOSIS]: null,
+	[EVMNetwork.CELO]: null,
+	[EVMNetwork.MOONRIVER]: null,
+	[EVMNetwork.MOONBEAM]: null,
+	[EVMNetwork.ASTAR]: null,
+	[EVMNetwork.METIS]: null,
 
-	// [EVMNetwork.AURORA]: 'AURORA',
-	// [EVMNetwork.KLAYTN]: 'KLAYTN',
-	// [EVMNetwork.GNOSIS]: 'GNOSIS',
-	// [EVMNetwork.CRONOS]: 'CRONOS',
-
-	// [EVMNetwork.CELO]: 'CELO',
-	// [EVMNetwork.MOONRIVER]: 'MOONRIVER',
-	// [EVMNetwork.MOONBEAM]: 'MOONBEAM',
-	// [EVMNetwork.ASTAR]: 'ASTAR',
+	// [EVMNetwork.CRONOS]: null,
 	// [EVMNetwork.HECO]: 'HECO',
-
-	// [EVMNetwork.METIS]: 'METIS',
 };
 
 export const EVM_CHAINS: Record<EVMNetwork, number> = {
