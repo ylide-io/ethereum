@@ -131,8 +131,21 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 	async getPublicKeyByAddress(registryAddress: string, address: string): Promise<Uint8Array | null> {
 		return await this.executeWeb3Op(async (w3, blockLimit) => {
+			const data = w3.eth.abi.encodeFunctionCall(
+				(REGISTRY_ABI.abi as AbiItem[]).find(t => t.name === 'addressToPublicKey')!,
+				[address],
+			);
 			const contract = new w3.eth.Contract(REGISTRY_ABI.abi as AbiItem[], registryAddress);
-			const result = await contract.methods.addressToPublicKey(address).call();
+			const gasPrice = await w3.eth.getGasPrice();
+			const gas = await w3.eth.estimateGas({
+				to: contract.options.address,
+				gasPrice,
+				data,
+			});
+			const result = await contract.methods.addressToPublicKey(address).call({
+				gas,
+				gasPrice,
+			});
 			if (result === '0' || result === '0x0') {
 				return null;
 			} else {
@@ -867,16 +880,13 @@ export const evmFactories: Record<EVMNetwork, BlockchainControllerFactory> = {
 	[EVMNetwork.OPTIMISM]: getBlockchainFactory(EVMNetwork.OPTIMISM),
 	[EVMNetwork.ARBITRUM]: getBlockchainFactory(EVMNetwork.ARBITRUM),
 
-	// [EVMNetwork.AURORA]: getBlockchainFactory(EVMNetwork.AURORA),
-	// [EVMNetwork.KLAYTN]: getBlockchainFactory(EVMNetwork.KLAYTN),
-	// [EVMNetwork.GNOSIS]: getBlockchainFactory(EVMNetwork.GNOSIS),
-	// [EVMNetwork.CRONOS]: getBlockchainFactory(EVMNetwork.CRONOS),
-
-	// [EVMNetwork.CELO]: getBlockchainFactory(EVMNetwork.CELO),
-	// [EVMNetwork.MOONRIVER]: getBlockchainFactory(EVMNetwork.MOONRIVER),
-	// [EVMNetwork.MOONBEAM]: getBlockchainFactory(EVMNetwork.MOONBEAM),
-	// [EVMNetwork.ASTAR]: getBlockchainFactory(EVMNetwork.ASTAR),
-	// [EVMNetwork.HECO]: getBlockchainFactory(EVMNetwork.HECO),
-
-	// [EVMNetwork.METIS]: getBlockchainFactory(EVMNetwork.METIS),
+	[EVMNetwork.FANTOM]: getBlockchainFactory(EVMNetwork.FANTOM),
+	[EVMNetwork.KLAYTN]: getBlockchainFactory(EVMNetwork.KLAYTN),
+	[EVMNetwork.GNOSIS]: getBlockchainFactory(EVMNetwork.GNOSIS),
+	[EVMNetwork.AURORA]: getBlockchainFactory(EVMNetwork.AURORA),
+	[EVMNetwork.CELO]: getBlockchainFactory(EVMNetwork.CELO),
+	[EVMNetwork.MOONBEAM]: getBlockchainFactory(EVMNetwork.MOONBEAM),
+	[EVMNetwork.MOONRIVER]: getBlockchainFactory(EVMNetwork.MOONRIVER),
+	[EVMNetwork.METIS]: getBlockchainFactory(EVMNetwork.METIS),
+	[EVMNetwork.ASTAR]: getBlockchainFactory(EVMNetwork.ASTAR),
 };
