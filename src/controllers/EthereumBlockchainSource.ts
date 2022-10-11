@@ -60,6 +60,9 @@ export class EthereumBlockchainSource extends BlockchainSource {
 	// }
 
 	protected async pull() {
+		if (!this.reallyInited) {
+			return;
+		}
 		let messages: GenericEntryPure<IMessage>[];
 		const lastBlockNumber = await this.reader.getLastBlockNumber();
 		if (this.lastBlockChecked) {

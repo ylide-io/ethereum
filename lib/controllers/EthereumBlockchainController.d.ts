@@ -27,6 +27,7 @@ export declare class EthereumBlockchainController extends AbstractBlockchainCont
         web3Readers?: provider[];
     });
     private tryGetNameService;
+    isReadingBySenderAvailable(): boolean;
     defaultNameService(): EthereumNameService | null;
     init(): Promise<void>;
     getBalance(address: string): Promise<string>;

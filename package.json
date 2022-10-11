@@ -38,6 +38,7 @@
 		"@ylide/sdk": "file:../sdk",
 		"@ylide/smart-buffer": "0.0.9",
 		"chacha": "^2.1.0",
+		"eventemitter3": "^4.0.7",
 		"web3": "^1.7.4"
 	},
 	"devDependencies": {

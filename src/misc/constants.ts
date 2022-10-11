@@ -246,7 +246,7 @@ export const EVM_RPCS: Record<EVMNetwork, { rpc: string; blockLimit?: number; la
 	],
 	[EVMNetwork.MOONRIVER]: [{ rpc: 'https://rpc.api.moonriver.moonbeam.network' }],
 	[EVMNetwork.ASTAR]: [
-		{ rpc: 'https://astar.blastapi.io/cc59bb68-a7ff-4278-9f16-278ba49d7635' },
+		{ rpc: 'https://astar.blastapi.io/cc59bb68-a7ff-4278-9f16-278ba49d7635', blockLimit: 500 },
 		{ rpc: 'https://astar-mainnet.g.alchemy.com/v2/Ib5I59bSB2Vv41PJlF2TWWqjND4ppGdi' },
 	],
 	[EVMNetwork.METIS]: [{ rpc: 'https://andromeda.metis.io/?owner=1088' }],

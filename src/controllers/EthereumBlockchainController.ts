@@ -27,7 +27,7 @@ import { Transaction, provider, BlockNumber } from 'web3-core';
 import { BlockTransactionString } from 'web3-eth';
 import { EventData } from 'web3-eth-contract';
 import { AbiItem } from 'web3-utils';
-import { decodeAddressToPublicKeyMessageBody, decodeContentMessageBody } from '../contracts/contractUtils';
+import { decodeContentMessageBody } from '../contracts/contractUtils';
 import { EthereumNameService } from './EthereumNameService';
 
 export class EthereumBlockchainController extends AbstractBlockchainController {
@@ -104,6 +104,10 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return EVM_ENS[this.network] ? new EthereumNameService(this, EVM_ENS[this.network]!) : null;
 	}
 
+	isReadingBySenderAvailable(): boolean {
+		return true;
+	}
+
 	defaultNameService(): EthereumNameService | null {
 		return this.nameService;
 	}
@@ -137,7 +141,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			}
 		}
 		// console.error('lastError: ', lastError);
-		errors.forEach(err => console.error('w3 err: ', err));
+		// errors.forEach(err => console.error('w3 err: ', err));
 		throw new Error('Was not able to execute in all of web3 providers');
 	}
 
@@ -324,7 +328,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 						  }
 						: {}
 					: subject.sender
-					? { sender: this.uint256ToAddress(subject.sender) }
+					? { sender: subject.sender }
 					: {},
 			fromBlock,
 			toBlock,
