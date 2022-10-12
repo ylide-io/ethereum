@@ -34,6 +34,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	web3Readers: {
 		web3: Web3;
 		blockLimit: number;
+		latestNotSupported: boolean;
 	}[];
 
 	private blocksCache: Record<number, BlockTransactionString> = {};
@@ -74,6 +75,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			? options.web3Readers.map(r => ({
 					web3: new Web3(r),
 					blockLimit: 0,
+					latestNotSupported: false,
 			  }))
 			: chainNodes.map(data => {
 					const url = data.rpc;
@@ -81,11 +83,13 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 						return {
 							web3: new Web3(new Web3.providers.WebsocketProvider(url)),
 							blockLimit: data.blockLimit || 0,
+							latestNotSupported: data.lastestNotSupported || false,
 						};
 					} else {
 						return {
 							web3: new Web3(new Web3.providers.HttpProvider(url)),
 							blockLimit: data.blockLimit || 0,
+							latestNotSupported: data.lastestNotSupported || false,
 						};
 					}
 			  });
@@ -105,7 +109,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	isReadingBySenderAvailable(): boolean {
-		return true;
+		return false;
 	}
 
 	defaultNameService(): EthereumNameService | null {
@@ -120,13 +124,15 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return Web3.utils.fromWei(await this.executeWeb3Op(w3 => w3.eth.getBalance(address)));
 	}
 
-	async executeWeb3Op<T>(callback: (w3: Web3, blockLimit: number, doBreak: () => void) => Promise<T>): Promise<T> {
+	async executeWeb3Op<T>(
+		callback: (w3: Web3, blockLimit: number, latestNotSupported: boolean, doBreak: () => void) => Promise<T>,
+	): Promise<T> {
 		let lastError;
 		const errors = [];
 		for (const w3 of this.web3Readers) {
 			let doBreak = false;
 			try {
-				return await callback(w3.web3, w3.blockLimit, () => (doBreak = true));
+				return await callback(w3.web3, w3.blockLimit, w3.latestNotSupported, () => (doBreak = true));
 			} catch (err: any) {
 				lastError = err;
 				if (err && typeof err.message === 'string' && err.message.includes('blocks range')) {
@@ -344,7 +350,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		try {
 			return {
 				result: true,
-				data: await this.executeWeb3Op(async (w3, blockLimit, doBreak) => {
+				data: await this.executeWeb3Op(async (w3, blockLimit, latestNotSupported, doBreak) => {
 					if (blockLimit && toBlockNumber - fromBlockNumber > blockLimit) {
 						doBreak();
 						throw new Error(`Block limit is ${blockLimit}`);
@@ -427,8 +433,13 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		fromBlockNumber: number,
 		limit?: number,
 	): Promise<EventData[]> {
-		const full = await this.executeWeb3Op(async w3 => {
-			return await this.doEventsRequest(mailerAddress, subject, w3, fromBlockNumber, 'latest');
+		const full = await this.executeWeb3Op(async (w3, blockLimit, latestNotSupported) => {
+			if (latestNotSupported) {
+				const lastBlock = await w3.eth.getBlockNumber();
+				return await this.doEventsRequest(mailerAddress, subject, w3, fromBlockNumber, lastBlock);
+			} else {
+				return await this.doEventsRequest(mailerAddress, subject, w3, fromBlockNumber, 'latest');
+			}
 		});
 		const sortedData = full.sort(this.eventCmpr);
 		return limit ? sortedData.slice(0, limit) : sortedData;
@@ -482,11 +493,35 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		);
 	}
 
+	async advancedRetrieveMessageHistoryByBounds(
+		sender: string | null,
+		recipient: Uint256 | null,
+		fromMessage?: IMessage,
+		fromMessageIncluding = false,
+		toMessage?: IMessage,
+		toMessageIncluding = false,
+		limit?: number,
+	) {
+		return this.iterateMailers(limit, mailer =>
+			this._retrieveMessageHistoryByBounds(
+				mailer.address,
+				{ type: BlockchainSourceType.DIRECT, sender, recipient },
+				fromMessage,
+				fromMessageIncluding,
+				toMessage,
+				toMessageIncluding,
+				limit,
+			),
+		);
+	}
+
 	private async _retrieveMessageHistoryByBounds(
 		mailerAddress: string,
 		subject: ISourceSubject,
 		fromMessage?: IMessage,
+		fromMessageIncluding: boolean = false,
 		toMessage?: IMessage,
+		toMessageIncluding: boolean = false,
 		limit?: number,
 	): Promise<IMessage[]> {
 		const fromBlockNumber = fromMessage
@@ -511,8 +546,8 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			: -1;
 
 		const events = rawEvents.slice(
-			topBound === -1 ? 0 : topBound + 1,
-			bottomBound === -1 ? undefined : bottomBound,
+			topBound === -1 ? 0 : (toMessageIncluding ? topBound - 1 : topBound) + 1,
+			bottomBound === -1 ? undefined : fromMessageIncluding ? bottomBound + 1 : bottomBound,
 		);
 
 		const msgs = await this.processMessages(events);
@@ -555,7 +590,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	async retrieveMessageHistoryByBounds(
-		sender: Uint256 | null,
+		sender: string | null,
 		recipient: Uint256 | null,
 		fromMessage?: IMessage,
 		toMessage?: IMessage,
@@ -566,14 +601,16 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				mailer.address,
 				{ type: BlockchainSourceType.DIRECT, sender, recipient },
 				fromMessage,
+				false,
 				toMessage,
+				false,
 				limit,
 			),
 		);
 	}
 
 	async retrieveBroadcastHistoryByTime(
-		sender: Uint256 | null,
+		sender: string | null,
 		fromTimestamp?: number,
 		toTimestamp?: number,
 		limit?: number,
@@ -590,7 +627,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	async retrieveBroadcastHistoryByBounds(
-		sender: Uint256 | null,
+		sender: string | null,
 		fromMessage?: IMessage,
 		toMessage?: IMessage,
 		limit?: number,
@@ -600,7 +637,9 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				mailer.address,
 				{ type: BlockchainSourceType.BROADCAST, sender },
 				fromMessage,
+				false,
 				toMessage,
+				false,
 				limit,
 			),
 		);
@@ -632,13 +671,14 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 					MAILER_ABI.abi as AbiItem[],
 					EVM_CONTRACTS[this.network].mailer.address,
 				);
+				const lastBlock = await w3.eth.getBlockNumber();
 				try {
 					return await ctrct.getPastEvents('MailContent', {
 						filter: {
 							msgId: '0x' + msgId,
 						},
 						fromBlock: this.mailerFirstBlock || 0,
-						toBlock: 'latest',
+						toBlock: lastBlock,
 					});
 				} catch (err: any) {
 					if (err && typeof err.message === 'string' && err.message.includes('range')) {
@@ -646,7 +686,6 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 							? parseInt(err.message.split('max: ')[1], 10) - 1
 							: 9999;
 						const result: EventData[] = [];
-						const lastBlock = await w3.eth.getBlockNumber();
 						for (let i = lastBlock; i > this.mailerFirstBlock || 0; i -= max) {
 							const tempEvents = await ctrct.getPastEvents('MailContent', {
 								filter: {

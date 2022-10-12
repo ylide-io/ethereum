@@ -184,8 +184,13 @@ export const EVM_RPCS: Record<EVMNetwork, { rpc: string; blockLimit?: number; la
 	],
 	[EVMNetwork.BNBCHAIN]: [
 		{
+			rpc: 'https://bsc-mainnet.nodereal.io/v1/03e041fbd4e74ce489f9be55da8e895a',
+			blockLimit: 50000,
+		},
+		{
 			rpc: 'https://still-tiniest-surf.bsc.discover.quiknode.pro/390c72acf357bb7fc5f2b9175a08d48b774c69db/',
 			blockLimit: 3500,
+			lastestNotSupported: true,
 		},
 		{ rpc: 'https://bsc-dataseed.binance.org/' },
 		{ rpc: 'https://bsc-dataseed2.binance.org' },
@@ -211,8 +216,10 @@ export const EVM_RPCS: Record<EVMNetwork, { rpc: string; blockLimit?: number; la
 	],
 
 	[EVMNetwork.AVALANCHE]: [
+		{ rpc: 'https://avalanche-mainnet.infura.io/v3/3bcb970aa2dd447cbad6ac4301ed63bf' },
 		{
 			rpc: 'https://rpc.ankr.com/avalanche',
+			blockLimit: 3000,
 		},
 		{
 			rpc: 'https://ava-mainnet.blastapi.io/cc59bb68-a7ff-4278-9f16-278ba49d7635/ext/bc/C/rpc',
@@ -246,8 +253,12 @@ export const EVM_RPCS: Record<EVMNetwork, { rpc: string; blockLimit?: number; la
 	],
 	[EVMNetwork.MOONRIVER]: [{ rpc: 'https://rpc.api.moonriver.moonbeam.network' }],
 	[EVMNetwork.ASTAR]: [
-		{ rpc: 'https://astar.blastapi.io/cc59bb68-a7ff-4278-9f16-278ba49d7635', blockLimit: 500 },
-		{ rpc: 'https://astar-mainnet.g.alchemy.com/v2/Ib5I59bSB2Vv41PJlF2TWWqjND4ppGdi' },
+		{ rpc: 'https://astar-mainnet.g.alchemy.com/v2/Ib5I59bSB2Vv41PJlF2TWWqjND4ppGdi', blockLimit: 50000 },
+		{
+			rpc: 'https://astar.blastapi.io/cc59bb68-a7ff-4278-9f16-278ba49d7635',
+			blockLimit: 500,
+			lastestNotSupported: true,
+		},
 	],
 	[EVMNetwork.METIS]: [{ rpc: 'https://andromeda.metis.io/?owner=1088' }],
 	// [EVMNetwork.HECO]: [
