@@ -173,15 +173,15 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				[address],
 			);
 			const contract = new w3.eth.Contract(REGISTRY_ABI.abi as AbiItem[], registryAddress);
-			const gasPrice = await w3.eth.getGasPrice();
-			const gas = await w3.eth.estimateGas({
-				to: contract.options.address,
-				gasPrice,
-				data,
-			});
+			// const gasPrice = await w3.eth.getGasPrice();
+			// const gas = await w3.eth.estimateGas({
+			// 	to: contract.options.address,
+			// 	gasPrice,
+			// 	data,
+			// });
 			const result = await contract.methods.addressToPublicKey(address).call({
-				gas,
-				gasPrice,
+				// gas,
+				// gasPrice,
 			});
 			if (result === '0' || result === '0x0') {
 				return null;
@@ -498,21 +498,28 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		recipient: Uint256 | null,
 		fromMessage?: IMessage,
 		fromMessageIncluding = false,
+		fromBlockNumber?: number,
 		toMessage?: IMessage,
 		toMessageIncluding = false,
 		limit?: number,
 	) {
-		return this.iterateMailers(limit, mailer =>
-			this._retrieveMessageHistoryByBounds(
-				mailer.address,
-				{ type: BlockchainSourceType.DIRECT, sender, recipient },
-				fromMessage,
-				fromMessageIncluding,
-				toMessage,
-				toMessageIncluding,
-				limit,
+		const _toBlockNumber = await this.getLastBlockNumber();
+		return {
+			messages: await this.iterateMailers(limit, mailer =>
+				this._retrieveMessageHistoryByBounds(
+					mailer.address,
+					{ type: BlockchainSourceType.DIRECT, sender, recipient },
+					fromMessage,
+					fromMessageIncluding,
+					fromBlockNumber,
+					toMessage,
+					toMessageIncluding,
+					_toBlockNumber,
+					limit,
+				),
 			),
-		);
+			toBlockNumber: _toBlockNumber,
+		};
 	}
 
 	private async _retrieveMessageHistoryByBounds(
@@ -520,21 +527,23 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		subject: ISourceSubject,
 		fromMessage?: IMessage,
 		fromMessageIncluding: boolean = false,
+		fromBlockNumber?: number,
 		toMessage?: IMessage,
 		toMessageIncluding: boolean = false,
+		toBlockNumber?: number,
 		limit?: number,
-	): Promise<IMessage[]> {
-		const fromBlockNumber = fromMessage
-			? fromMessage.$$blockchainMetaDontUseThisField.block.number
-			: this.mailerFirstBlock || 0;
-		const toBlockNumber = toMessage
-			? toMessage.$$blockchainMetaDontUseThisField.block.number
-			: await this.getLastBlockNumber();
+	) {
+		const _fromBlockNumber =
+			fromBlockNumber ||
+			(fromMessage ? fromMessage.$$blockchainMetaDontUseThisField.block.number : this.mailerFirstBlock || 0);
+		const _toBlockNumber =
+			toBlockNumber ||
+			(toMessage ? toMessage.$$blockchainMetaDontUseThisField.block.number : await this.getLastBlockNumber());
 		const rawEvents = await this.retrieveEventsByBounds(
 			mailerAddress,
 			subject,
-			fromBlockNumber,
-			toBlockNumber,
+			_fromBlockNumber,
+			_toBlockNumber,
 			limit,
 		);
 
@@ -602,8 +611,10 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				{ type: BlockchainSourceType.DIRECT, sender, recipient },
 				fromMessage,
 				false,
+				undefined,
 				toMessage,
 				false,
+				undefined,
 				limit,
 			),
 		);
@@ -638,8 +649,10 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				{ type: BlockchainSourceType.BROADCAST, sender },
 				fromMessage,
 				false,
+				undefined,
 				toMessage,
 				false,
+				undefined,
 				limit,
 			),
 		);

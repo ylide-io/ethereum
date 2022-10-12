@@ -41,13 +41,13 @@ export class EthereumListSource extends EventEmitter implements GenericListSourc
 		}
 	}
 
-	compare(a: IMessage, b: IMessage): number {
+	compare = (a: IMessage, b: IMessage): number => {
 		if (a.createdAt === b.createdAt) {
 			return this.reader.compareMessagesTime(a, b);
 		} else {
 			return a.createdAt - b.createdAt;
 		}
-	}
+	};
 
 	async getBefore(entry: IMessage, limit: number): Promise<IMessage[]> {
 		if (this.subject.type === BlockchainSourceType.DIRECT) {
@@ -77,17 +77,41 @@ export class EthereumListSource extends EventEmitter implements GenericListSourc
 		}
 	}
 
-	async getLast(limit: number, upToIncluding?: IMessage): Promise<IMessage[]> {
+	async getLast(limit: number, upToIncluding?: IMessage, mutableParams?: any): Promise<IMessage[]> {
 		if (this.subject.type === BlockchainSourceType.DIRECT) {
-			return await this.reader.advancedRetrieveMessageHistoryByBounds(
-				this.subject.sender,
-				this.subject.recipient,
-				upToIncluding,
-				true,
-				undefined,
-				false,
-				limit,
-			);
+			let result;
+			if (mutableParams && mutableParams.limit >= limit && mutableParams.messages) {
+				const toBlock = mutableParams.toBlock;
+				result = await this.reader.advancedRetrieveMessageHistoryByBounds(
+					this.subject.sender,
+					this.subject.recipient,
+					undefined,
+					false,
+					toBlock,
+					undefined,
+					false,
+					limit,
+				);
+			} else {
+				result = await this.reader.advancedRetrieveMessageHistoryByBounds(
+					this.subject.sender,
+					this.subject.recipient,
+					undefined,
+					false,
+					undefined,
+					undefined,
+					false,
+					limit,
+				);
+			}
+			if (mutableParams) {
+				mutableParams.toBlock = result.toBlockNumber;
+				mutableParams.limit = limit;
+				const msgs = result.messages.concat(mutableParams.messages || []).slice(0, limit);
+				mutableParams.messages = msgs;
+				return msgs;
+			}
+			return result.messages;
 		} else {
 			return await this.reader.retrieveBroadcastHistoryByBounds(this.subject.sender, undefined, undefined, limit);
 		}

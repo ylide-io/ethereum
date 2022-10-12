@@ -78,7 +78,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	async init() {
 		// @ts-ignore
-		const eth = window && window['ethereum'];
+		const eth = window && window['ethereum']; // tslint:disable-line
 
 		this.lastCurrentAccount = await this.getAuthenticatedAccount();
 

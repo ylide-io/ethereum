@@ -50,7 +50,10 @@ export declare class EthereumBlockchainController extends AbstractBlockchainCont
     getDefaultMailerAddress(): string;
     private _retrieveMessageHistoryByTime;
     retrieveHistorySinceBlock(subject: ISourceSubject, fromBlock: number, firstMessage?: IMessage): Promise<import("@ylide/sdk").IMessageBase[]>;
-    advancedRetrieveMessageHistoryByBounds(sender: string | null, recipient: Uint256 | null, fromMessage?: IMessage, fromMessageIncluding?: boolean, toMessage?: IMessage, toMessageIncluding?: boolean, limit?: number): Promise<import("@ylide/sdk").IMessageBase[]>;
+    advancedRetrieveMessageHistoryByBounds(sender: string | null, recipient: Uint256 | null, fromMessage?: IMessage, fromMessageIncluding?: boolean, fromBlockNumber?: number, toMessage?: IMessage, toMessageIncluding?: boolean, limit?: number): Promise<{
+        messages: import("@ylide/sdk").IMessageBase[];
+        toBlockNumber: number;
+    }>;
     private _retrieveMessageHistoryByBounds;
     private iterateMailers;
     retrieveMessageHistoryByTime(sender: Uint256 | null, recipient: Uint256 | null, fromTimestamp?: number, toTimestamp?: number, limit?: number): Promise<IMessage[]>;

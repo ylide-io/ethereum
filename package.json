@@ -34,12 +34,11 @@
 	"author": "Danila Simonov",
 	"license": "ISC",
 	"dependencies": {
-		"@ensdomains/ensjs": "^2.1.0",
-		"@ylide/sdk": "file:../sdk",
+		"@ensdomains/ensjs": "2.1.0",
+		"@ylide/sdk": "0.6.0",
 		"@ylide/smart-buffer": "0.0.9",
-		"chacha": "^2.1.0",
-		"eventemitter3": "^4.0.7",
-		"web3": "^1.7.4"
+		"eventemitter3": "4.0.7",
+		"web3": "1.8.0"
 	},
 	"devDependencies": {
 		"prettier": "^2.7.1",

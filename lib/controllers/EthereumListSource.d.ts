@@ -16,10 +16,10 @@ export declare class EthereumListSource extends EventEmitter implements GenericL
     constructor(reader: EthereumBlockchainController, subject: ISourceSubject, _pullCycle?: number, limit?: number, meta?: any);
     pause(): void;
     resume(since?: IMessageBase | undefined): void;
-    compare(a: IMessage, b: IMessage): number;
+    compare: (a: IMessage, b: IMessage) => number;
     getBefore(entry: IMessage, limit: number): Promise<IMessage[]>;
     getAfter(entry: IMessage, limit: number): Promise<IMessage[]>;
-    getLast(limit: number, upToIncluding?: IMessage): Promise<IMessage[]>;
+    getLast(limit: number, upToIncluding?: IMessage, mutableParams?: any): Promise<IMessage[]>;
     getAfterBlock(blockNumber: number, limit: number): Promise<IMessage[]>;
     protected pull(): Promise<void>;
 }

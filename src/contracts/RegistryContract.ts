@@ -1,6 +1,4 @@
-import { Uint256 } from '@ylide/sdk';
-import SmartBuffer from '@ylide/smart-buffer';
-import { Contract, EventData } from 'web3-eth-contract';
+import { Contract } from 'web3-eth-contract';
 import { AbiItem } from 'web3-utils';
 import Web3 from 'web3';
 import { publicKeyToBigIntString } from '../misc';
