@@ -13,7 +13,7 @@ export enum EVMNetwork {
 
 	AVALANCHE,
 
-	// CRONOS,
+	CRONOS,
 	FANTOM,
 	KLAYTN,
 	GNOSIS,

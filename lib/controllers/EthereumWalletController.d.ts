@@ -11,16 +11,23 @@ export declare class EthereumWalletController extends AbstractWalletController {
     private readonly mailerContractAddress?;
     private readonly registryContractAddress?;
     private readonly onNetworkSwitchRequest;
+    private readonly _wallet;
     private lastCurrentAccount;
+    private providerObject;
     constructor(options?: {
         dev?: boolean;
         mailerContractAddress?: string;
         registryContractAddress?: string;
-        writeWeb3Provider?: any;
+        writeWeb3Provider?: Web3;
         endpoint?: string;
+        wallet?: string;
+        providerObject?: any;
         onNetworkSwitchRequest?: NetworkSwitchHandler;
         onSwitchAccountRequest?: SwitchAccountCallback;
     });
+    handleError(err: any): void;
+    blockchainGroup(): string;
+    wallet(): string;
     init(): Promise<void>;
     deployMailer(): Promise<void>;
     deployRegistry(): Promise<void>;
@@ -33,6 +40,8 @@ export declare class EthereumWalletController extends AbstractWalletController {
     private getCurrentNetwork;
     getCurrentBlockchain(): Promise<string>;
     private ensureNetworkOptions;
+    deployRegistryV3(previousContractAddress?: string): Promise<string>;
+    deployMailerV6(): Promise<string>;
     attachPublicKey(me: IGenericAccount, publicKey: Uint8Array, options?: any): Promise<void>;
     requestAuthentication(): Promise<null | IGenericAccount>;
     isMultipleAccountsSupported(): boolean;
@@ -44,4 +53,4 @@ export declare class EthereumWalletController extends AbstractWalletController {
     broadcastMessage(me: IGenericAccount, contentData: Uint8Array, options?: any): Promise<Uint256 | null>;
     decryptMessageKey(recipientAccount: IGenericAccount, senderPublicKey: PublicKey, encryptedKey: Uint8Array): Promise<Uint8Array>;
 }
-export declare const ethereumWalletFactory: WalletControllerFactory;
+export declare const evmWalletFactories: Record<string, WalletControllerFactory>;

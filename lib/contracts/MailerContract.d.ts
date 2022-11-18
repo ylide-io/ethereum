@@ -17,6 +17,10 @@ export declare class MailerContract {
     broadcastMailHeader(address: string, uniqueId: number, initTime: number): Promise<any>;
     sendSmallMail(address: string, uniqueId: number, recipient: Uint256, key: Uint8Array, content: Uint8Array): Promise<any>;
     sendBulkMail(address: string, uniqueId: number, recipients: Uint256[], keys: Uint8Array[], content: Uint8Array): Promise<any>;
+    static decodeIndexValue(numberStringValue: string): number[];
+    static getVersion(w3: Web3, mailerAddress: string): Promise<number>;
+    static extractRecipientIndex(address: Uint256, w3: Web3, mailerAddress: string): Promise<number[]>;
+    static deployContract(web3: Web3, from: string): Promise<string>;
 }
 export declare const MAILER_ABI: {
     _format: string;

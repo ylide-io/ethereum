@@ -10,7 +10,7 @@ export function decodeContentMessageBody(ev: EventData): IEthereumContentMessage
 		msgId: bigIntToUint256(msgId),
 		parts: Number(parts),
 		partIdx: Number(partIdx),
-		content: SmartBuffer.ofHexString(content.substring(2)).bytes,
+		content: SmartBuffer.ofHexString(content ? content.substring(2) : '').bytes,
 	};
 }
 

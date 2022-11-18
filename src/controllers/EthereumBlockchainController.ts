@@ -21,7 +21,7 @@ import {
 } from '@ylide/sdk';
 import Web3 from 'web3';
 import { EVM_CONTRACTS, EVM_ENS, IEthereumContractLink } from '../misc/constants';
-import { MAILER_ABI, REGISTRY_ABI } from '../contracts';
+import { MailerContract, MAILER_ABI, RegistryContract, REGISTRY_ABI } from '../contracts';
 import { EVMNetwork, EVM_CHAINS, EVM_NAMES, EVM_RPCS, IEthereumContentMessageBody, IEthereumMessage } from '../misc';
 import { Transaction, provider, BlockNumber } from 'web3-core';
 import { BlockTransactionString } from 'web3-eth';
@@ -29,12 +29,14 @@ import { EventData } from 'web3-eth-contract';
 import { AbiItem } from 'web3-utils';
 import { decodeContentMessageBody } from '../contracts/contractUtils';
 import { EthereumNameService } from './EthereumNameService';
+import { Semaphore } from 'semaphore-promise';
 
 export class EthereumBlockchainController extends AbstractBlockchainController {
 	web3Readers: {
 		web3: Web3;
 		blockLimit: number;
 		latestNotSupported: boolean;
+		batchNotSupported: boolean;
 	}[];
 
 	private blocksCache: Record<number, BlockTransactionString> = {};
@@ -50,6 +52,8 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	readonly chainId: number;
 
 	readonly nameService: EthereumNameService | null = null;
+
+	private readonly txcs = new Semaphore(3);
 
 	constructor(
 		private readonly options: {
@@ -76,6 +80,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 					web3: new Web3(r),
 					blockLimit: 0,
 					latestNotSupported: false,
+					batchNotSupported: false,
 			  }))
 			: chainNodes.map(data => {
 					const url = data.rpc;
@@ -84,12 +89,14 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 							web3: new Web3(new Web3.providers.WebsocketProvider(url)),
 							blockLimit: data.blockLimit || 0,
 							latestNotSupported: data.lastestNotSupported || false,
+							batchNotSupported: data.batchNotSupported || false,
 						};
 					} else {
 						return {
 							web3: new Web3(new Web3.providers.HttpProvider(url)),
 							blockLimit: data.blockLimit || 0,
 							latestNotSupported: data.lastestNotSupported || false,
+							batchNotSupported: data.batchNotSupported || false,
 						};
 					}
 			  });
@@ -102,6 +109,14 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		this.nameService = options?.nameServiceAddress
 			? new EthereumNameService(this, options?.nameServiceAddress)
 			: this.tryGetNameService();
+	}
+
+	blockchainGroup() {
+		return 'evm';
+	}
+
+	blockchain(): string {
+		return EVM_NAMES[this.network];
 	}
 
 	private tryGetNameService(): EthereumNameService | null {
@@ -120,19 +135,46 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		// np
 	}
 
-	async getBalance(address: string): Promise<string> {
-		return Web3.utils.fromWei(await this.executeWeb3Op(w3 => w3.eth.getBalance(address)));
+	async getBalance(address: string): Promise<{ original: string; number: number; string: string; e18: string }> {
+		return await this.executeWeb3Op(async w3 => {
+			const stringValue = await w3.eth.getBalance(address);
+			// Web3.utils.fromWei(
+			return {
+				original: stringValue,
+				number: Number(Web3.utils.fromWei(stringValue)),
+				string: Web3.utils.fromWei(stringValue),
+				e18: stringValue,
+			};
+		});
+	}
+
+	async getRecipientIndex(recipient: Uint256, mailerAddress: string) {
+		return await this.executeWeb3Op(async w3 => {
+			return MailerContract.extractRecipientIndex(recipient, w3, mailerAddress);
+		});
 	}
 
 	async executeWeb3Op<T>(
-		callback: (w3: Web3, blockLimit: number, latestNotSupported: boolean, doBreak: () => void) => Promise<T>,
+		callback: (
+			w3: Web3,
+			blockLimit: number,
+			latestNotSupported: boolean,
+			batchNotSupported: boolean,
+			doBreak: () => void,
+		) => Promise<T>,
 	): Promise<T> {
 		let lastError;
 		const errors = [];
 		for (const w3 of this.web3Readers) {
 			let doBreak = false;
 			try {
-				return await callback(w3.web3, w3.blockLimit, w3.latestNotSupported, () => (doBreak = true));
+				return await callback(
+					w3.web3,
+					w3.blockLimit,
+					w3.latestNotSupported,
+					w3.batchNotSupported,
+					() => (doBreak = true),
+				);
 			} catch (err: any) {
 				lastError = err;
 				if (err && typeof err.message === 'string' && err.message.includes('blocks range')) {
@@ -156,98 +198,19 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	async getAddressByPublicKey(publicKey: Uint8Array): Promise<string | null> {
-		// const messages = await this.blockchainController.gqlQueryMessages(
-		// 	getContractMessagesQuery(this.publicKeyToAddress(publicKey), this.contractAddress),
-		// );
-		// if (messages.length) {
-		// 	return this.decodePublicKeyToAddressMessageBody(messages[0].body);
-		// } else {
 		return null;
-		// }
 	}
 
 	async getPublicKeyByAddress(registryAddress: string, address: string): Promise<Uint8Array | null> {
 		return await this.executeWeb3Op(async (w3, blockLimit) => {
-			const data = w3.eth.abi.encodeFunctionCall(
-				(REGISTRY_ABI.abi as AbiItem[]).find(t => t.name === 'addressToPublicKey')!,
-				[address],
-			);
-			const contract = new w3.eth.Contract(REGISTRY_ABI.abi as AbiItem[], registryAddress);
-			// const gasPrice = await w3.eth.getGasPrice();
-			// const gas = await w3.eth.estimateGas({
-			// 	to: contract.options.address,
-			// 	gasPrice,
-			// 	data,
-			// });
-			const result = await contract.methods.addressToPublicKey(address).call({
-				// gas,
-				// gasPrice,
-			});
-			if (result === '0' || result === '0x0') {
-				return null;
+			const result = await RegistryContract.extractPublicKeyFromAddress(address, w3, registryAddress);
+			// console.log('extractPublicKeyFromAddress result: ', result);
+			if (result) {
+				return result.publicKey;
 			} else {
-				const hex = w3.utils.toHex(result);
-				return SmartBuffer.ofHexString(hex.substring(2).padStart(64, '0')).bytes;
+				return null;
 			}
 		});
-
-		// return await this.executeWeb3Op(async (w3, blockLimit) => {
-		// 	const contract = new w3.eth.Contract(REGISTRY_ABI.abi as AbiItem[], registryAddress);
-		// 	let events: EventData[] = [];
-		// 	if (blockLimit) {
-		// 		const latestBlockNumber = await w3.eth.getBlockNumber();
-		// 		for (let i = latestBlockNumber; i > this.registryFirstBlock; i -= blockLimit) {
-		// 			const tempEvents = await contract.getPastEvents('AddressToPublicKey', {
-		// 				filter: {
-		// 					addr: address,
-		// 				},
-		// 				fromBlock: Math.max(i - blockLimit, 0),
-		// 				toBlock: i,
-		// 			});
-		// 			if (tempEvents.length) {
-		// 				events = tempEvents;
-		// 				break;
-		// 			}
-		// 		}
-		// 	} else {
-		// 		try {
-		// 			events = await contract.getPastEvents('AddressToPublicKey', {
-		// 				filter: {
-		// 					addr: address,
-		// 				},
-		// 				fromBlock: this.registryFirstBlock,
-		// 				toBlock: 'latest',
-		// 			});
-		// 		} catch (err: any) {
-		// 			if (err && typeof err.message === 'string' && err.message.includes('range')) {
-		// 				const max = err.message.includes('max: ')
-		// 					? parseInt(err.message.split('max: ')[1], 10) - 1
-		// 					: 9999;
-		// 				const lastBlock = await w3.eth.getBlockNumber();
-		// 				for (let i = lastBlock; i > this.registryFirstBlock; i -= max) {
-		// 					const tempEvents = await contract.getPastEvents('AddressToPublicKey', {
-		// 						filter: {
-		// 							addr: address,
-		// 						},
-		// 						fromBlock: Math.max(i - max, 0),
-		// 						toBlock: i,
-		// 					});
-		// 					if (tempEvents.length) {
-		// 						events = tempEvents;
-		// 						break;
-		// 					}
-		// 				}
-		// 			} else {
-		// 				throw err;
-		// 			}
-		// 		}
-		// 	}
-		// 	if (events.length) {
-		// 		return decodeAddressToPublicKeyMessageBody(events[events.length - 1]);
-		// 	} else {
-		// 		return null;
-		// 	}
-		// });
 	}
 
 	async extractAddressFromPublicKey(publicKey: PublicKey): Promise<string | null> {
@@ -262,7 +225,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return PublicKey.fromBytes(PublicKeyType.YLIDE, rawKey);
 	}
 
-	private async getBlock(n: number): Promise<BlockTransactionString> {
+	async getBlock(n: number): Promise<BlockTransactionString> {
 		if (!this.blocksCache[n]) {
 			try {
 				this.blocksCache[n] = await this.executeWeb3Op(w3 => w3.eth.getBlock(n));
@@ -279,7 +242,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return this.executeWeb3Op(w3 => w3.eth.getBlockNumber());
 	}
 
-	private async getBlockNumberByTime(
+	async getBlockNumberByTime(
 		time: number,
 		firstBlock?: BlockTransactionString,
 		lastBlock?: BlockTransactionString,
@@ -308,7 +271,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 	}
 
-	private async binSearchBlocks(fromTime?: number, toTime?: number) {
+	async binSearchBlocks(fromTime?: number, toTime?: number) {
 		const firstBlock = await this.getBlock(this.mailerFirstBlock || 0);
 		const lastBlockNumber = await this.getLastBlockNumber();
 		const lastBlock = await this.getBlock(lastBlockNumber);
@@ -317,7 +280,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return { fromBlock, toBlock };
 	}
 
-	private async doEventsRequest(
+	async doEventsRequest(
 		mailerAddress: string,
 		subject: ISourceSubject,
 		w3: Web3,
@@ -341,7 +304,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		});
 	}
 
-	private async tryRequest(
+	async tryRequest(
 		mailerAddress: string,
 		subject: ISourceSubject,
 		fromBlockNumber: number,
@@ -350,7 +313,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		try {
 			return {
 				result: true,
-				data: await this.executeWeb3Op(async (w3, blockLimit, latestNotSupported, doBreak) => {
+				data: await this.executeWeb3Op(async (w3, blockLimit, latestNotSupported, b, doBreak) => {
 					if (blockLimit && toBlockNumber - fromBlockNumber > blockLimit) {
 						doBreak();
 						throw new Error(`Block limit is ${blockLimit}`);
@@ -367,7 +330,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 	}
 
-	private eventCmpr(a: EventData, b: EventData): number {
+	eventCmpr(a: EventData, b: EventData): number {
 		if (a.blockNumber === b.blockNumber) {
 			if (a.transactionIndex === b.transactionIndex) {
 				return b.logIndex - a.logIndex;
@@ -427,7 +390,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 	}
 
-	private async _retrieveEventsSinceBlock(
+	async _retrieveEventsSinceBlock(
 		mailerAddress: string,
 		subject: ISourceSubject,
 		fromBlockNumber: number,
@@ -449,7 +412,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return this.mailerContractAddress;
 	}
 
-	private async _retrieveMessageHistoryByTime(
+	async _retrieveMessageHistoryByTime(
 		mailerAddress: string,
 		subject: ISourceSubject,
 		fromTimestamp?: number,
@@ -505,8 +468,16 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	) {
 		const _toBlockNumber = await this.getLastBlockNumber();
 		return {
-			messages: await this.iterateMailers(limit, mailer =>
-				this._retrieveMessageHistoryByBounds(
+			messages: await this.iterateMailers(limit, async mailer => {
+				if (sender === null && recipient) {
+					const indexation = await this.executeWeb3Op(async w3 => {
+						return await MailerContract.extractRecipientIndex(recipient, w3, mailer.address);
+					});
+					if (!indexation.length) {
+						return [];
+					}
+				}
+				return await this._retrieveMessageHistoryByBounds(
 					mailer.address,
 					{ type: BlockchainSourceType.DIRECT, sender, recipient },
 					fromMessage,
@@ -516,13 +487,13 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 					toMessageIncluding,
 					_toBlockNumber,
 					limit,
-				),
-			),
+				);
+			}),
 			toBlockNumber: _toBlockNumber,
 		};
 	}
 
-	private async _retrieveMessageHistoryByBounds(
+	async _retrieveMessageHistoryByBounds(
 		mailerAddress: string,
 		subject: ISourceSubject,
 		fromMessage?: IMessage,
@@ -567,7 +538,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return output;
 	}
 
-	private async iterateMailers(
+	async iterateMailers(
 		limit: number | undefined,
 		callback: (mailer: IEthereumContractLink) => Promise<IMessage[]>,
 	): Promise<IMessage[]> {
@@ -677,51 +648,16 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return result;
 	}
 
-	async retrieveMessageContentByMsgId(msgId: string): Promise<IMessageContent | IMessageCorruptedContent | null> {
-		const messages = await this.processMessages(
-			await this.executeWeb3Op(async w3 => {
-				const ctrct = new w3.eth.Contract(
-					MAILER_ABI.abi as AbiItem[],
-					EVM_CONTRACTS[this.network].mailer.address,
-				);
-				const lastBlock = await w3.eth.getBlockNumber();
-				try {
-					return await ctrct.getPastEvents('MailContent', {
-						filter: {
-							msgId: '0x' + msgId,
-						},
-						fromBlock: this.mailerFirstBlock || 0,
-						toBlock: lastBlock,
-					});
-				} catch (err: any) {
-					if (err && typeof err.message === 'string' && err.message.includes('range')) {
-						const max = err.message.includes('max: ')
-							? parseInt(err.message.split('max: ')[1], 10) - 1
-							: 9999;
-						const result: EventData[] = [];
-						for (let i = lastBlock; i > this.mailerFirstBlock || 0; i -= max) {
-							const tempEvents = await ctrct.getPastEvents('MailContent', {
-								filter: {
-									msgId: '0x' + msgId,
-								},
-								fromBlock: Math.max(i - max, 0),
-								toBlock: i,
-							});
-							result.push(...tempEvents);
-						}
-						return result;
-					} else {
-						throw err;
-					}
-				}
-			}),
-		);
-		if (!messages.length) {
+	processMessageContent(
+		msgId: string,
+		messagePartEvents: IEthereumMessage[],
+	): IMessageContent | IMessageCorruptedContent | null {
+		if (!messagePartEvents.length) {
 			return null;
 		}
 		let decodedChunks: { msg: IEthereumMessage; body: IEthereumContentMessageBody }[];
 		try {
-			decodedChunks = messages.map((m: IEthereumMessage) => ({
+			decodedChunks = messagePartEvents.map((m: IEthereumMessage) => ({
 				msg: m,
 				body: decodeContentMessageBody(m.event),
 			}));
@@ -729,7 +665,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			return {
 				msgId,
 				corrupted: true,
-				chunks: messages.map((m: IEthereumMessage) => ({ createdAt: Number(m.block.timestamp) })),
+				chunks: messagePartEvents.map((m: IEthereumMessage) => ({ createdAt: Number(m.block.timestamp) })),
 				reason: MessageContentFailure.NON_DECRYPTABLE,
 			};
 		}
@@ -783,7 +719,49 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		};
 	}
 
-	private formatPushMessage(message: IEthereumMessage): IMessage {
+	async retrieveMessageContentByMsgId(msgId: string): Promise<IMessageContent | IMessageCorruptedContent | null> {
+		const messages = await this.processMessages(
+			await this.executeWeb3Op(async w3 => {
+				const ctrct = new w3.eth.Contract(
+					MAILER_ABI.abi as AbiItem[],
+					EVM_CONTRACTS[this.network].mailer.address,
+				);
+				const lastBlock = await w3.eth.getBlockNumber();
+				try {
+					return await ctrct.getPastEvents('MailContent', {
+						filter: {
+							msgId: '0x' + msgId,
+						},
+						fromBlock: this.mailerFirstBlock || 0,
+						toBlock: lastBlock,
+					});
+				} catch (err: any) {
+					if (err && typeof err.message === 'string' && err.message.includes('range')) {
+						const max = err.message.includes('max: ')
+							? parseInt(err.message.split('max: ')[1], 10) - 1
+							: 9999;
+						const result: EventData[] = [];
+						for (let i = lastBlock; i > this.mailerFirstBlock || 0; i -= max) {
+							const tempEvents = await ctrct.getPastEvents('MailContent', {
+								filter: {
+									msgId: '0x' + msgId,
+								},
+								fromBlock: Math.max(i - max, 0),
+								toBlock: i,
+							});
+							result.push(...tempEvents);
+						}
+						return result;
+					} else {
+						throw err;
+					}
+				}
+			}),
+		);
+		return this.processMessageContent(msgId, messages);
+	}
+
+	formatPushMessage(message: IEthereumMessage): IMessage {
 		const { recipient: recipientUint256, sender, msgId, key } = message.event.returnValues;
 		const recipient = bigIntToUint256(String(recipientUint256));
 		const createdAt = message.block.timestamp;
@@ -797,13 +775,13 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			recipientAddress: recipient,
 			blockchain: EVM_NAMES[this.network],
 
-			key: SmartBuffer.ofHexString(key.substring(2)).bytes,
+			key: SmartBuffer.ofHexString(key ? key.substring(2) : '').bytes,
 
 			$$blockchainMetaDontUseThisField: message,
 		};
 	}
 
-	private formatBroadcastMessage(message: IEthereumMessage): IMessage {
+	formatBroadcastMessage(message: IEthereumMessage): IMessage {
 		const { sender, msgId } = message.event.returnValues;
 		const createdAt = message.block.timestamp;
 
@@ -832,7 +810,40 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 		const txHashes = msgs.map(e => e.transactionHash).filter((e, i, a) => a.indexOf(e) === i);
 		const blockHashes = msgs.map(e => e.blockHash).filter((e, i, a) => a.indexOf(e) === i);
-		const { txs, blocks } = await this.executeWeb3Op(async w3 => {
+		const { txs, blocks } = await this.executeWeb3Op(async (w3, a, b, c) => {
+			const noBatch = async () => {
+				return {
+					txs: await Promise.all(
+						txHashes.map(async txHash => {
+							const release = await this.txcs.acquire();
+							try {
+								return await w3.eth.getTransaction(txHash);
+							} catch (err) {
+								// console.log('err: ', err);
+								throw err;
+							} finally {
+								release();
+							}
+						}),
+					),
+					blocks: await Promise.all(
+						blockHashes.map(async blockHash => {
+							const release = await this.txcs.acquire();
+							try {
+								return await w3.eth.getBlock(blockHash);
+							} catch (err) {
+								// console.log('err: ', err);
+								throw err;
+							} finally {
+								release();
+							}
+						}),
+					),
+				};
+			};
+			if (c) {
+				return await noBatch();
+			}
 			const batch = new w3.BatchRequest();
 			const txsPromise: Promise<Transaction[]> = Promise.all(
 				txHashes.map(
@@ -869,9 +880,13 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				),
 			);
 			batch.execute();
-			const _txs = await txsPromise;
-			const _blocks = await blocksPromise;
-			return { txs: _txs, blocks: _blocks };
+			try {
+				const _txs = await txsPromise;
+				const _blocks = await blocksPromise;
+				return { txs: _txs, blocks: _blocks };
+			} catch (err) {
+				return await noBatch();
+			}
 		});
 		const txMap: Record<string, Transaction> = txs.reduce(
 			(p, c) => ({
@@ -943,7 +958,7 @@ function getBlockchainFactory(network: EVMNetwork): BlockchainControllerFactory 
 	};
 }
 
-export const evmFactories: Record<EVMNetwork, BlockchainControllerFactory> = {
+export const evmBlockchainFactories: Record<EVMNetwork, BlockchainControllerFactory> = {
 	[EVMNetwork.LOCAL_HARDHAT]: getBlockchainFactory(EVMNetwork.LOCAL_HARDHAT),
 
 	[EVMNetwork.ETHEREUM]: getBlockchainFactory(EVMNetwork.ETHEREUM),
@@ -952,7 +967,7 @@ export const evmFactories: Record<EVMNetwork, BlockchainControllerFactory> = {
 	[EVMNetwork.AVALANCHE]: getBlockchainFactory(EVMNetwork.AVALANCHE),
 	[EVMNetwork.OPTIMISM]: getBlockchainFactory(EVMNetwork.OPTIMISM),
 	[EVMNetwork.ARBITRUM]: getBlockchainFactory(EVMNetwork.ARBITRUM),
-
+	[EVMNetwork.CRONOS]: getBlockchainFactory(EVMNetwork.CRONOS),
 	[EVMNetwork.FANTOM]: getBlockchainFactory(EVMNetwork.FANTOM),
 	[EVMNetwork.KLAYTN]: getBlockchainFactory(EVMNetwork.KLAYTN),
 	[EVMNetwork.GNOSIS]: getBlockchainFactory(EVMNetwork.GNOSIS),

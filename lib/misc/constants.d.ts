@@ -18,4 +18,5 @@ export declare const EVM_RPCS: Record<EVMNetwork, {
     rpc: string;
     blockLimit?: number;
     lastestNotSupported?: boolean;
+    batchNotSupported?: boolean;
 }[]>;

@@ -36,20 +36,35 @@ export class EthereumWalletController extends AbstractWalletController {
 	private readonly registryContractAddress?: string;
 	private readonly onNetworkSwitchRequest: NetworkSwitchHandler;
 
+	private readonly _wallet: string;
+
 	private lastCurrentAccount: IGenericAccount | null = null;
+	private providerObject: any;
 
 	constructor(
 		options: {
 			dev?: boolean;
 			mailerContractAddress?: string;
 			registryContractAddress?: string;
-			writeWeb3Provider?: any;
+			writeWeb3Provider?: Web3;
 			endpoint?: string;
+			wallet?: string;
+			providerObject?: any;
 			onNetworkSwitchRequest?: NetworkSwitchHandler;
 			onSwitchAccountRequest?: SwitchAccountCallback;
 		} = {},
 	) {
 		super(options);
+
+		if (!options || !options.wallet) {
+			throw new Error(
+				'You have to pass valid wallet param to the options of EthereumWalletController constructor',
+			);
+		}
+
+		this.providerObject = options.providerObject || (window as any).ethereum;
+
+		this._wallet = options.wallet;
 
 		this.onSwitchAccountRequest = options?.onSwitchAccountRequest || null;
 
@@ -76,37 +91,51 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 	}
 
+	handleError(err: any) {
+		console.error(`Error in EthereumWalletController of "${this.wallet()}": `, err); // tslint:disable-line
+	}
+
+	blockchainGroup(): string {
+		return 'evm';
+	}
+
+	wallet(): string {
+		return this._wallet;
+	}
+
 	async init() {
-		// @ts-ignore
-		const eth = window && window['ethereum']; // tslint:disable-line
+		try {
+			this.lastCurrentAccount = await this.getAuthenticatedAccount();
 
-		this.lastCurrentAccount = await this.getAuthenticatedAccount();
-
-		if (eth) {
-			eth.on('accountsChanged', (data: string[]) => {
-				if (data.length && !this.lastCurrentAccount) {
-					this.lastCurrentAccount = {
-						blockchain: 'evm',
-						address: data[0].toString().toLowerCase(),
-						publicKey: null,
-					};
-					this.emit(WalletEvent.LOGIN, this.lastCurrentAccount);
-				} else if (!data.length && this.lastCurrentAccount) {
-					this.lastCurrentAccount = null;
-					this.emit(WalletEvent.LOGOUT);
-				} else if (data.length && this.lastCurrentAccount) {
-					this.lastCurrentAccount = {
-						blockchain: 'evm',
-						address: data[0].toString().toLowerCase(),
-						publicKey: null,
-					};
-					this.emit(WalletEvent.ACCOUNT_CHANGED, this.lastCurrentAccount);
-				}
-			});
-			eth.on('chainChanged', (chainId: string) => {
-				const evmNetwork = EVM_CHAIN_ID_TO_NETWORK[Number(BigInt(chainId).toString(10))];
-				this.emit(WalletEvent.BLOCKCHAIN_CHANGED, EVM_NAMES[evmNetwork] || chainId);
-			});
+			if (this.providerObject) {
+				this.providerObject.on('accountsChanged', (data: string[]) => {
+					if (data.length && !this.lastCurrentAccount) {
+						this.lastCurrentAccount = {
+							blockchain: 'evm',
+							address: data[0].toString().toLowerCase(),
+							publicKey: null,
+						};
+						this.emit(WalletEvent.LOGIN, this.lastCurrentAccount);
+					} else if (!data.length && this.lastCurrentAccount) {
+						this.lastCurrentAccount = null;
+						this.emit(WalletEvent.LOGOUT);
+					} else if (data.length && this.lastCurrentAccount) {
+						this.lastCurrentAccount = {
+							blockchain: 'evm',
+							address: data[0].toString().toLowerCase(),
+							publicKey: null,
+						};
+						this.emit(WalletEvent.ACCOUNT_CHANGED, this.lastCurrentAccount);
+					}
+				});
+				this.providerObject.on('chainChanged', (chainId: string) => {
+					const evmNetwork = EVM_CHAIN_ID_TO_NETWORK[Number(BigInt(chainId).toString(10))];
+					this.emit(WalletEvent.BLOCKCHAIN_CHANGED, EVM_NAMES[evmNetwork] || chainId);
+				});
+			}
+		} catch (err) {
+			this.handleError(err);
+			throw err;
 		}
 	}
 
@@ -210,15 +239,27 @@ export class EthereumWalletController extends AbstractWalletController {
 		return newNetwork;
 	}
 
+	async deployRegistryV3(previousContractAddress?: string) {
+		const me = await this.getAuthenticatedAccount();
+		const address = await RegistryContract.deployContract(this.writeWeb3, me!.address, previousContractAddress);
+		return address;
+	}
+
+	async deployMailerV6() {
+		const me = await this.getAuthenticatedAccount();
+		const address = await MailerContract.deployContract(this.writeWeb3, me!.address);
+		return address;
+	}
+
 	async attachPublicKey(me: IGenericAccount, publicKey: Uint8Array, options?: any) {
 		await this.ensureAccount(me);
 		if (this.defaultRegistryContract) {
-			await this.defaultRegistryContract.attachPublicKey(me.address, publicKey);
+			await this.defaultRegistryContract.attachPublicKey(me.address, publicKey, 2);
 			return;
 		}
 		const network = await this.ensureNetworkOptions('Attach public key', options);
 		const registryContract = new RegistryContract(this.writeWeb3, EVM_CONTRACTS[network].registry.address);
-		await registryContract.attachPublicKey(me.address, publicKey);
+		await registryContract.attachPublicKey(me.address, publicKey, 2);
 	}
 
 	async requestAuthentication(): Promise<null | IGenericAccount> {
@@ -327,10 +368,107 @@ export class EthereumWalletController extends AbstractWalletController {
 	}
 }
 
-export const ethereumWalletFactory: WalletControllerFactory = {
-	create: async (options?: any) => new EthereumWalletController(options),
-	// @ts-ignore
-	isWalletAvailable: async () => !!(window['ethereum'] || window['web3']), // tslint:disable-line
-	blockchainGroup: 'evm',
-	wallet: 'web3',
+// export const ethereumWalletFactory: WalletControllerFactory = {
+// 	create: async (options?: any) => new EthereumWalletController(options),
+// 	// @ts-ignore
+// 	isWalletAvailable: async () => !!(window['ethereum'] || window['web3']), // tslint:disable-line
+// 	blockchainGroup: 'evm',
+// 	wallet: 'web3',
+// };
+
+function getWalletFactory(
+	wallet: string,
+	isWalletAvailable: () => Promise<boolean>,
+	provider: (options?: any) => Promise<Web3>,
+	providerObject: () => Promise<any>,
+): WalletControllerFactory {
+	return {
+		create: async (options?: any) =>
+			new EthereumWalletController(
+				Object.assign(
+					{
+						wallet,
+						writeWeb3Provider: await provider(options),
+						providerObject: await providerObject(),
+					},
+					options || {},
+				),
+			),
+		blockchainGroup: 'evm',
+		wallet,
+		isWalletAvailable,
+	};
+}
+
+const wnd = window as any;
+
+export const evmWalletFactories: Record<string, WalletControllerFactory> = {
+	binance: getWalletFactory(
+		'binance',
+		async () => !!wnd.BinanceChain,
+		async () => {
+			return new Web3(wnd.BinanceChain);
+		},
+		async () => {
+			return wnd.BinanceChain;
+		},
+	),
+	coinbase: getWalletFactory(
+		'coinbase',
+		async () =>
+			wnd.ethereum &&
+			(wnd.ethereum.isCoinbaseWallet ||
+				(wnd.ethereum.providers?.length && wnd.ethereum.providers.find((p: any) => p.isCoinbaseWallet))),
+		async () => {
+			if (wnd.ethereum.isCoinbaseWallet) {
+				return new Web3(wnd.ethereum);
+			} else {
+				return new Web3(wnd.ethereum.providers.find((p: any) => p.isCoinbaseWallet));
+			}
+		},
+		async () => {
+			if (wnd.ethereum.isCoinbaseWallet) {
+				return wnd.ethereum;
+			} else {
+				return wnd.ethereum.providers.find((p: any) => p.isCoinbaseWallet);
+			}
+		},
+	),
+	trustwallet: getWalletFactory(
+		'trustwallet',
+		async () => !!wnd.trustwallet,
+		async () => new Web3(wnd.trustwallet),
+		async () => wnd.trustwallet,
+	),
+	metamask: getWalletFactory(
+		'metamask',
+		async () =>
+			wnd.ethereum &&
+			(wnd.ethereum.isMetaMask ||
+				(wnd.ethereum.providers?.length && wnd.ethereum.providers.find((p: any) => p.isMetaMask))),
+		async () => {
+			if (wnd.ethereum.providers?.length) {
+				return new Web3(wnd.ethereum.providers.find((p: any) => p.isMetaMask));
+			} else {
+				return new Web3(wnd.ethereum);
+			}
+		},
+		async () => {
+			if (wnd.ethereum.providers?.length) {
+				return wnd.ethereum.providers.find((p: any) => p.isMetaMask);
+			} else {
+				return wnd.ethereum;
+			}
+		},
+	),
+	walletconnect: getWalletFactory(
+		'walletconnect',
+		async () => true,
+		async (options: { walletConnectProvider: any }) => {
+			return new Web3(options.walletConnectProvider);
+		},
+		async () => {
+			return null;
+		},
+	),
 };
