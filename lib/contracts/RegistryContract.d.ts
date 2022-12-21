@@ -6,7 +6,18 @@ export declare class RegistryContract {
     readonly contract: Contract;
     constructor(web3: Web3, contractAddress: string);
     estimateAndCall(address: string, method: string, args: any[]): Promise<any>;
+    estimateAndGetABI(address: string, method: string, args: any[]): Promise<{
+        data: any;
+        gas: number;
+        gasPrice: string;
+    }>;
     attachPublicKey(address: string, publicKey: Uint8Array, keyVersion: number): Promise<boolean>;
+    changeBonucer(from: string, newBonucer: string): Promise<any>;
+    attachPublicKeyByAdmin(from: string, _v: number, _r: string, _s: string, address: string, publicKey: Uint8Array, keyVersion: number, referrer: string, payBonus: boolean): Promise<{
+        data: any;
+        gas: number;
+        gasPrice: string;
+    }>;
     static getVersion(w3: Web3, registryAddress: string): Promise<number>;
     static extractPublicKeyFromAddress(address: string, w3: Web3, registryAddress: string): Promise<null | {
         block: number;

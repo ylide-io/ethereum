@@ -31,8 +31,15 @@ export declare class EthereumWalletController extends AbstractWalletController {
     init(): Promise<void>;
     deployMailer(): Promise<void>;
     deployRegistry(): Promise<void>;
+    changeBonucer(network: EVMNetwork, from: string, newBonucer: string): Promise<any>;
     private ensureAccount;
     requestYlidePrivateKey(me: IGenericAccount): Promise<Uint8Array | null>;
+    signString(account: IGenericAccount, message: string): Promise<{
+        message: string;
+        r: string;
+        s: string;
+        v: number;
+    }>;
     signMagicString(account: IGenericAccount, magicString: string): Promise<Uint8Array>;
     addressToUint256(address: string): Uint256;
     getAuthenticatedAccount(): Promise<IGenericAccount | null>;
@@ -40,8 +47,8 @@ export declare class EthereumWalletController extends AbstractWalletController {
     private getCurrentNetwork;
     getCurrentBlockchain(): Promise<string>;
     private ensureNetworkOptions;
-    deployRegistryV3(previousContractAddress?: string): Promise<string>;
-    deployMailerV6(): Promise<string>;
+    deployRegistryV4(previousContractAddress?: string): Promise<string>;
+    deployMailerV7(): Promise<string>;
     attachPublicKey(me: IGenericAccount, publicKey: Uint8Array, options?: any): Promise<void>;
     requestAuthentication(): Promise<null | IGenericAccount>;
     isMultipleAccountsSupported(): boolean;

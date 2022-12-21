@@ -4,7 +4,7 @@
 	"publishConfig": {
 		"access": "public"
 	},
-	"version": "0.7.5",
+	"version": "0.7.12",
 	"description": "Ylide Protocol SDK implementation for EVM-based blockchains",
 	"main": "lib/index.js",
 	"types": "lib/index.d.ts",
@@ -35,7 +35,7 @@
 	"license": "ISC",
 	"dependencies": {
 		"@ensdomains/ensjs": "2.1.0",
-		"@ylide/sdk": "0.7.5",
+		"@ylide/sdk": "0.7.6",
 		"@ylide/smart-buffer": "0.0.9",
 		"eventemitter3": "4.0.7",
 		"semaphore-promise": "1.4.1",

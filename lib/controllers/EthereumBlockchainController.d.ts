@@ -1,4 +1,4 @@
-import { AbstractBlockchainController, IMessage, IMessageContent, IMessageCorruptedContent, IExtraEncryptionStrateryBulk, IExtraEncryptionStrateryEntry, MessageKey, PublicKey, BlockchainControllerFactory, Uint256, ISourceSubject } from '@ylide/sdk';
+import { AbstractBlockchainController, IMessage, IMessageContent, IMessageCorruptedContent, IExtraEncryptionStrateryBulk, IExtraEncryptionStrateryEntry, MessageKey, PublicKey, BlockchainControllerFactory, Uint256, ISourceSubject, ExternalYlidePublicKey } from '@ylide/sdk';
 import Web3 from 'web3';
 import { IEthereumContractLink } from '../misc/constants';
 import { EVMNetwork, IEthereumMessage } from '../misc';
@@ -47,9 +47,14 @@ export declare class EthereumBlockchainController extends AbstractBlockchainCont
     executeWeb3Op<T>(callback: (w3: Web3, blockLimit: number, latestNotSupported: boolean, batchNotSupported: boolean, doBreak: () => void) => Promise<T>): Promise<T>;
     getRecipientReadingRules(address: string): Promise<any>;
     getAddressByPublicKey(publicKey: Uint8Array): Promise<string | null>;
-    getPublicKeyByAddress(registryAddress: string, address: string): Promise<Uint8Array | null>;
+    getPublicKeyByAddress(registryAddress: string, address: string): Promise<{
+        block: number;
+        keyVersion: number;
+        publicKey: Uint8Array;
+        timestamp: number;
+    } | null>;
     extractAddressFromPublicKey(publicKey: PublicKey): Promise<string | null>;
-    extractPublicKeyFromAddress(address: string): Promise<PublicKey | null>;
+    extractPublicKeyFromAddress(address: string): Promise<ExternalYlidePublicKey | null>;
     getBlock(n: number): Promise<BlockTransactionString>;
     getLastBlockNumber(): Promise<number>;
     getBlockNumberByTime(time: number, firstBlock?: BlockTransactionString, lastBlock?: BlockTransactionString): Promise<BlockTransactionString>;

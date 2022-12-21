@@ -18,6 +18,8 @@ import {
 	ISourceSubject,
 	uint256ToUint8Array,
 	BlockchainSourceType,
+	ExternalYlidePublicKey,
+	asyncDelay,
 } from '@ylide/sdk';
 import Web3 from 'web3';
 import { EVM_CONTRACTS, EVM_ENS, IEthereumContractLink } from '../misc/constants';
@@ -201,12 +203,12 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return null;
 	}
 
-	async getPublicKeyByAddress(registryAddress: string, address: string): Promise<Uint8Array | null> {
+	async getPublicKeyByAddress(registryAddress: string, address: string) {
 		return await this.executeWeb3Op(async (w3, blockLimit) => {
 			const result = await RegistryContract.extractPublicKeyFromAddress(address, w3, registryAddress);
 			// console.log('extractPublicKeyFromAddress result: ', result);
 			if (result) {
-				return result.publicKey;
+				return result;
 			} else {
 				return null;
 			}
@@ -217,12 +219,16 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return this.getAddressByPublicKey(publicKey.bytes);
 	}
 
-	async extractPublicKeyFromAddress(address: string): Promise<PublicKey | null> {
+	async extractPublicKeyFromAddress(address: string): Promise<ExternalYlidePublicKey | null> {
 		const rawKey = await this.getPublicKeyByAddress(this.registryContractAddress, address);
 		if (!rawKey) {
 			return null;
 		}
-		return PublicKey.fromBytes(PublicKeyType.YLIDE, rawKey);
+		return {
+			publicKey: PublicKey.fromBytes(PublicKeyType.YLIDE, rawKey.publicKey),
+			timestamp: rawKey.timestamp,
+			keyVersion: rawKey.keyVersion,
+		};
 	}
 
 	async getBlock(n: number): Promise<BlockTransactionString> {
@@ -883,6 +889,13 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			try {
 				const _txs = await txsPromise;
 				const _blocks = await blocksPromise;
+				for (let i = 0; i < _txs.length; i++) {
+					// try one more time...
+					if (!_txs[i]) {
+						await asyncDelay(500);
+						_txs[i] = await w3.eth.getTransaction(txHashes[i]);
+					}
+				}
 				return { txs: _txs, blocks: _blocks };
 			} catch (err) {
 				return await noBatch();

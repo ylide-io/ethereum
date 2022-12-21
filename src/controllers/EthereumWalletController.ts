@@ -76,8 +76,6 @@ export class EthereumWalletController extends AbstractWalletController {
 
 		this.onNetworkSwitchRequest = options.onNetworkSwitchRequest;
 
-		// @ts-ignore
-		window.ethWallet = this;
 		this.writeWeb3 = new Web3(options?.writeWeb3Provider || Web3.givenProvider);
 
 		this.mailerContractAddress = options.mailerContractAddress;
@@ -163,6 +161,11 @@ export class EthereumWalletController extends AbstractWalletController {
 		console.log('contract address: ', tx.options.address); // tslint:disable-line
 	}
 
+	async changeBonucer(network: EVMNetwork, from: string, newBonucer: string) {
+		const rc = new RegistryContract(this.writeWeb3, EVM_CONTRACTS[network].registry.address);
+		return await rc.changeBonucer(from, newBonucer);
+	}
+
 	private async ensureAccount(needAccount: IGenericAccount) {
 		let me = await this.getAuthenticatedAccount();
 		if (!me || me.address !== needAccount.address) {
@@ -176,6 +179,18 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	async requestYlidePrivateKey(me: IGenericAccount): Promise<Uint8Array | null> {
 		throw new Error('Method not available.');
+	}
+
+	async signString(
+		account: IGenericAccount,
+		message: string,
+	): Promise<{ message: string; r: string; s: string; v: number }> {
+		const signature = await this.writeWeb3.eth.personal.sign(message, account.address, 'null');
+		// split signature
+		const r = signature.slice(0, 66);
+		const s = '0x' + signature.slice(66, 130);
+		const v = parseInt(signature.slice(130, 132), 16);
+		return { message, r, s, v };
 	}
 
 	async signMagicString(account: IGenericAccount, magicString: string): Promise<Uint8Array> {
@@ -239,13 +254,13 @@ export class EthereumWalletController extends AbstractWalletController {
 		return newNetwork;
 	}
 
-	async deployRegistryV3(previousContractAddress?: string) {
+	async deployRegistryV4(previousContractAddress?: string) {
 		const me = await this.getAuthenticatedAccount();
 		const address = await RegistryContract.deployContract(this.writeWeb3, me!.address, previousContractAddress);
 		return address;
 	}
 
-	async deployMailerV6() {
+	async deployMailerV7() {
 		const me = await this.getAuthenticatedAccount();
 		const address = await MailerContract.deployContract(this.writeWeb3, me!.address);
 		return address;
@@ -400,64 +415,64 @@ function getWalletFactory(
 	};
 }
 
-const wnd = window as any;
-
 export const evmWalletFactories: Record<string, WalletControllerFactory> = {
 	binance: getWalletFactory(
 		'binance',
-		async () => !!wnd.BinanceChain,
+		async () => !!(window as any).BinanceChain,
 		async () => {
-			return new Web3(wnd.BinanceChain);
+			return new Web3((window as any).BinanceChain);
 		},
 		async () => {
-			return wnd.BinanceChain;
+			return (window as any).BinanceChain;
 		},
 	),
 	coinbase: getWalletFactory(
 		'coinbase',
 		async () =>
-			wnd.ethereum &&
-			(wnd.ethereum.isCoinbaseWallet ||
-				(wnd.ethereum.providers?.length && wnd.ethereum.providers.find((p: any) => p.isCoinbaseWallet))),
+			(window as any).ethereum &&
+			((window as any).ethereum.isCoinbaseWallet ||
+				((window as any).ethereum.providers?.length &&
+					(window as any).ethereum.providers.find((p: any) => p.isCoinbaseWallet))),
 		async () => {
-			if (wnd.ethereum.isCoinbaseWallet) {
-				return new Web3(wnd.ethereum);
+			if ((window as any).ethereum.isCoinbaseWallet) {
+				return new Web3((window as any).ethereum);
 			} else {
-				return new Web3(wnd.ethereum.providers.find((p: any) => p.isCoinbaseWallet));
+				return new Web3((window as any).ethereum.providers.find((p: any) => p.isCoinbaseWallet));
 			}
 		},
 		async () => {
-			if (wnd.ethereum.isCoinbaseWallet) {
-				return wnd.ethereum;
+			if ((window as any).ethereum.isCoinbaseWallet) {
+				return (window as any).ethereum;
 			} else {
-				return wnd.ethereum.providers.find((p: any) => p.isCoinbaseWallet);
+				return (window as any).ethereum.providers.find((p: any) => p.isCoinbaseWallet);
 			}
 		},
 	),
 	trustwallet: getWalletFactory(
 		'trustwallet',
-		async () => !!wnd.trustwallet,
-		async () => new Web3(wnd.trustwallet),
-		async () => wnd.trustwallet,
+		async () => !!(window as any).trustwallet,
+		async () => new Web3((window as any).trustwallet),
+		async () => (window as any).trustwallet,
 	),
 	metamask: getWalletFactory(
 		'metamask',
 		async () =>
-			wnd.ethereum &&
-			(wnd.ethereum.isMetaMask ||
-				(wnd.ethereum.providers?.length && wnd.ethereum.providers.find((p: any) => p.isMetaMask))),
+			(window as any).ethereum &&
+			((window as any).ethereum.isMetaMask ||
+				((window as any).ethereum.providers?.length &&
+					(window as any).ethereum.providers.find((p: any) => p.isMetaMask))),
 		async () => {
-			if (wnd.ethereum.providers?.length) {
-				return new Web3(wnd.ethereum.providers.find((p: any) => p.isMetaMask));
+			if ((window as any).ethereum.providers?.length) {
+				return new Web3((window as any).ethereum.providers.find((p: any) => p.isMetaMask));
 			} else {
-				return new Web3(wnd.ethereum);
+				return new Web3((window as any).ethereum);
 			}
 		},
 		async () => {
-			if (wnd.ethereum.providers?.length) {
-				return wnd.ethereum.providers.find((p: any) => p.isMetaMask);
+			if ((window as any).ethereum.providers?.length) {
+				return (window as any).ethereum.providers.find((p: any) => p.isMetaMask);
 			} else {
-				return wnd.ethereum;
+				return (window as any).ethereum;
 			}
 		},
 	),

@@ -25,61 +25,61 @@ export const EVM_CONTRACTS: Record<
 	},
 	[EVMNetwork.BNBCHAIN]: {
 		registry: { address: '0x8c030408e3C873282B57033Fee38685F74E0CefF', fromBlock: 22544208 },
-		mailer: { address: '0xBf52A156A8422464BD0b1859898Fa14a28537284', fromBlock: 22544208 },
+		mailer: { address: '0x28D9Bb1AEd64C115dD70e886C546ee0420623BC2', fromBlock: 23930418 },
 	},
 	[EVMNetwork.POLYGON]: {
 		registry: { address: '0xff0e2f4c0351f78dcb5d05ba485aec76a1d0a851', fromBlock: 34868841 },
-		mailer: { address: '0x003c0ac0e7fff5452fb7de73925ce18f91660532', fromBlock: 34868841 },
+		mailer: { address: '0xA08756BA4A3844b42414eE50e908eE6221eF299c', fromBlock: 36867250 },
 	},
 	[EVMNetwork.AVALANCHE]: {
 		registry: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 21613407 },
-		mailer: { address: '0xCdb5D5E87E29fB5Fccff8fF5c2A9827705C0A260', fromBlock: 21613407 },
+		mailer: { address: '0x85143B48Bf2EfCa893493239500147Bb742ec69a', fromBlock: 23673967 },
 	},
 	[EVMNetwork.OPTIMISM]: {
 		registry: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 32046889 },
-		mailer: { address: '0xCdb5D5E87E29fB5Fccff8fF5c2A9827705C0A260', fromBlock: 32046889 },
+		mailer: { address: '0x85143B48Bf2EfCa893493239500147Bb742ec69a', fromBlock: 50131061 },
 	},
 	[EVMNetwork.ARBITRUM]: {
 		registry: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 33111730 },
-		mailer: { address: '0xCdb5D5E87E29fB5Fccff8fF5c2A9827705C0A260', fromBlock: 33111730 },
+		mailer: { address: '0x85143B48Bf2EfCa893493239500147Bb742ec69a', fromBlock: 46422622 },
 	},
 
 	[EVMNetwork.CRONOS]: {
 		registry: { address: '0x28D9Bb1AEd64C115dD70e886C546ee0420623BC2', fromBlock: 5286437 },
-		mailer: { address: '0x79935f5d685452C361058C0Fe5a50B803AA214a1', fromBlock: 5286437 },
+		mailer: { address: '0xfb3658fbA39459a6B76e4f5a6813e73Bf49BC6BD', fromBlock: 6031727 },
 	},
 	[EVMNetwork.FANTOM]: {
-		registry: { address: '0xda1fa95A630Ba2EF6d96f15C9EB721aF0F64914E', fromBlock: 50113599 },
-		mailer: { address: '0xDFEe2128E3D441078dC286171F27F612B35fD7bD', fromBlock: 50113599 },
+		registry: { address: '0x85143B48Bf2EfCa893493239500147Bb742ec69a', fromBlock: 52364878 },
+		mailer: { address: '0xD7b5BF96F6932C03FFB53C847cc96E124893737E', fromBlock: 52390788 },
 	},
 	[EVMNetwork.KLAYTN]: {
 		registry: { address: '0xda1fa95A630Ba2EF6d96f15C9EB721aF0F64914E', fromBlock: 104982969 },
-		mailer: { address: '0xDFEe2128E3D441078dC286171F27F612B35fD7bD', fromBlock: 104982969 },
+		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 109216786 },
 	},
 	[EVMNetwork.GNOSIS]: {
-		registry: { address: '0xda1fa95A630Ba2EF6d96f15C9EB721aF0F64914E', fromBlock: 24758425 },
-		mailer: { address: '0xDFEe2128E3D441078dC286171F27F612B35fD7bD', fromBlock: 24758425 },
+		registry: { address: '0xCdb5D5E87E29fB5Fccff8fF5c2A9827705C0A260', fromBlock: 25464256 },
+		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 24758425 },
 	},
 	[EVMNetwork.AURORA]: {
 		registry: { address: '0xda1fa95A630Ba2EF6d96f15C9EB721aF0F64914E', fromBlock: 77156327 },
-		mailer: { address: '0xDFEe2128E3D441078dC286171F27F612B35fD7bD', fromBlock: 77156327 },
+		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 80717658 },
 	},
 
 	[EVMNetwork.CELO]: {
 		registry: { address: '0xda1fa95A630Ba2EF6d96f15C9EB721aF0F64914E', fromBlock: 15844403 },
-		mailer: { address: '0xDFEe2128E3D441078dC286171F27F612B35fD7bD', fromBlock: 15844403 },
+		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 16691003 },
 	},
 	[EVMNetwork.MOONBEAM]: {
 		registry: { address: '0xda1fa95A630Ba2EF6d96f15C9EB721aF0F64914E', fromBlock: 2169935 },
-		mailer: { address: '0xDFEe2128E3D441078dC286171F27F612B35fD7bD', fromBlock: 2169935 },
+		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 2516445 },
 	},
 	[EVMNetwork.MOONRIVER]: {
 		registry: { address: '0xda1fa95A630Ba2EF6d96f15C9EB721aF0F64914E', fromBlock: 2864035 },
-		mailer: { address: '0xDFEe2128E3D441078dC286171F27F612B35fD7bD', fromBlock: 2864035 },
+		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 3196644 },
 	},
 	[EVMNetwork.METIS]: {
 		registry: { address: '0xda1fa95A630Ba2EF6d96f15C9EB721aF0F64914E', fromBlock: 3886879 },
-		mailer: { address: '0xDFEe2128E3D441078dC286171F27F612B35fD7bD', fromBlock: 3886879 },
+		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 4188014 },
 	},
 	[EVMNetwork.ASTAR]: {
 		registry: { address: '0xDFEe2128E3D441078dC286171F27F612B35fD7bD', fromBlock: 2163788 },
