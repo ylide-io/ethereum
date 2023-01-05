@@ -230,6 +230,7 @@ export const EVM_RPCS: Record<
 	[EVMNetwork.GNOSIS]: [
 		{ rpc: 'wss://rpc.gnosischain.com/wss' },
 		{ rpc: 'https://rpc.gnosischain.com' },
+		{ rpc: 'https://cosmopolitan-dawn-sky.xdai.discover.quiknode.pro/4405e640361b4c7ef17a3f07431647fd6375fc29/' },
 		{ rpc: 'https://xdai-rpc.gateway.pokt.network' },
 		{ rpc: 'https://gnosis-mainnet.public.blastapi.io' },
 	],
