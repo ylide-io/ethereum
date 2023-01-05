@@ -6,7 +6,7 @@ export declare class RegistryContract {
     readonly contract: Contract;
     constructor(web3: Web3, contractAddress: string);
     estimateAndCall(address: string, method: string, args: any[]): Promise<any>;
-    estimateAndGetABI(address: string, method: string, args: any[]): Promise<{
+    estimateAndGetABI(address: string, method: string, args: any[], value?: string): Promise<{
         data: any;
         gas: number;
         gasPrice: string;
@@ -14,7 +14,7 @@ export declare class RegistryContract {
     attachPublicKey(address: string, publicKey: Uint8Array, keyVersion: number): Promise<boolean>;
     changeBonucer(from: string, newBonucer: string): Promise<any>;
     setBonuses(from: string, _newcomerBonus: string, _referrerBonus: string): Promise<any>;
-    attachPublicKeyByAdmin(from: string, _v: number, _r: string, _s: string, address: string, publicKey: Uint8Array, keyVersion: number, referrer: string, payBonus: boolean): Promise<{
+    attachPublicKeyByAdmin(from: string, _v: number, _r: string, _s: string, address: string, publicKey: Uint8Array, keyVersion: number, referrer: string, payBonus: boolean, value: string): Promise<{
         data: any;
         gas: number;
         gasPrice: string;

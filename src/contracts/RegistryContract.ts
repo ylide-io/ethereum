@@ -27,7 +27,7 @@ export class RegistryContract {
 		return await this.contract.methods[method](...args).send({ from: address, gas, gasPrice });
 	}
 
-	async estimateAndGetABI(address: string, method: string, args: any[]) {
+	async estimateAndGetABI(address: string, method: string, args: any[], value?: string) {
 		const data = this.web3.eth.abi.encodeFunctionCall(
 			(REGISTRY_ABI.abi as AbiItem[]).find(t => t.name === method)!,
 			args,
@@ -37,6 +37,7 @@ export class RegistryContract {
 			to: this.contract.options.address,
 			from: address,
 			data,
+			value,
 		});
 		return {
 			data: this.contract.methods[method](...args).encodeABI(),
@@ -69,17 +70,14 @@ export class RegistryContract {
 		keyVersion: number,
 		referrer: string,
 		payBonus: boolean,
+		value: string,
 	) {
-		return await this.estimateAndGetABI(from, 'attachPublicKeyByAdmin', [
-			_v,
-			_r,
-			_s,
-			address,
-			publicKeyToBigIntString(publicKey),
-			keyVersion,
-			referrer,
-			payBonus,
-		]);
+		return await this.estimateAndGetABI(
+			from,
+			'attachPublicKeyByAdmin',
+			[_v, _r, _s, address, publicKeyToBigIntString(publicKey), keyVersion, referrer, payBonus],
+			value,
+		);
 	}
 
 	static async getVersion(w3: Web3, registryAddress: string) {
