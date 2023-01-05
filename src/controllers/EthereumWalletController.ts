@@ -166,6 +166,11 @@ export class EthereumWalletController extends AbstractWalletController {
 		return await rc.changeBonucer(from, newBonucer);
 	}
 
+	async setBonuses(network: EVMNetwork, from: string, _newcomerBonus: string, _referrerBonus: string) {
+		const rc = new RegistryContract(this.writeWeb3, EVM_CONTRACTS[network].registry.address);
+		return await rc.setBonuses(from, _newcomerBonus, _referrerBonus);
+	}
+
 	private async ensureAccount(needAccount: IGenericAccount) {
 		let me = await this.getAuthenticatedAccount();
 		if (!me || me.address !== needAccount.address) {

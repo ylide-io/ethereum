@@ -13,6 +13,7 @@ export declare class RegistryContract {
     }>;
     attachPublicKey(address: string, publicKey: Uint8Array, keyVersion: number): Promise<boolean>;
     changeBonucer(from: string, newBonucer: string): Promise<any>;
+    setBonuses(from: string, _newcomerBonus: string, _referrerBonus: string): Promise<any>;
     attachPublicKeyByAdmin(from: string, _v: number, _r: string, _s: string, address: string, publicKey: Uint8Array, keyVersion: number, referrer: string, payBonus: boolean): Promise<{
         data: any;
         gas: number;
