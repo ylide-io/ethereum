@@ -259,7 +259,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		return newNetwork;
 	}
 
-	async deployRegistryV4(previousContractAddress?: string) {
+	async deployRegistryV5(previousContractAddress?: string) {
 		const me = await this.getAuthenticatedAccount();
 		const address = await RegistryContract.deployContract(this.writeWeb3, me!.address, previousContractAddress);
 		return address;

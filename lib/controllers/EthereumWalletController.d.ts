@@ -48,7 +48,7 @@ export declare class EthereumWalletController extends AbstractWalletController {
     private getCurrentNetwork;
     getCurrentBlockchain(): Promise<string>;
     private ensureNetworkOptions;
-    deployRegistryV4(previousContractAddress?: string): Promise<string>;
+    deployRegistryV5(previousContractAddress?: string): Promise<string>;
     deployMailerV7(): Promise<string>;
     attachPublicKey(me: IGenericAccount, publicKey: Uint8Array, options?: any): Promise<void>;
     requestAuthentication(): Promise<null | IGenericAccount>;
