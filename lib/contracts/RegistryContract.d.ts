@@ -12,7 +12,7 @@ export declare class RegistryContract {
         gasPrice: string;
     }>;
     attachPublicKey(address: string, publicKey: Uint8Array, keyVersion: number): Promise<boolean>;
-    changeBonucer(from: string, newBonucer: string): Promise<any>;
+    setBonucer(from: string, newBonucer: string, val: boolean): Promise<any>;
     setBonuses(from: string, _newcomerBonus: string, _referrerBonus: string): Promise<any>;
     attachPublicKeyByAdmin(from: string, _v: number, _r: string, _s: string, address: string, publicKey: Uint8Array, keyVersion: number, referrer: string, payBonus: boolean, value: string): Promise<{
         data: any;
@@ -80,6 +80,13 @@ export declare const REGISTRY_ABI: {
         stateMutability: string;
         type: string;
         anonymous?: undefined;
+    } | {
+        stateMutability: string;
+        type: string;
+        inputs?: undefined;
+        anonymous?: undefined;
+        name?: undefined;
+        outputs?: undefined;
     })[];
     bytecode: string;
     deployedBytecode: string;

@@ -57,7 +57,7 @@ export const EVM_CONTRACTS: Record<
 		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 109216786 },
 	},
 	[EVMNetwork.GNOSIS]: {
-		registry: { address: '0xc421FA2f00807fBC6b852207C25EB8020383b39a', fromBlock: 25804822 },
+		registry: { address: '0xf28Faff9Efc6F5283d32724d60dcdb228A066473', fromBlock: 25813716 },
 		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 24758425 },
 	},
 	[EVMNetwork.AURORA]: {

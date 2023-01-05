@@ -161,9 +161,9 @@ export class EthereumWalletController extends AbstractWalletController {
 		console.log('contract address: ', tx.options.address); // tslint:disable-line
 	}
 
-	async changeBonucer(network: EVMNetwork, from: string, newBonucer: string) {
+	async setBonucer(network: EVMNetwork, from: string, newBonucer: string, val: boolean) {
 		const rc = new RegistryContract(this.writeWeb3, EVM_CONTRACTS[network].registry.address);
-		return await rc.changeBonucer(from, newBonucer);
+		return await rc.setBonucer(from, newBonucer, val);
 	}
 
 	async setBonuses(network: EVMNetwork, from: string, _newcomerBonus: string, _referrerBonus: string) {

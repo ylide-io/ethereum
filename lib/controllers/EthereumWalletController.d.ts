@@ -31,7 +31,7 @@ export declare class EthereumWalletController extends AbstractWalletController {
     init(): Promise<void>;
     deployMailer(): Promise<void>;
     deployRegistry(): Promise<void>;
-    changeBonucer(network: EVMNetwork, from: string, newBonucer: string): Promise<any>;
+    setBonucer(network: EVMNetwork, from: string, newBonucer: string, val: boolean): Promise<any>;
     setBonuses(network: EVMNetwork, from: string, _newcomerBonus: string, _referrerBonus: string): Promise<any>;
     private ensureAccount;
     requestYlidePrivateKey(me: IGenericAccount): Promise<Uint8Array | null>;
