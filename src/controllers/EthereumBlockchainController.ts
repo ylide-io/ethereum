@@ -21,27 +21,14 @@ import {
 	ExternalYlidePublicKey,
 	asyncDelay,
 } from '@ylide/sdk';
-import Web3 from 'web3';
 import { EVM_CONTRACTS, EVM_ENS, IEthereumContractLink } from '../misc/constants';
-import { MailerContract, MAILER_ABI, RegistryContract } from '../contracts';
 import { EVMNetwork, EVM_CHAINS, EVM_NAMES, EVM_RPCS, IEthereumContentMessageBody, IEthereumMessage } from '../misc';
-import { Transaction, provider, BlockNumber } from 'web3-core';
-import { BlockTransactionString } from 'web3-eth';
-import { EventData } from 'web3-eth-contract';
-import { AbiItem } from 'web3-utils';
-import { decodeContentMessageBody } from '../contracts/contractUtils';
 import { EthereumNameService } from './EthereumNameService';
 import { Semaphore } from 'semaphore-promise';
 
 export class EthereumBlockchainController extends AbstractBlockchainController {
-	web3Readers: {
-		web3: Web3;
-		blockLimit: number;
-		latestNotSupported: boolean;
-		batchNotSupported: boolean;
-	}[];
-
-	private blocksCache: Record<number, BlockTransactionString> = {};
+	readonly blockchainReader: EthereumBlockchainReader;
+	readonly historyReader: EthereumHistoryReader;
 
 	readonly MESSAGES_FETCH_LIMIT = 50;
 
