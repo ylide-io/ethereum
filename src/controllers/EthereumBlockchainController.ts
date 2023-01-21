@@ -23,7 +23,7 @@ import {
 } from '@ylide/sdk';
 import Web3 from 'web3';
 import { EVM_CONTRACTS, EVM_ENS, IEthereumContractLink } from '../misc/constants';
-import { MailerContract, MAILER_ABI, RegistryContract, REGISTRY_ABI } from '../contracts';
+import { MailerContract, MAILER_ABI, RegistryContract } from '../contracts';
 import { EVMNetwork, EVM_CHAINS, EVM_NAMES, EVM_RPCS, IEthereumContentMessageBody, IEthereumMessage } from '../misc';
 import { Transaction, provider, BlockNumber } from 'web3-core';
 import { BlockTransactionString } from 'web3-eth';
