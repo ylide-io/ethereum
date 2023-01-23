@@ -7,7 +7,7 @@ import {
 	BlockchainSourceType,
 	asyncTimer,
 } from '@ylide/sdk';
-import { EthereumBlockchainController } from './EthereumBlockchainController';
+import { EthereumBlockchainController } from './EthereumBlockchainControllerOld';
 
 /**
  * @internal

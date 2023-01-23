@@ -1,5 +1,5 @@
 import { AbstractNameService } from '@ylide/sdk';
-import { EthereumBlockchainController } from './EthereumBlockchainController';
+import { EthereumBlockchainController } from './EthereumBlockchainControllerOld';
 
 export class EthereumNameService extends AbstractNameService {
 	constructor(public readonly controller: EthereumBlockchainController, public readonly contractAddress: string) {

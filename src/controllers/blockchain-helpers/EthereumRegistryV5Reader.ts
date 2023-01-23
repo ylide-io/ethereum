@@ -23,5 +23,15 @@ export class EthereumRegistryV5Reader {
 		}
 	}
 
+	async contractOperation<T>(
+		registryAddress: string,
+		callback: (contract: YlideRegistryV5, provider: ethers.providers.Provider) => Promise<T>,
+	): Promise<T> {
+		return await this.blockchainReader.retryableOperation(async provider => {
+			const contract = this.getRegistryContract(registryAddress, provider);
+			return await callback(contract, provider);
+		});
+	}
+
 	//
 }

@@ -1,5 +1,5 @@
 import { BlockchainSource, GenericEntryPure, IMessage, ISourceSubject } from '@ylide/sdk';
-import { EthereumBlockchainController } from './EthereumBlockchainController';
+import { EthereumBlockchainController } from './EthereumBlockchainControllerOld';
 
 export class EthereumBlockchainSource extends BlockchainSource {
 	protected lastBlockChecked: number = 0;

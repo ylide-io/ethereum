@@ -25,9 +25,18 @@ export class EthereumMailerV8Reader {
 		}
 	}
 
-	async getRecipientToPushIndex(mailerAddress: string, recipient: Uint256): Promise<number[]> {
+	async contractOperation<T>(
+		mailerAddress: string,
+		callback: (contract: YlideMailerV8, provider: ethers.providers.Provider) => Promise<T>,
+	): Promise<T> {
 		return await this.blockchainReader.retryableOperation(async provider => {
 			const contract = this.getMailerContract(mailerAddress, provider);
+			return await callback(contract, provider);
+		});
+	}
+
+	async getRecipientToPushIndex(mailerAddress: string, recipient: Uint256): Promise<number[]> {
+		return await this.contractOperation(mailerAddress, async contract => {
 			const [bn] = await contract.functions.recipientToPushIndex(recipient);
 			const index = bn.toHexString().replace('0x', '').padStart(64, '0') as Uint256;
 			return BlockNumberRingBufferIndex.decodeIndexValue(index);
@@ -35,16 +44,14 @@ export class EthereumMailerV8Reader {
 	}
 
 	async getRecipientMessagesCount(mailerAddress: string, recipient: Uint256): Promise<number> {
-		return await this.blockchainReader.retryableOperation(async provider => {
-			const contract = this.getMailerContract(mailerAddress, provider);
+		return await this.contractOperation(mailerAddress, async contract => {
 			const [bn] = await contract.functions.recipientMessagesCount(recipient);
 			return bn.toNumber();
 		});
 	}
 
 	async getSenderToBroadcastIndex(mailerAddress: string, sender: string): Promise<number[]> {
-		return await this.blockchainReader.retryableOperation(async provider => {
-			const contract = this.getMailerContract(mailerAddress, provider);
+		return await this.contractOperation(mailerAddress, async contract => {
 			const [bn] = await contract.functions.senderToBroadcastIndex(sender);
 			const index = bn.toHexString().replace('0x', '').padStart(64, '0') as Uint256;
 			return BlockNumberRingBufferIndex.decodeIndexValue(index);
@@ -52,8 +59,7 @@ export class EthereumMailerV8Reader {
 	}
 
 	async getSenderMessagesCount(mailerAddress: string, sender: string): Promise<number> {
-		return await this.blockchainReader.retryableOperation(async provider => {
-			const contract = this.getMailerContract(mailerAddress, provider);
+		return await this.contractOperation(mailerAddress, async contract => {
 			const [bn] = await contract.functions.broadcastMessagesCount(sender);
 			return bn.toNumber();
 		});
