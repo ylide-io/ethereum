@@ -1,6 +1,6 @@
-import { Transaction } from 'web3-core';
-import { BlockTransactionString } from 'web3-eth';
-import { EventData } from 'web3-eth-contract';
+import { Block, Log } from '@ethersproject/providers';
+import { MailPushEvent } from '@ylide/ethereum-contracts/lib/YlideMailerV8';
+import { Transaction } from 'ethers';
 
 export enum EVMNetwork {
 	LOCAL_HARDHAT,
@@ -27,15 +27,13 @@ export enum EVMNetwork {
 	// HECO,
 }
 
-export type IEthereumMessage = { event: EventData; tx: Transaction; block: BlockTransactionString };
+export type IEthereumMessage<T extends Log> = { event: T; tx: Transaction; block: Omit<Block, 'transactions'> };
 
 export interface IEthereumPushMessageBody {
 	sender: string;
 	msgId: string;
 	key: Uint8Array;
 }
-
-export interface IEthereumPushMessage extends IEthereumMessage, IEthereumPushMessageBody {}
 
 export interface IEthereumContentMessageBody {
 	sender: string;
@@ -45,4 +43,4 @@ export interface IEthereumContentMessageBody {
 	content: Uint8Array;
 }
 
-export interface IEthereumContentMessage extends IEthereumMessage, IEthereumContentMessageBody {}
+// export interface IEthereumContentMessage extends IEthereumMessage, IEthereumContentMessageBody {}

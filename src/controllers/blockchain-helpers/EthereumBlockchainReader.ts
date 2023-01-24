@@ -1,5 +1,8 @@
-import { Block } from '@ethersproject/providers';
-import ethers from 'ethers';
+import { Log } from '@ethersproject/providers';
+import { BlockWithTransactions } from '@ethersproject/abstract-provider';
+import { ethers, Transaction } from 'ethers';
+import Semaphore from 'semaphore-promise';
+import { IEthereumMessage } from '../../misc';
 
 export interface IRPCDescriptor {
 	rpcUrlOrProvider: string | ethers.providers.Provider;
@@ -17,7 +20,7 @@ export interface IInternalRPCDescriptor {
 }
 
 export class EthereumBlockchainReader {
-	private blocksCache: Record<string, Block> = {};
+	private blocksCache: Record<string, BlockWithTransactions> = {};
 
 	static createEthereumBlockchainReader(rpcs: IRPCDescriptor[]) {
 		const internalRPCs: IInternalRPCDescriptor[] = rpcs.map(rpc => {
@@ -88,8 +91,62 @@ export class EthereumBlockchainReader {
 
 	async getBlockByHash(hash: string) {
 		if (this.blocksCache[hash]) return this.blocksCache[hash];
-		const block = await this.retryableOperation(rpc => rpc.getBlock(hash));
+		const block = await this.retryableOperation(rpc => rpc.getBlockWithTransactions(hash));
 		this.blocksCache[hash] = block;
 		return block;
+	}
+
+	async getBalance(address: string): Promise<{ original: string; number: number; string: string; e18: string }> {
+		return await this.retryableOperation(async rpc => {
+			const bn = await rpc.getBalance(address);
+			return {
+				original: bn.toString(),
+				number: Number(ethers.utils.formatUnits(bn, 'ether')),
+				string: ethers.utils.formatUnits(bn, 'ether'),
+				e18: bn.toString(),
+			};
+		});
+	}
+
+	async processMessages<T extends Log>(msgs: T[]): Promise<IEthereumMessage<T>[]> {
+		if (!msgs.length) {
+			return [];
+		}
+		const blockHashes = msgs.map(e => e.blockHash).filter((e, i, a) => a.indexOf(e) === i);
+		const blocks = await this.retryableOperation(async (rpc, blockLimit, latestNotSupported, batchNotSupported) => {
+			const txcs = new Semaphore(3);
+			return await Promise.all(
+				blockHashes.map(async blockHash => {
+					const release = await txcs.acquire();
+					try {
+						return await this.getBlockByHash(blockHash);
+					} catch (err) {
+						// console.log('err: ', err);
+						throw err;
+					} finally {
+						release();
+					}
+				}),
+			);
+		});
+		const blockMap: Record<string, BlockWithTransactions> = blocks.reduce(
+			(p, c) => ({
+				...p,
+				[c.hash]: c,
+			}),
+			{},
+		);
+		const txMap: Record<string, Transaction> = {};
+		for (const block of blocks) {
+			for (const tx of block.transactions) {
+				txMap[tx.hash] = tx;
+			}
+		}
+
+		return msgs.map(ev => ({ event: ev, tx: txMap[ev.transactionHash], block: blockMap[ev.blockHash] }));
+	}
+
+	isAddressValid(address: string) {
+		return ethers.utils.isAddress(address);
 	}
 }
