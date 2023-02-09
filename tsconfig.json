@@ -6,8 +6,9 @@
 		"outDir": "./lib",
 		"sourceMap": true,
 		"esModuleInterop": true,
-		"strict": true
+		"strict": true,
+		"strictNullChecks": true
 	},
-	"include": ["./src", "./tests"],
-	"files": ["./hardhat.config.ts"]
+	"include": ["./src"],
+	"files": ["./hardhat.config.ts", "tests/_1_RegistryV5.ts", "tests/_3_MailerV8.ts"]
 }

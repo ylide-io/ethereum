@@ -35,7 +35,7 @@ export class EthereumListSource extends EventEmitter implements GenericListSourc
 
 	resume(since?: IMessageBase | undefined): void {
 		this.lastMessage = since || null;
-		this.lastBlockChecked = since ? since.$$blockchainMetaDontUseThisField.block.number : 0;
+		this.lastBlockChecked = since ? since.$$meta.block.number : 0;
 		if (!this.pullTimer) {
 			this.pullTimer = asyncTimer(this.pull.bind(this), this._pullCycle);
 		}

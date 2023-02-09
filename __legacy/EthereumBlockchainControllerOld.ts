@@ -22,7 +22,7 @@ import {
 	asyncDelay,
 } from '@ylide/sdk';
 import { EVM_CONTRACTS, EVM_ENS, IEthereumContractLink } from '../misc/constants';
-import { EVMNetwork, EVM_CHAINS, EVM_NAMES, EVM_RPCS, IEthereumContentMessageBody, IEthereumMessage } from '../misc';
+import { EVMNetwork, EVM_CHAINS, EVM_NAMES, EVM_RPCS, IEthereumContentMessageBody, IEVMEnrichedEvent } from '../misc';
 import { EthereumNameService } from './EthereumNameService';
 import { Semaphore } from 'semaphore-promise';
 
@@ -323,7 +323,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 	}
 
-	eventCmpr(a: EventData, b: EventData): number {
+	eventCmprDesc(a: EventData, b: EventData): number {
 		if (a.blockNumber === b.blockNumber) {
 			if (a.transactionIndex === b.transactionIndex) {
 				return b.logIndex - a.logIndex;
@@ -344,7 +344,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	): Promise<EventData[]> {
 		const full = await this.tryRequest(mailerAddress, subject, fromBlockNumber, toBlockNumber);
 		if (full.result) {
-			const sortedData = full.data.sort(this.eventCmpr);
+			const sortedData = full.data.sort(this.eventCmprDesc);
 			return limit ? sortedData.slice(0, limit) : sortedData;
 		} else {
 			if (fromBlockNumber === toBlockNumber) {
@@ -397,7 +397,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				return await this.doEventsRequest(mailerAddress, subject, w3, fromBlockNumber, 'latest');
 			}
 		});
-		const sortedData = full.sort(this.eventCmpr);
+		const sortedData = full.sort(this.eventCmprDesc);
 		return limit ? sortedData.slice(0, limit) : sortedData;
 	}
 
@@ -429,8 +429,8 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		);
 		return result.filter(
 			r =>
-				(!fromTimestamp || r.$$blockchainMetaDontUseThisField.block.timestamp > fromTimestamp) &&
-				(!toTimestamp || r.$$blockchainMetaDontUseThisField.block.timestamp <= toTimestamp),
+				(!fromTimestamp || r.$$meta.block.timestamp > fromTimestamp) &&
+				(!toTimestamp || r.$$meta.block.timestamp <= toTimestamp),
 		);
 	}
 
@@ -498,11 +498,9 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		limit?: number,
 	) {
 		const _fromBlockNumber =
-			fromBlockNumber ||
-			(fromMessage ? fromMessage.$$blockchainMetaDontUseThisField.block.number : this.mailerFirstBlock || 0);
+			fromBlockNumber || (fromMessage ? fromMessage.$$meta.block.number : this.mailerFirstBlock || 0);
 		const _toBlockNumber =
-			toBlockNumber ||
-			(toMessage ? toMessage.$$blockchainMetaDontUseThisField.block.number : await this.getLastBlockNumber());
+			toBlockNumber || (toMessage ? toMessage.$$meta.block.number : await this.getLastBlockNumber());
 		const rawEvents = await this.retrieveEventsByBounds(
 			mailerAddress,
 			subject,
@@ -643,14 +641,14 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 	processMessageContent(
 		msgId: string,
-		messagePartEvents: IEthereumMessage[],
+		messagePartEvents: IEVMEnrichedEvent[],
 	): IMessageContent | IMessageCorruptedContent | null {
 		if (!messagePartEvents.length) {
 			return null;
 		}
-		let decodedChunks: { msg: IEthereumMessage; body: IEthereumContentMessageBody }[];
+		let decodedChunks: { msg: IEVMEnrichedEvent; body: IEthereumContentMessageBody }[];
 		try {
-			decodedChunks = messagePartEvents.map((m: IEthereumMessage) => ({
+			decodedChunks = messagePartEvents.map((m: IEVMEnrichedEvent) => ({
 				msg: m,
 				body: decodeContentMessageBody(m.event),
 			}));
@@ -658,7 +656,9 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			return {
 				msgId,
 				corrupted: true,
-				chunks: messagePartEvents.map((m: IEthereumMessage) => ({ createdAt: Number(m.block.timestamp) })),
+				chunks: messagePartEvents.map((m: IEVMEnrichedEvent) => ({
+					createdAt: Number(m.block.timestamp),
+				})),
 				reason: MessageContentFailure.NON_DECRYPTABLE,
 			};
 		}
@@ -754,7 +754,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return this.processMessageContent(msgId, messages);
 	}
 
-	formatPushMessage(message: IEthereumMessage): IMessage {
+	formatPushMessage(message: IEVMEnrichedEvent): IMessage {
 		const { recipient: recipientUint256, sender, msgId, key } = message.event.returnValues;
 		const recipient = bigIntToUint256(String(recipientUint256));
 		const createdAt = message.block.timestamp;
@@ -770,11 +770,11 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 			key: SmartBuffer.ofHexString(key ? key.substring(2) : '').bytes,
 
-			$$blockchainMetaDontUseThisField: message,
+			$$meta: message,
 		};
 	}
 
-	formatBroadcastMessage(message: IEthereumMessage): IMessage {
+	formatBroadcastMessage(message: IEVMEnrichedEvent): IMessage {
 		const { sender, msgId } = message.event.returnValues;
 		const createdAt = message.block.timestamp;
 
@@ -789,7 +789,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 			key: new Uint8Array(),
 
-			$$blockchainMetaDontUseThisField: message,
+			$$meta: message,
 		};
 	}
 
@@ -797,7 +797,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return Web3.utils.isAddress(address);
 	}
 
-	async processMessages(msgs: EventData[]): Promise<IEthereumMessage[]> {
+	async processMessages(msgs: EventData[]): Promise<IEVMEnrichedEvent[]> {
 		if (!msgs.length) {
 			return [];
 		}
@@ -941,9 +941,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 	compareMessagesTime(a: IMessage, b: IMessage): number {
 		if (a.createdAt === b.createdAt) {
-			return (
-				a.$$blockchainMetaDontUseThisField.event.logIndex - b.$$blockchainMetaDontUseThisField.event.logIndex
-			);
+			return a.$$meta.event.logIndex - b.$$meta.event.logIndex;
 		} else {
 			return a.createdAt - b.createdAt;
 		}

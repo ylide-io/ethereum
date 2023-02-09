@@ -1,91 +1,395 @@
-import { EVMNetwork } from './types';
+import { EVMMailerContractType, EVMRegistryContractType, EVMNetwork, IEVMNetworkContracts } from './types';
 
-export interface IEthereumContractLink {
-	address: string;
-	fromBlock?: number;
-	toBlock?: number;
-}
-
-export const EVM_CONTRACTS: Record<
-	EVMNetwork,
-	{
-		mailer: IEthereumContractLink;
-		registry: IEthereumContractLink;
-		legacyMailers?: IEthereumContractLink[];
-		legacyRegistries?: IEthereumContractLink[];
-	}
-> = {
+// last contract id: 34, next id is 35
+export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 	[EVMNetwork.LOCAL_HARDHAT]: {
-		mailer: { address: '0x5FbDB2315678afecb367f032d93F642f64180aa3' },
-		registry: { address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512' },
+		registryContracts: [
+			{
+				id: 1,
+				type: EVMRegistryContractType.YlideRegistryV5,
+				address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+				creationBlock: 1,
+				verified: true,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 2,
+				type: EVMMailerContractType.YlideMailerV8,
+				address: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+				creationBlock: 1,
+				verified: true,
+			},
+		],
+		currentRegistryId: 1,
+		currentMailerId: 2,
 	},
 	[EVMNetwork.ETHEREUM]: {
-		registry: { address: '0xe90f1cd859a309dddbbf1ba4999bb911823ea0db', fromBlock: 15841992 },
-		mailer: { address: '0x003c0ac0e7fff5452fb7de73925ce18f91660532', fromBlock: 15841992 },
+		registryContracts: [
+			{
+				id: 3,
+				type: EVMRegistryContractType.YlideRegistryV3,
+				address: '0xe90f1cd859a309dddbbf1ba4999bb911823ea0db',
+				creationBlock: 15841992,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 4,
+				type: EVMMailerContractType.YlideMailerV6,
+				address: '0x003c0ac0e7fff5452fb7de73925ce18f91660532',
+				creationBlock: 15841992,
+				verified: false,
+			},
+		],
+		currentRegistryId: 3,
+		currentMailerId: 4,
 	},
 	[EVMNetwork.BNBCHAIN]: {
-		registry: { address: '0x8c030408e3C873282B57033Fee38685F74E0CefF', fromBlock: 22544208 },
-		mailer: { address: '0x28D9Bb1AEd64C115dD70e886C546ee0420623BC2', fromBlock: 23930418 },
+		registryContracts: [
+			{
+				id: 5,
+				type: EVMRegistryContractType.YlideRegistryV3,
+				address: '0x8c030408e3c873282b57033fee38685f74e0ceff',
+				creationBlock: 22544208,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 6,
+				type: EVMMailerContractType.YlideMailerV7,
+				address: '0x28d9bb1aed64c115dd70e886c546ee0420623bc2',
+				creationBlock: 23930418,
+				verified: false,
+			},
+		],
+		currentRegistryId: 5,
+		currentMailerId: 6,
 	},
 	[EVMNetwork.POLYGON]: {
-		registry: { address: '0x7a68e6ddc82ee745cebac93aece15af57e5931e5', fromBlock: 37717312 },
-		mailer: { address: '0xA08756BA4A3844b42414eE50e908eE6221eF299c', fromBlock: 36867250 },
+		registryContracts: [
+			{
+				id: 7,
+				type: EVMRegistryContractType.YlideRegistryV5,
+				address: '0x7a68e6ddc82ee745cebac93aece15af57e5931e5',
+				creationBlock: 37717312,
+				verified: true,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 8,
+				type: EVMMailerContractType.YlideMailerV7,
+				address: '0xa08756ba4a3844b42414ee50e908ee6221ef299c',
+				creationBlock: 36867250,
+				verified: true,
+			},
+		],
+		currentRegistryId: 7,
+		currentMailerId: 8,
 	},
 	[EVMNetwork.AVALANCHE]: {
-		registry: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 21613407 },
-		mailer: { address: '0x85143B48Bf2EfCa893493239500147Bb742ec69a', fromBlock: 23673967 },
+		registryContracts: [
+			{
+				id: 9,
+				type: EVMRegistryContractType.YlideRegistryV3,
+				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
+				creationBlock: 21613407,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 10,
+				type: EVMMailerContractType.YlideMailerV7,
+				address: '0x85143b48bf2efca893493239500147bb742ec69a',
+				creationBlock: 23673967,
+				verified: false,
+			},
+		],
+		currentRegistryId: 9,
+		currentMailerId: 10,
 	},
 	[EVMNetwork.OPTIMISM]: {
-		registry: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 32046889 },
-		mailer: { address: '0x85143B48Bf2EfCa893493239500147Bb742ec69a', fromBlock: 50131061 },
+		registryContracts: [
+			{
+				id: 11,
+				type: EVMRegistryContractType.YlideRegistryV3,
+				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
+				creationBlock: 32046889,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 12,
+				type: EVMMailerContractType.YlideMailerV7,
+				address: '0x85143b48bf2efca893493239500147bb742ec69a',
+				creationBlock: 50131061,
+				verified: false,
+			},
+		],
+		currentRegistryId: 11,
+		currentMailerId: 12,
 	},
 	[EVMNetwork.ARBITRUM]: {
-		registry: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 33111730 },
-		mailer: { address: '0x85143B48Bf2EfCa893493239500147Bb742ec69a', fromBlock: 46422622 },
+		registryContracts: [
+			{
+				id: 13,
+				type: EVMRegistryContractType.YlideRegistryV3,
+				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
+				creationBlock: 33111730,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 14,
+				type: EVMMailerContractType.YlideMailerV7,
+				address: '0x85143b48bf2efca893493239500147bb742ec69a',
+				creationBlock: 46422622,
+				verified: false,
+			},
+		],
+		currentRegistryId: 13,
+		currentMailerId: 14,
 	},
-
 	[EVMNetwork.CRONOS]: {
-		registry: { address: '0x28D9Bb1AEd64C115dD70e886C546ee0420623BC2', fromBlock: 5286437 },
-		mailer: { address: '0xfb3658fbA39459a6B76e4f5a6813e73Bf49BC6BD', fromBlock: 6031727 },
+		registryContracts: [
+			{
+				id: 15,
+				type: EVMRegistryContractType.YlideRegistryV3,
+				address: '0x28d9bb1aed64c115dd70e886c546ee0420623bc2',
+				creationBlock: 5286437,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 16,
+				type: EVMMailerContractType.YlideMailerV7,
+				address: '0xfb3658fba39459a6b76e4f5a6813e73bf49bc6bd',
+				creationBlock: 6031727,
+				verified: false,
+			},
+		],
+		currentRegistryId: 15,
+		currentMailerId: 16,
 	},
 	[EVMNetwork.FANTOM]: {
-		registry: { address: '0x003C0ac0e7fFf5452Fb7DE73925ce18f91660532', fromBlock: 53293641 },
-		mailer: { address: '0xD7b5BF96F6932C03FFB53C847cc96E124893737E', fromBlock: 52390788 },
+		registryContracts: [
+			{
+				id: 17,
+				type: EVMRegistryContractType.YlideRegistryV5,
+				address: '0x003c0ac0e7fff5452fb7de73925ce18f91660532',
+				creationBlock: 53293641,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 18,
+				type: EVMMailerContractType.YlideMailerV7,
+				address: '0xd7b5bf96f6932c03ffb53c847cc96e124893737e',
+				creationBlock: 52390788,
+				verified: false,
+			},
+		],
+		currentRegistryId: 17,
+		currentMailerId: 18,
 	},
 	[EVMNetwork.KLAYTN]: {
-		registry: { address: '0xda1fa95A630Ba2EF6d96f15C9EB721aF0F64914E', fromBlock: 104982969 },
-		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 109216786 },
+		registryContracts: [
+			{
+				id: 19,
+				type: EVMRegistryContractType.YlideRegistryV3,
+				address: '0xda1fa95a630ba2ef6d96f15c9eb721af0f64914e',
+				creationBlock: 104982969,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 20,
+				type: EVMMailerContractType.YlideMailerV7,
+				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
+				creationBlock: 109216786,
+				verified: false,
+			},
+		],
+		currentRegistryId: 19,
+		currentMailerId: 20,
 	},
 	[EVMNetwork.GNOSIS]: {
-		registry: { address: '0xFf694f5Cf2009522595cEf2FE7DBDA2767C12361', fromBlock: 25817554 },
-		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 24758425 },
+		registryContracts: [
+			{
+				id: 21,
+				type: EVMRegistryContractType.YlideRegistryV5,
+				address: '0xff694f5cf2009522595cef2fe7dbda2767c12361',
+				creationBlock: 25817554,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 22,
+				type: EVMMailerContractType.YlideMailerV7,
+				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
+				creationBlock: 24758425,
+				verified: false,
+			},
+		],
+		currentRegistryId: 21,
+		currentMailerId: 22,
 	},
 	[EVMNetwork.AURORA]: {
-		registry: { address: '0xda1fa95A630Ba2EF6d96f15C9EB721aF0F64914E', fromBlock: 77156327 },
-		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 80717658 },
+		registryContracts: [
+			{
+				id: 23,
+				type: EVMRegistryContractType.YlideRegistryV3,
+				address: '0xda1fa95a630ba2ef6d96f15c9eb721af0f64914e',
+				creationBlock: 77156327,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 24,
+				type: EVMMailerContractType.YlideMailerV7,
+				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
+				creationBlock: 80717658,
+				verified: false,
+			},
+		],
+		currentRegistryId: 23,
+		currentMailerId: 24,
 	},
-
 	[EVMNetwork.CELO]: {
-		registry: { address: '0xda1fa95A630Ba2EF6d96f15C9EB721aF0F64914E', fromBlock: 15844403 },
-		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 16691003 },
+		registryContracts: [
+			{
+				id: 25,
+				type: EVMRegistryContractType.YlideRegistryV3,
+				address: '0xda1fa95a630ba2ef6d96f15c9eb721af0f64914e',
+				creationBlock: 15844403,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 26,
+				type: EVMMailerContractType.YlideMailerV7,
+				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
+				creationBlock: 16691003,
+				verified: false,
+			},
+		],
+		currentRegistryId: 25,
+		currentMailerId: 26,
 	},
 	[EVMNetwork.MOONBEAM]: {
-		registry: { address: '0xda1fa95A630Ba2EF6d96f15C9EB721aF0F64914E', fromBlock: 2169935 },
-		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 2516445 },
+		registryContracts: [
+			{
+				id: 27,
+				type: EVMRegistryContractType.YlideRegistryV3,
+				address: '0xda1fa95a630ba2ef6d96f15c9eb721af0f64914e',
+				creationBlock: 2169935,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 28,
+				type: EVMMailerContractType.YlideMailerV7,
+				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
+				creationBlock: 2516445,
+				verified: false,
+			},
+		],
+		currentRegistryId: 27,
+		currentMailerId: 28,
 	},
 	[EVMNetwork.MOONRIVER]: {
-		registry: { address: '0xda1fa95A630Ba2EF6d96f15C9EB721aF0F64914E', fromBlock: 2864035 },
-		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 3196644 },
+		registryContracts: [
+			{
+				id: 29,
+				type: EVMRegistryContractType.YlideRegistryV3,
+				address: '0xda1fa95a630ba2ef6d96f15c9eb721af0f64914e',
+				creationBlock: 2864035,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 30,
+				type: EVMMailerContractType.YlideMailerV7,
+				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
+				creationBlock: 3196644,
+				verified: false,
+			},
+		],
+		currentRegistryId: 29,
+		currentMailerId: 30,
 	},
 	[EVMNetwork.METIS]: {
-		registry: { address: '0xda1fa95A630Ba2EF6d96f15C9EB721aF0F64914E', fromBlock: 3886879 },
-		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 4188014 },
+		registryContracts: [
+			{
+				id: 31,
+				type: EVMRegistryContractType.YlideRegistryV3,
+				address: '0xda1fa95a630ba2ef6d96f15c9eb721af0f64914e',
+				creationBlock: 3886879,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 32,
+				type: EVMMailerContractType.YlideMailerV7,
+				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
+				creationBlock: 4188014,
+				verified: false,
+			},
+		],
+		currentRegistryId: 31,
+		currentMailerId: 32,
 	},
 	[EVMNetwork.ASTAR]: {
-		registry: { address: '0xDFEe2128E3D441078dC286171F27F612B35fD7bD', fromBlock: 2163788 },
-		mailer: { address: '0xB195E6f456b350de42B14A4f2acEEa34E696cb75', fromBlock: 2163788 },
+		registryContracts: [
+			{
+				id: 33,
+				type: EVMRegistryContractType.YlideRegistryV3,
+				address: '0xdfee2128e3d441078dc286171f27f612b35fd7bd',
+				creationBlock: 2163788,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 34,
+				type: EVMMailerContractType.YlideMailerV6,
+				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
+				creationBlock: 2163788,
+				verified: false,
+			},
+		],
+		currentRegistryId: 33,
+		currentMailerId: 34,
 	},
 };
+
+export const EVM_CONTRACT_TO_NETWORK: Record<number, EVMNetwork> = {};
+
+export const evmNetworks: EVMNetwork[] = Object.values(EVMNetwork).filter(v => typeof v === 'number') as EVMNetwork[];
+
+for (const network of evmNetworks) {
+	for (const contract of EVM_CONTRACTS[network].registryContracts) {
+		EVM_CONTRACT_TO_NETWORK[contract.id] = network;
+	}
+	for (const contract of EVM_CONTRACTS[network].mailerContracts) {
+		EVM_CONTRACT_TO_NETWORK[contract.id] = network;
+	}
+}
 
 export const EVM_NAMES: Record<EVMNetwork, string> = {
 	[EVMNetwork.LOCAL_HARDHAT]: 'LOCAL_HARDHAT',
@@ -138,7 +442,6 @@ export const EVM_CHAINS: Record<EVMNetwork, number> = {
 	[EVMNetwork.AVALANCHE]: 43114,
 	[EVMNetwork.OPTIMISM]: 10,
 	[EVMNetwork.ARBITRUM]: 42161,
-
 	[EVMNetwork.CRONOS]: 25,
 	[EVMNetwork.FANTOM]: 250,
 	[EVMNetwork.KLAYTN]: 8217,
@@ -201,7 +504,6 @@ export const EVM_RPCS: Record<
 		{ rpc: 'https://optimism-mainnet.public.blastapi.io' },
 		{ rpc: 'https://rpc.ankr.com/optimism' },
 	],
-
 	[EVMNetwork.AVALANCHE]: [
 		{
 			rpc: 'https://avalanche-mainnet.infura.io/v3/3bcb970aa2dd447cbad6ac4301ed63bf',

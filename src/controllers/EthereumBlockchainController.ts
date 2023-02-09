@@ -1,51 +1,96 @@
 import {
 	AbstractBlockchainController,
 	AbstractNameService,
+	BlockchainControllerFactory,
+	BlockchainSourceType,
 	ExternalYlidePublicKey,
 	hexToUint256,
+	IBlockchainSourceSubject,
 	IExtraEncryptionStrateryBulk,
 	IExtraEncryptionStrateryEntry,
 	IMessage,
 	IMessageContent,
 	IMessageCorruptedContent,
+	ISourceSubject,
+	LowLevelMessagesSource,
 	MessageKey,
 	Uint256,
 } from '@ylide/sdk';
-import { EVMNetwork, EVM_CHAINS, EVM_CONTRACTS, EVM_NAMES, EVM_RPCS } from '../misc';
-import { EthereumBlockchainReader, IRPCDescriptor } from './blockchain-helpers/EthereumBlockchainReader';
-import { EthereumContentReader } from './blockchain-helpers/EthereumContentReader';
-import { EthereumHistoryReader } from './blockchain-helpers/EthereumHistoryReader';
-import { EthereumMailerV8Reader } from './blockchain-helpers/EthereumMailerV8Reader';
-import { EthereumRegistryV5Wrapper } from './blockchain-helpers/EthereumRegistryV5Wrapper';
-
-export interface IEthereumContractDescriptor {
-	address: string;
-	creationBlock: number;
-}
+import {
+	EVMMailerContractType,
+	EVMNetwork,
+	EVMRegistryContractType,
+	EVM_CHAINS,
+	EVM_CONTRACTS,
+	EVM_CONTRACT_TO_NETWORK,
+	EVM_NAMES,
+	EVM_RPCS,
+	IEVMMailerContractLink,
+	IEVMMessage,
+	IEVMRegistryContractLink,
+} from '../misc';
+import { EthereumBlockchainReader, IRPCDescriptor } from './helpers/EthereumBlockchainReader';
+import { EthereumContentReader } from './helpers/EthereumContentReader';
+import { EthereumHistoryReader } from './helpers/EthereumHistoryReader';
+import { EthereumMailerV8Wrapper } from '../contract-wrappers/EthereumMailerV8Wrapper';
+import { EthereumRegistryV5Wrapper } from '../contract-wrappers/EthereumRegistryV5Wrapper';
+import { decodeEvmMsgId } from '../misc/evmMsgId';
+import { EthereumRegistryV3Wrapper } from '../contract-wrappers/EthereumRegistryV3Wrapper';
+import { MailerV8Source } from '../messages-sources/MailerV8Source';
+import { EthereumMailerV7Wrapper } from '../contract-wrappers/EthereumMailerV7Wrapper';
+import { MailerV7Source } from '../messages-sources/MailerV7Source';
+import { EthereumMailerV6Wrapper } from '../contract-wrappers/EthereumMailerV6Wrapper';
+import { MailerV6Source } from '../messages-sources/MailerV6Source';
+import { EthereumRegistryV6Wrapper } from '../contract-wrappers/EthereumRegistryV6Wrapper';
 
 export class EthereumBlockchainController extends AbstractBlockchainController {
 	readonly blockchainReader: EthereumBlockchainReader;
 	readonly historyReader: EthereumHistoryReader;
 	readonly contentReader: EthereumContentReader;
-	readonly mailerV8Reader: EthereumMailerV8Reader;
-	readonly registryV5Reader: EthereumRegistryV5Wrapper;
 
 	readonly network: EVMNetwork;
 	readonly chainId: number;
 
-	readonly mailerV8: IEthereumContractDescriptor;
-	readonly registryV5: IEthereumContractDescriptor;
+	static readonly mailerWrappers: Record<
+		EVMMailerContractType,
+		typeof EthereumMailerV8Wrapper | typeof EthereumMailerV7Wrapper | typeof EthereumMailerV6Wrapper
+	> = {
+		[EVMMailerContractType.YlideMailerV6]: EthereumMailerV6Wrapper,
+		[EVMMailerContractType.YlideMailerV7]: EthereumMailerV7Wrapper,
+		[EVMMailerContractType.YlideMailerV8]: EthereumMailerV8Wrapper,
+	};
+
+	static readonly registryWrappers: Record<
+		EVMRegistryContractType,
+		typeof EthereumRegistryV3Wrapper | typeof EthereumRegistryV5Wrapper | typeof EthereumRegistryV6Wrapper
+	> = {
+		[EVMRegistryContractType.YlideRegistryV3]: EthereumRegistryV3Wrapper,
+		[EVMRegistryContractType.YlideRegistryV5]: EthereumRegistryV5Wrapper,
+		[EVMRegistryContractType.YlideRegistryV6]: EthereumRegistryV6Wrapper,
+	};
+
+	readonly mailers: {
+		link: IEVMMailerContractLink;
+		wrapper: EthereumMailerV8Wrapper | EthereumMailerV7Wrapper | EthereumMailerV6Wrapper;
+	}[] = [];
+	readonly registries: {
+		link: IEVMRegistryContractLink;
+		wrapper: EthereumRegistryV3Wrapper | EthereumRegistryV5Wrapper | EthereumRegistryV6Wrapper;
+	}[] = [];
+
+	readonly currentMailer: {
+		link: IEVMMailerContractLink;
+		wrapper: EthereumMailerV8Wrapper | EthereumMailerV7Wrapper | EthereumMailerV6Wrapper;
+	};
+	readonly currentRegistry: { link: IEVMRegistryContractLink; wrapper: EthereumRegistryV5Wrapper };
 
 	constructor(
 		private readonly options: {
 			network?: EVMNetwork;
-			mailerContractAddress?: string;
-			registryContractAddress?: string;
-			nameServiceAddress?: string;
-			web3Readers?: IRPCDescriptor[];
+			rpcs?: IRPCDescriptor[];
 		} = {},
 	) {
-		super(options);
+		super();
 
 		if (options.network === undefined) {
 			throw new Error('You must provide network for EVM controller');
@@ -55,7 +100,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		this.chainId = EVM_CHAINS[options.network];
 
 		this.blockchainReader = EthereumBlockchainReader.createEthereumBlockchainReader(
-			options.web3Readers ||
+			options.rpcs ||
 				EVM_RPCS[options.network].map(rpc => ({
 					rpcUrlOrProvider: rpc.rpc,
 					blockLimit: rpc.blockLimit || 1000,
@@ -64,26 +109,35 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				})),
 		);
 
-		this.mailerV8Reader = new EthereumMailerV8Reader(this.blockchainReader);
-		this.registryV5Reader = new EthereumRegistryV5Wrapper(this.blockchainReader);
+		const contracts = EVM_CONTRACTS[this.network];
 
-		this.mailerV8 = {
-			address: options.mailerContractAddress || EVM_CONTRACTS[this.network].mailer.address,
-			creationBlock: EVM_CONTRACTS[this.network].mailer.fromBlock || 0,
+		this.mailers = contracts.mailerContracts.map(link => ({
+			link,
+			wrapper: new EthereumBlockchainController.mailerWrappers[link.type](this.blockchainReader),
+		}));
+
+		this.registries = contracts.registryContracts.map(link => ({
+			link,
+			wrapper: new EthereumBlockchainController.registryWrappers[link.type](this.blockchainReader),
+		}));
+
+		const currentMailerLink = contracts.mailerContracts.find(c => c.id === contracts.currentMailerId)!;
+		const currentRegistryLink = contracts.registryContracts.find(c => c.id === contracts.currentRegistryId)!;
+
+		this.currentMailer = {
+			link: currentMailerLink,
+			wrapper: new EthereumBlockchainController.mailerWrappers[currentMailerLink.type](this.blockchainReader),
 		};
 
-		this.registryV5 = {
-			address: options.registryContractAddress || EVM_CONTRACTS[this.network].registry.address,
-			creationBlock: EVM_CONTRACTS[this.network].registry.fromBlock || 0,
+		this.currentRegistry = {
+			link: currentRegistryLink,
+			wrapper: new EthereumBlockchainController.registryWrappers[currentRegistryLink.type](
+				this.blockchainReader,
+			) as EthereumRegistryV5Wrapper,
 		};
 
-		this.historyReader = new EthereumHistoryReader(
-			this.blockchainReader,
-			this.mailerV8Reader,
-			this.registryV5Reader,
-		);
-
-		this.contentReader = new EthereumContentReader(this.blockchainReader, this.mailerV8Reader);
+		this.historyReader = new EthereumHistoryReader(this.blockchainReader);
+		this.contentReader = new EthereumContentReader(this.blockchainReader);
 	}
 
 	blockchain(): string {
@@ -103,6 +157,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	// }
 
 	defaultNameService(): AbstractNameService | null {
+		// TODO
 		throw new Error('Method not implemented.');
 	}
 
@@ -120,51 +175,143 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return hexToUint256(''.padStart(24, '0') + cleanHexAddress);
 	}
 
-	getRecipientReadingRules(address: Uint256): Promise<any> {
+	isValidMsgId(msgId: string): boolean {
+		try {
+			const parsed = decodeEvmMsgId(msgId);
+			const network = EVM_CONTRACT_TO_NETWORK[parsed.contractId];
+			return network === this.network;
+		} catch (err) {
+			return false;
+		}
+	}
+
+	async getMessageByMsgId(msgId: string): Promise<IEVMMessage | null> {
+		const parsed = decodeEvmMsgId(msgId);
+		const network = EVM_CONTRACT_TO_NETWORK[parsed.contractId];
+		if (network !== this.network) {
+			throw new Error(`Message ${msgId} is not from ${this.network} network`);
+		}
+
+		const contract = EVM_CONTRACTS[this.network].mailerContracts.find(c => c.id === parsed.contractId);
+		if (!contract) {
+			throw new Error(`Unknown contract ${parsed.contractId} for network ${this.network}`);
+		}
+
+		const mailer = this.mailers.find(m => m.link.id === parsed.contractId);
+
+		if (!mailer) {
+			throw new Error(`Unknown contract ${parsed.contractId} for network ${this.network}`);
+		}
+
+		if (parsed.isBroadcast) {
+			return await mailer.wrapper.getBroadcastPushEvent(
+				mailer.link,
+				parsed.blockNumber,
+				parsed.txIndex,
+				parsed.logIndex,
+			);
+		} else {
+			return await mailer.wrapper.getMailPushEvent(
+				mailer.link,
+				parsed.blockNumber,
+				parsed.txIndex,
+				parsed.logIndex,
+			);
+		}
+	}
+
+	async getRecipientReadingRules(address: Uint256): Promise<any> {
 		throw new Error('Method not implemented.');
 	}
 
-	async retrieveMessageHistoryDesc(
-		sender: string | null,
-		recipient: Uint256 | null,
-		fromMessage?: IMessage | undefined,
-		toMessage?: IMessage | undefined,
-		limit?: number | undefined,
-	): Promise<IMessage[]> {
-		return await this.historyReader.retrieveMessageHistoryDesc(
-			this.mailerV8,
-			sender,
-			recipient,
-			fromMessage,
-			toMessage,
-			limit,
-		);
+	getBlockchainSourceSubjects(subject: ISourceSubject): IBlockchainSourceSubject[] {
+		return this.mailers.map(m => ({
+			...subject,
+			blockchain: this.blockchain(),
+			id: `evm-${this.blockchain()}-mailer-${String(m.link.id)}`,
+		}));
 	}
 
-	async retrieveBroadcastHistoryDesc(
-		sender: string | null,
-		fromMessage?: IMessage | undefined,
-		toMessage?: IMessage | undefined,
-		limit?: number | undefined,
-	): Promise<IMessage[]> {
-		return await this.historyReader.retrieveBroadcastHistoryDesc(
-			this.mailerV8,
-			sender,
-			fromMessage,
-			toMessage,
-			limit,
-		);
+	ininiateMessagesSource(subject: IBlockchainSourceSubject): LowLevelMessagesSource {
+		const mailer = this.mailers.find(m => `evm-${this.blockchain()}-mailer-${String(m.link.id)}` === subject.id);
+		if (!mailer) {
+			throw new Error('Unknown subject');
+		}
+
+		if (subject.type === BlockchainSourceType.DIRECT && subject.sender) {
+			throw new Error('Sender is not supported for direct messages request in EVM');
+		}
+
+		if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+			return new MailerV8Source(
+				this,
+				mailer.link,
+				mailer.wrapper,
+				subject.type === BlockchainSourceType.BROADCAST
+					? {
+							type: 'broadcast',
+							sender: subject.sender,
+					  }
+					: {
+							type: 'recipient',
+							recipient: subject.recipient,
+					  },
+			);
+		} else if (mailer.wrapper instanceof EthereumMailerV7Wrapper) {
+			return new MailerV7Source(
+				this,
+				mailer.link,
+				mailer.wrapper,
+				subject.type === BlockchainSourceType.BROADCAST
+					? {
+							type: 'broadcast',
+							sender: subject.sender,
+					  }
+					: {
+							type: 'recipient',
+							recipient: subject.recipient,
+					  },
+			);
+		} else {
+			return new MailerV6Source(
+				this,
+				mailer.link,
+				mailer.wrapper,
+				subject.type === BlockchainSourceType.BROADCAST
+					? {
+							type: 'broadcast',
+							sender: subject.sender,
+					  }
+					: {
+							type: 'recipient',
+							recipient: subject.recipient,
+					  },
+			);
+		}
 	}
 
-	retrieveMessageContentByMessageHeader(msg: IMessage): Promise<IMessageContent | IMessageCorruptedContent | null> {
-		return this.contentReader.retrieveAndVerifyMessageContent(this.mailerV8, msg);
+	async retrieveMessageContent(msg: IEVMMessage): Promise<IMessageContent | IMessageCorruptedContent | null> {
+		const decodedMsgId = decodeEvmMsgId(msg.msgId);
+		const mailer = this.mailers.find(m => m.link.id === decodedMsgId.contractId);
+		if (!mailer) {
+			throw new Error('This message does not belongs to this blockchain controller');
+		}
+		return mailer.wrapper.retrieveMessageContent(mailer.link, msg);
 	}
 
-	extractPublicKeyFromAddress(address: string): Promise<ExternalYlidePublicKey | null> {
-		return this.registryV5Reader.getPublicKeyByAddress(this.registryV5, address);
+	async extractPublicKeyFromAddress(address: string): Promise<ExternalYlidePublicKey | null> {
+		return this.currentRegistry.wrapper.getPublicKeyByAddress(this.currentRegistry.link, address);
 	}
 
-	getBalance(address: string): Promise<{ original: string; number: number; e18: string }> {
+	async extractPublicKeysHistoryByAddress(address: string): Promise<ExternalYlidePublicKey[]> {
+		const raw = (
+			await Promise.all(this.registries.map(reg => reg.wrapper.getPublicKeysHistoryForAddress(reg.link, address)))
+		).flat();
+		raw.sort((a, b) => b.timestamp - a.timestamp);
+		return raw;
+	}
+
+	getBalance(address: string): Promise<{ original: string; numeric: number; e18: string }> {
 		return this.blockchainReader.getBalance(address);
 	}
 
@@ -191,13 +338,40 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		throw new Error('No native strategies supported for Ethereum');
 	}
 
-	compareMessagesTime(a: IMessage, b: IMessage): number {
+	compareMessagesTime = (a: IMessage, b: IMessage): number => {
 		if (a.createdAt === b.createdAt) {
-			return (
-				a.$$blockchainMetaDontUseThisField.event.logIndex - b.$$blockchainMetaDontUseThisField.event.logIndex
-			);
+			return a.$$meta.event.logIndex - b.$$meta.event.logIndex;
 		} else {
 			return a.createdAt - b.createdAt;
 		}
-	}
+	};
 }
+
+function getBlockchainFactory(network: EVMNetwork): BlockchainControllerFactory {
+	return {
+		create: async (options?: any) => new EthereumBlockchainController(Object.assign({ network }, options || {})),
+		blockchain: EVM_NAMES[network],
+		blockchainGroup: 'evm',
+	};
+}
+
+export const evmBlockchainFactories: Record<EVMNetwork, BlockchainControllerFactory> = {
+	[EVMNetwork.LOCAL_HARDHAT]: getBlockchainFactory(EVMNetwork.LOCAL_HARDHAT),
+
+	[EVMNetwork.ETHEREUM]: getBlockchainFactory(EVMNetwork.ETHEREUM),
+	[EVMNetwork.BNBCHAIN]: getBlockchainFactory(EVMNetwork.BNBCHAIN),
+	[EVMNetwork.POLYGON]: getBlockchainFactory(EVMNetwork.POLYGON),
+	[EVMNetwork.AVALANCHE]: getBlockchainFactory(EVMNetwork.AVALANCHE),
+	[EVMNetwork.OPTIMISM]: getBlockchainFactory(EVMNetwork.OPTIMISM),
+	[EVMNetwork.ARBITRUM]: getBlockchainFactory(EVMNetwork.ARBITRUM),
+	[EVMNetwork.CRONOS]: getBlockchainFactory(EVMNetwork.CRONOS),
+	[EVMNetwork.FANTOM]: getBlockchainFactory(EVMNetwork.FANTOM),
+	[EVMNetwork.KLAYTN]: getBlockchainFactory(EVMNetwork.KLAYTN),
+	[EVMNetwork.GNOSIS]: getBlockchainFactory(EVMNetwork.GNOSIS),
+	[EVMNetwork.AURORA]: getBlockchainFactory(EVMNetwork.AURORA),
+	[EVMNetwork.CELO]: getBlockchainFactory(EVMNetwork.CELO),
+	[EVMNetwork.MOONBEAM]: getBlockchainFactory(EVMNetwork.MOONBEAM),
+	[EVMNetwork.MOONRIVER]: getBlockchainFactory(EVMNetwork.MOONRIVER),
+	[EVMNetwork.METIS]: getBlockchainFactory(EVMNetwork.METIS),
+	[EVMNetwork.ASTAR]: getBlockchainFactory(EVMNetwork.ASTAR),
+};
