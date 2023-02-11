@@ -6,7 +6,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 1,
-				type: EVMRegistryContractType.YlideRegistryV5,
+				type: EVMRegistryContractType.EVMRegistryV5,
 				address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
 				creationBlock: 1,
 				verified: true,
@@ -15,7 +15,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 2,
-				type: EVMMailerContractType.YlideMailerV8,
+				type: EVMMailerContractType.EVMMailerV8,
 				address: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
 				creationBlock: 1,
 				verified: true,
@@ -28,7 +28,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 3,
-				type: EVMRegistryContractType.YlideRegistryV3,
+				type: EVMRegistryContractType.EVMRegistryV3,
 				address: '0xe90f1cd859a309dddbbf1ba4999bb911823ea0db',
 				creationBlock: 15841992,
 				verified: false,
@@ -37,7 +37,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 4,
-				type: EVMMailerContractType.YlideMailerV6,
+				type: EVMMailerContractType.EVMMailerV6,
 				address: '0x003c0ac0e7fff5452fb7de73925ce18f91660532',
 				creationBlock: 15841992,
 				verified: false,
@@ -50,7 +50,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 5,
-				type: EVMRegistryContractType.YlideRegistryV3,
+				type: EVMRegistryContractType.EVMRegistryV3,
 				address: '0x8c030408e3c873282b57033fee38685f74e0ceff',
 				creationBlock: 22544208,
 				verified: false,
@@ -59,7 +59,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 6,
-				type: EVMMailerContractType.YlideMailerV7,
+				type: EVMMailerContractType.EVMMailerV7,
 				address: '0x28d9bb1aed64c115dd70e886c546ee0420623bc2',
 				creationBlock: 23930418,
 				verified: false,
@@ -72,7 +72,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 7,
-				type: EVMRegistryContractType.YlideRegistryV5,
+				type: EVMRegistryContractType.EVMRegistryV5,
 				address: '0x7a68e6ddc82ee745cebac93aece15af57e5931e5',
 				creationBlock: 37717312,
 				verified: true,
@@ -81,7 +81,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 8,
-				type: EVMMailerContractType.YlideMailerV7,
+				type: EVMMailerContractType.EVMMailerV7,
 				address: '0xa08756ba4a3844b42414ee50e908ee6221ef299c',
 				creationBlock: 36867250,
 				verified: true,
@@ -94,7 +94,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 9,
-				type: EVMRegistryContractType.YlideRegistryV3,
+				type: EVMRegistryContractType.EVMRegistryV3,
 				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
 				creationBlock: 21613407,
 				verified: false,
@@ -103,7 +103,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 10,
-				type: EVMMailerContractType.YlideMailerV7,
+				type: EVMMailerContractType.EVMMailerV7,
 				address: '0x85143b48bf2efca893493239500147bb742ec69a',
 				creationBlock: 23673967,
 				verified: false,
@@ -116,7 +116,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 11,
-				type: EVMRegistryContractType.YlideRegistryV3,
+				type: EVMRegistryContractType.EVMRegistryV3,
 				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
 				creationBlock: 32046889,
 				verified: false,
@@ -125,7 +125,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 12,
-				type: EVMMailerContractType.YlideMailerV7,
+				type: EVMMailerContractType.EVMMailerV7,
 				address: '0x85143b48bf2efca893493239500147bb742ec69a',
 				creationBlock: 50131061,
 				verified: false,
@@ -138,7 +138,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 13,
-				type: EVMRegistryContractType.YlideRegistryV3,
+				type: EVMRegistryContractType.EVMRegistryV3,
 				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
 				creationBlock: 33111730,
 				verified: false,
@@ -147,7 +147,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 14,
-				type: EVMMailerContractType.YlideMailerV7,
+				type: EVMMailerContractType.EVMMailerV7,
 				address: '0x85143b48bf2efca893493239500147bb742ec69a',
 				creationBlock: 46422622,
 				verified: false,
@@ -160,7 +160,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 15,
-				type: EVMRegistryContractType.YlideRegistryV3,
+				type: EVMRegistryContractType.EVMRegistryV3,
 				address: '0x28d9bb1aed64c115dd70e886c546ee0420623bc2',
 				creationBlock: 5286437,
 				verified: false,
@@ -169,7 +169,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 16,
-				type: EVMMailerContractType.YlideMailerV7,
+				type: EVMMailerContractType.EVMMailerV7,
 				address: '0xfb3658fba39459a6b76e4f5a6813e73bf49bc6bd',
 				creationBlock: 6031727,
 				verified: false,
@@ -182,7 +182,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 17,
-				type: EVMRegistryContractType.YlideRegistryV5,
+				type: EVMRegistryContractType.EVMRegistryV5,
 				address: '0x003c0ac0e7fff5452fb7de73925ce18f91660532',
 				creationBlock: 53293641,
 				verified: false,
@@ -191,7 +191,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 18,
-				type: EVMMailerContractType.YlideMailerV7,
+				type: EVMMailerContractType.EVMMailerV7,
 				address: '0xd7b5bf96f6932c03ffb53c847cc96e124893737e',
 				creationBlock: 52390788,
 				verified: false,
@@ -204,7 +204,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 19,
-				type: EVMRegistryContractType.YlideRegistryV3,
+				type: EVMRegistryContractType.EVMRegistryV3,
 				address: '0xda1fa95a630ba2ef6d96f15c9eb721af0f64914e',
 				creationBlock: 104982969,
 				verified: false,
@@ -213,7 +213,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 20,
-				type: EVMMailerContractType.YlideMailerV7,
+				type: EVMMailerContractType.EVMMailerV7,
 				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
 				creationBlock: 109216786,
 				verified: false,
@@ -226,7 +226,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 21,
-				type: EVMRegistryContractType.YlideRegistryV5,
+				type: EVMRegistryContractType.EVMRegistryV5,
 				address: '0xff694f5cf2009522595cef2fe7dbda2767c12361',
 				creationBlock: 25817554,
 				verified: false,
@@ -235,7 +235,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 22,
-				type: EVMMailerContractType.YlideMailerV7,
+				type: EVMMailerContractType.EVMMailerV7,
 				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
 				creationBlock: 24758425,
 				verified: false,
@@ -248,7 +248,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 23,
-				type: EVMRegistryContractType.YlideRegistryV3,
+				type: EVMRegistryContractType.EVMRegistryV3,
 				address: '0xda1fa95a630ba2ef6d96f15c9eb721af0f64914e',
 				creationBlock: 77156327,
 				verified: false,
@@ -257,7 +257,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 24,
-				type: EVMMailerContractType.YlideMailerV7,
+				type: EVMMailerContractType.EVMMailerV7,
 				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
 				creationBlock: 80717658,
 				verified: false,
@@ -270,7 +270,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 25,
-				type: EVMRegistryContractType.YlideRegistryV3,
+				type: EVMRegistryContractType.EVMRegistryV3,
 				address: '0xda1fa95a630ba2ef6d96f15c9eb721af0f64914e',
 				creationBlock: 15844403,
 				verified: false,
@@ -279,7 +279,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 26,
-				type: EVMMailerContractType.YlideMailerV7,
+				type: EVMMailerContractType.EVMMailerV7,
 				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
 				creationBlock: 16691003,
 				verified: false,
@@ -292,7 +292,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 27,
-				type: EVMRegistryContractType.YlideRegistryV3,
+				type: EVMRegistryContractType.EVMRegistryV3,
 				address: '0xda1fa95a630ba2ef6d96f15c9eb721af0f64914e',
 				creationBlock: 2169935,
 				verified: false,
@@ -301,7 +301,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 28,
-				type: EVMMailerContractType.YlideMailerV7,
+				type: EVMMailerContractType.EVMMailerV7,
 				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
 				creationBlock: 2516445,
 				verified: false,
@@ -314,7 +314,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 29,
-				type: EVMRegistryContractType.YlideRegistryV3,
+				type: EVMRegistryContractType.EVMRegistryV3,
 				address: '0xda1fa95a630ba2ef6d96f15c9eb721af0f64914e',
 				creationBlock: 2864035,
 				verified: false,
@@ -323,7 +323,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 30,
-				type: EVMMailerContractType.YlideMailerV7,
+				type: EVMMailerContractType.EVMMailerV7,
 				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
 				creationBlock: 3196644,
 				verified: false,
@@ -336,7 +336,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 31,
-				type: EVMRegistryContractType.YlideRegistryV3,
+				type: EVMRegistryContractType.EVMRegistryV3,
 				address: '0xda1fa95a630ba2ef6d96f15c9eb721af0f64914e',
 				creationBlock: 3886879,
 				verified: false,
@@ -345,7 +345,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 32,
-				type: EVMMailerContractType.YlideMailerV7,
+				type: EVMMailerContractType.EVMMailerV7,
 				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
 				creationBlock: 4188014,
 				verified: false,
@@ -358,7 +358,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 33,
-				type: EVMRegistryContractType.YlideRegistryV3,
+				type: EVMRegistryContractType.EVMRegistryV3,
 				address: '0xdfee2128e3d441078dc286171f27f612b35fd7bd',
 				creationBlock: 2163788,
 				verified: false,
@@ -367,7 +367,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		mailerContracts: [
 			{
 				id: 34,
-				type: EVMMailerContractType.YlideMailerV6,
+				type: EVMMailerContractType.EVMMailerV6,
 				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
 				creationBlock: 2163788,
 				verified: false,

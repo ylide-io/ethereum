@@ -240,13 +240,13 @@ export class EthereumWalletController extends AbstractWalletController {
 		const id = EVM_CONTRACTS[network].currentMailerId;
 		const existing = this.mailers.find(r => r.link.id === id);
 		if (existing) {
-			if (existing.link.type !== EVMMailerContractType.YlideMailerV8) {
+			if (existing.link.type !== EVMMailerContractType.EVMMailerV8) {
 				throw new Error(`Network ${network} has no modern mailer`);
 			}
 			return existing as any;
 		} else {
 			const link = EVM_CONTRACTS[network].mailerContracts.find(r => r.id === id)!;
-			if (link.type !== EVMMailerContractType.YlideMailerV8) {
+			if (link.type !== EVMMailerContractType.EVMMailerV8) {
 				throw new Error(`Network ${network} has no modern mailer`);
 			}
 			const wrapper = new EthereumBlockchainController.mailerWrappers[link.type](this.blockchainReader);

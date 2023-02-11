@@ -60,7 +60,7 @@ describe('YlideMailerV8', function () {
 				mailer = await mailerFactory.deploy();
 				mailerDesc = {
 					id: 1,
-					type: EVMMailerContractType.YlideMailerV8,
+					type: EVMMailerContractType.EVMMailerV8,
 					verified: false,
 					address: mailer.address,
 					creationBlock: 1,

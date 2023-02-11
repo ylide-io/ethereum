@@ -57,18 +57,18 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		EVMMailerContractType,
 		typeof EthereumMailerV8Wrapper | typeof EthereumMailerV7Wrapper | typeof EthereumMailerV6Wrapper
 	> = {
-		[EVMMailerContractType.YlideMailerV6]: EthereumMailerV6Wrapper,
-		[EVMMailerContractType.YlideMailerV7]: EthereumMailerV7Wrapper,
-		[EVMMailerContractType.YlideMailerV8]: EthereumMailerV8Wrapper,
+		[EVMMailerContractType.EVMMailerV6]: EthereumMailerV6Wrapper,
+		[EVMMailerContractType.EVMMailerV7]: EthereumMailerV7Wrapper,
+		[EVMMailerContractType.EVMMailerV8]: EthereumMailerV8Wrapper,
 	};
 
 	static readonly registryWrappers: Record<
 		EVMRegistryContractType,
 		typeof EthereumRegistryV3Wrapper | typeof EthereumRegistryV5Wrapper | typeof EthereumRegistryV6Wrapper
 	> = {
-		[EVMRegistryContractType.YlideRegistryV3]: EthereumRegistryV3Wrapper,
-		[EVMRegistryContractType.YlideRegistryV5]: EthereumRegistryV5Wrapper,
-		[EVMRegistryContractType.YlideRegistryV6]: EthereumRegistryV6Wrapper,
+		[EVMRegistryContractType.EVMRegistryV3]: EthereumRegistryV3Wrapper,
+		[EVMRegistryContractType.EVMRegistryV5]: EthereumRegistryV5Wrapper,
+		[EVMRegistryContractType.EVMRegistryV6]: EthereumRegistryV6Wrapper,
 	};
 
 	readonly mailers: {

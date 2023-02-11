@@ -68,15 +68,15 @@ export interface IEVMMeta extends IEVMEnrichedEvent {
 }
 
 export enum EVMMailerContractType {
-	YlideMailerV6 = 'YlideMailerV6',
-	YlideMailerV7 = 'YlideMailerV7',
-	YlideMailerV8 = 'YlideMailerV8',
+	EVMMailerV6 = 'EVMMailerV6',
+	EVMMailerV7 = 'EVMMailerV7',
+	EVMMailerV8 = 'EVMMailerV8',
 }
 
 export enum EVMRegistryContractType {
-	YlideRegistryV3 = 'YlideRegistryV3',
-	YlideRegistryV5 = 'YlideRegistryV5',
-	YlideRegistryV6 = 'YlideRegistryV6',
+	EVMRegistryV3 = 'EVMRegistryV3',
+	EVMRegistryV5 = 'EVMRegistryV5',
+	EVMRegistryV6 = 'EVMRegistryV6',
 }
 
 export interface IEVMBaseContractLink {

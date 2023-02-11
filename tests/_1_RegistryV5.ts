@@ -78,7 +78,7 @@ describe('YlideRegistryV5', function () {
 				registry = await registryFactory.deploy('0x0000000000000000000000000000000000000000');
 				registryDesc = {
 					id: 1,
-					type: EVMRegistryContractType.YlideRegistryV5,
+					type: EVMRegistryContractType.EVMRegistryV5,
 					verified: false,
 					address: registry.address,
 					creationBlock: 1,
