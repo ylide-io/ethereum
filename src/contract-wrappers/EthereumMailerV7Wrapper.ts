@@ -574,7 +574,6 @@ export class EthereumMailerV7Wrapper {
 		return await this.cache.contractOperation(mailer, async (contract, provider, blockLimit) => {
 			// const decodedContentId = decodeContentId(message.$$meta.contentId);
 			const events: MailContentEvent[] = [];
-			let partsCount = 0;
 			for (let i = message.$$meta.block.number; i >= mailer.creationBlock; i -= blockLimit) {
 				const newEvents = await await contract.queryFilter(
 					contract.filters.MailContent('0x' + message.$$meta.contentId),

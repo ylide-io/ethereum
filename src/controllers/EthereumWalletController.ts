@@ -1,3 +1,4 @@
+import { ethers } from 'ethers';
 import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers';
 import {
 	PublicKeyType,
@@ -6,8 +7,6 @@ import {
 	ServiceCode,
 	SwitchAccountCallback,
 	YlidePublicKeyVersion,
-} from '@ylide/sdk';
-import {
 	IGenericAccount,
 	AbstractWalletController,
 	PublicKey,
@@ -22,11 +21,7 @@ import {
 	YlideErrorType,
 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
-import { ethers } from 'ethers';
-import { EthereumMailerV8Wrapper } from '../contract-wrappers/EthereumMailerV8Wrapper';
-import { EthereumRegistryV3Wrapper } from '../contract-wrappers/EthereumRegistryV3Wrapper';
-import { EthereumRegistryV5Wrapper } from '../contract-wrappers/EthereumRegistryV5Wrapper';
-import { EthereumRegistryV6Wrapper } from '../contract-wrappers/EthereumRegistryV6Wrapper';
+
 import {
 	EVMNetwork,
 	EVM_CHAINS,
@@ -39,6 +34,12 @@ import {
 } from '../misc';
 import { EthereumBlockchainController } from './EthereumBlockchainController';
 import { EthereumBlockchainReader } from './helpers/EthereumBlockchainReader';
+
+import { EthereumMailerV8Wrapper } from '../contract-wrappers/EthereumMailerV8Wrapper';
+
+import { EthereumRegistryV3Wrapper } from '../contract-wrappers/EthereumRegistryV3Wrapper';
+import { EthereumRegistryV5Wrapper } from '../contract-wrappers/EthereumRegistryV5Wrapper';
+import { EthereumRegistryV6Wrapper } from '../contract-wrappers/EthereumRegistryV6Wrapper';
 
 export type NetworkSwitchHandler = (
 	reason: string,

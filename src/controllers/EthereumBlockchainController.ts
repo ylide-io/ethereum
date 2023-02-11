@@ -28,19 +28,23 @@ import {
 	IEVMMailerContractLink,
 	IEVMMessage,
 	IEVMRegistryContractLink,
+	decodeEvmMsgId,
 } from '../misc';
+
 import { EthereumBlockchainReader, IRPCDescriptor } from './helpers/EthereumBlockchainReader';
 import { EthereumContentReader } from './helpers/EthereumContentReader';
-import { EthereumMailerV8Wrapper } from '../contract-wrappers/EthereumMailerV8Wrapper';
-import { EthereumRegistryV5Wrapper } from '../contract-wrappers/EthereumRegistryV5Wrapper';
-import { decodeEvmMsgId } from '../misc/evmMsgId';
+
 import { EthereumRegistryV3Wrapper } from '../contract-wrappers/EthereumRegistryV3Wrapper';
-import { MailerV8Source } from '../messages-sources/MailerV8Source';
-import { EthereumMailerV7Wrapper } from '../contract-wrappers/EthereumMailerV7Wrapper';
-import { MailerV7Source } from '../messages-sources/MailerV7Source';
-import { EthereumMailerV6Wrapper } from '../contract-wrappers/EthereumMailerV6Wrapper';
-import { MailerV6Source } from '../messages-sources/MailerV6Source';
+import { EthereumRegistryV5Wrapper } from '../contract-wrappers/EthereumRegistryV5Wrapper';
 import { EthereumRegistryV6Wrapper } from '../contract-wrappers/EthereumRegistryV6Wrapper';
+
+import { EthereumMailerV6Wrapper } from '../contract-wrappers/EthereumMailerV6Wrapper';
+import { EthereumMailerV7Wrapper } from '../contract-wrappers/EthereumMailerV7Wrapper';
+import { EthereumMailerV8Wrapper } from '../contract-wrappers/EthereumMailerV8Wrapper';
+
+import { MailerV6Source } from '../messages-sources/MailerV6Source';
+import { MailerV7Source } from '../messages-sources/MailerV7Source';
+import { MailerV8Source } from '../messages-sources/MailerV8Source';
 
 export class EthereumBlockchainController extends AbstractBlockchainController {
 	readonly blockchainReader: EthereumBlockchainReader;
