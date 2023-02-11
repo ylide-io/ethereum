@@ -34,44 +34,6 @@ export class EthereumMailerV8Wrapper {
 		this.cache = new ContractCache(YlideMailerV8__factory, blockchainReader);
 	}
 
-	// private async getMessageContentEvents(
-	// 	mailer: IEVMMailerContractLink,
-	// 	contentId: Uint256,
-	// 	fromBlock?: number,
-	// 	toBlock?: number,
-	// ): Promise<MessageContentEvent[]> {
-	// 	return await this.cache.contractOperation(mailer, async contract => {
-	// 		return await contract.queryFilter(contract.filters.MessageContent('0x' + contentId), fromBlock, toBlock);
-	// 	});
-	// }
-
-	// private async getMailPushEvents(
-	// 	mailer: IEVMMailerContractLink,
-	// 	recipient: Uint256 | null,
-	// 	sender: string | null,
-	// 	fromBlock?: number,
-	// 	toBlock?: number,
-	// ): Promise<MailPushEvent[]> {
-	// 	return await this.cache.contractOperation(mailer, async contract => {
-	// 		return await contract.queryFilter(
-	// 			contract.filters.MailPush(recipient ? `0x${recipient}` : null, sender),
-	// 			fromBlock,
-	// 			toBlock,
-	// 		);
-	// 	});
-	// }
-
-	// private async getBroadcastPushEvents(
-	// 	mailer: IEVMMailerContractLink,
-	// 	sender: string | null,
-	// 	fromBlock?: number,
-	// 	toBlock?: number,
-	// ): Promise<BroadcastPushEvent[]> {
-	// 	return await this.cache.contractOperation(mailer, async contract => {
-	// 		return await contract.queryFilter(contract.filters.BroadcastPush(sender), fromBlock, toBlock);
-	// 	});
-	// }
-
 	private mailPushLogToEvent(log: {
 		log: ethers.providers.Log;
 		logDescription: ethers.utils.LogDescription;
@@ -649,6 +611,13 @@ export class EthereumMailerV8Wrapper {
 			);
 			const content = EthereumContentReader.processMessageContent(message.msgId, enrichedEvents);
 			return EthereumContentReader.verifyMessageContent(message, content);
+		});
+	}
+
+	async getTerminationBlock(mailer: IEVMMailerContractLink): Promise<number> {
+		return await this.cache.contractOperation(mailer, async (contract, provider) => {
+			const terminationBlock = await contract.terminationBlock();
+			return terminationBlock.toNumber();
 		});
 	}
 }

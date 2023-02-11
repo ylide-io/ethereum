@@ -11,9 +11,6 @@ import {
 	MailBroadcastEventObject,
 } from '@ylide/ethereum-contracts/lib/YlideMailerV6';
 import {
-	eventANewerThanB,
-	eventAOlderThanB,
-	eventCmprDesc,
 	EVM_CONTRACT_TO_NETWORK,
 	EVM_NAMES,
 	IEventPosition,
@@ -26,7 +23,6 @@ import { decodeEvmMsgId, encodeEvmMsgId } from '../misc/evmMsgId';
 import SmartBuffer from '@ylide/smart-buffer';
 import { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
 import { ethersEventToInternalEvent, EventParsed } from '../controllers/helpers/ethersHelper';
-import { decodeContentId } from '../misc/contentId';
 import { EthereumContentReader } from '../controllers/helpers/EthereumContentReader';
 import { ContractCache } from './ContractCache';
 

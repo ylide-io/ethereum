@@ -7,7 +7,6 @@ import { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockch
 import { IEventPosition, IEVMRegistryContractLink } from '../misc';
 import { ContractCache } from './ContractCache';
 import { BlockNumberRingBufferIndex } from '../controllers/misc/BlockNumberRingBufferIndex';
-import { EthereumHistoryReader } from '../controllers/helpers/EthereumHistoryReader';
 import { ethersEventToInternalEvent } from '../controllers/helpers/ethersHelper';
 
 export class EthereumRegistryV6Wrapper {
@@ -220,5 +219,22 @@ export class EthereumRegistryV6Wrapper {
 			payBonus,
 			{ value, from },
 		);
+	}
+
+	async getTerminationBlock(registry: IEVMRegistryContractLink): Promise<number> {
+		return await this.cache.contractOperation(registry, async (contract, provider) => {
+			const terminationBlock = await contract.terminationBlock();
+			return terminationBlock.toNumber();
+		});
+	}
+
+	async gracefullyTerminateAt(
+		registry: IEVMRegistryContractLink,
+		signer: ethers.Signer,
+		from: string,
+		blockNumber: number,
+	): Promise<ethers.ContractTransaction> {
+		const contract = this.cache.getContract(registry.address, signer);
+		return await contract.gracefullyTerminateAt(blockNumber, { from });
 	}
 }

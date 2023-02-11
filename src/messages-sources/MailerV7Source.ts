@@ -1,8 +1,7 @@
 import { GenericMessagesSource } from '@ylide/sdk';
 import { EthereumMailerV7Wrapper } from '../contract-wrappers/EthereumMailerV7Wrapper';
 import { EthereumBlockchainController } from '../controllers';
-import { IHistorySource } from '../controllers/helpers/EthereumHistoryReader';
-import { IEVMMailerContractLink } from '../misc';
+import { IEVMMailerContractLink, IHistorySource } from '../misc';
 
 export class MailerV7Source extends GenericMessagesSource {
 	constructor(

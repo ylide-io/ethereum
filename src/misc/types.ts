@@ -104,29 +104,4 @@ export interface IEVMNetworkContracts {
 
 export type IEVMMessage = IMessage<IEVMMeta>;
 
-// event MailPush(uint256 indexed recipient, address indexed sender, uint256 contentId, uint256 previousEventsIndex, bytes key);
-// event BroadcastPush(address indexed sender, uint256 contentId, uint256 previousEventsIndex);
-
-// isBroadcast: boolean;
-// msgId: string;
-// createdAt: number;
-// senderAddress: string;
-// recipientAddress: Uint256;
-// blockchain: string;
-// key: Uint8Array;
-
-// export interface IEthereumPushMessageBody {
-// 	sender: string;
-// 	msgId: string;
-// 	key: Uint8Array;
-// }
-
-// export interface IEthereumContentMessageBody {
-// 	sender: string;
-// 	msgId: string;
-// 	parts: number;
-// 	partIdx: number;
-// 	content: Uint8Array;
-// }
-
-// export interface IEthereumContentMessage extends IEVMEnrichedEvent, IEthereumContentMessageBody {}
+export type IHistorySource = { type: 'recipient'; recipient: Uint256 } | { type: 'broadcast'; sender: string };

@@ -31,7 +31,6 @@ import {
 } from '../misc';
 import { EthereumBlockchainReader, IRPCDescriptor } from './helpers/EthereumBlockchainReader';
 import { EthereumContentReader } from './helpers/EthereumContentReader';
-import { EthereumHistoryReader } from './helpers/EthereumHistoryReader';
 import { EthereumMailerV8Wrapper } from '../contract-wrappers/EthereumMailerV8Wrapper';
 import { EthereumRegistryV5Wrapper } from '../contract-wrappers/EthereumRegistryV5Wrapper';
 import { decodeEvmMsgId } from '../misc/evmMsgId';
@@ -45,7 +44,6 @@ import { EthereumRegistryV6Wrapper } from '../contract-wrappers/EthereumRegistry
 
 export class EthereumBlockchainController extends AbstractBlockchainController {
 	readonly blockchainReader: EthereumBlockchainReader;
-	readonly historyReader: EthereumHistoryReader;
 	readonly contentReader: EthereumContentReader;
 
 	readonly network: EVMNetwork;
@@ -136,7 +134,6 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			) as EthereumRegistryV5Wrapper,
 		};
 
-		this.historyReader = new EthereumHistoryReader(this.blockchainReader);
 		this.contentReader = new EthereumContentReader(this.blockchainReader);
 	}
 

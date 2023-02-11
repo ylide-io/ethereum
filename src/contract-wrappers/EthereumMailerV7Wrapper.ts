@@ -11,9 +11,6 @@ import {
 	MailBroadcastEventObject,
 } from '@ylide/ethereum-contracts/lib/YlideMailerV7';
 import {
-	eventANewerThanB,
-	eventAOlderThanB,
-	eventCmprDesc,
 	EVM_CONTRACT_TO_NETWORK,
 	EVM_NAMES,
 	IEventPosition,
@@ -26,7 +23,6 @@ import { decodeEvmMsgId, encodeEvmMsgId } from '../misc/evmMsgId';
 import SmartBuffer from '@ylide/smart-buffer';
 import { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
 import { ethersEventToInternalEvent, EventParsed } from '../controllers/helpers/ethersHelper';
-import { decodeContentId } from '../misc/contentId';
 import { EthereumContentReader } from '../controllers/helpers/EthereumContentReader';
 import { ContractCache } from './ContractCache';
 
@@ -36,44 +32,6 @@ export class EthereumMailerV7Wrapper {
 	constructor(public readonly blockchainReader: EthereumBlockchainReader) {
 		this.cache = new ContractCache(YlideMailerV7__factory, blockchainReader);
 	}
-
-	// private async getMessageContentEvents(
-	// 	mailer: IEVMMailerContractLink,
-	// 	contentId: Uint256,
-	// 	fromBlock?: number,
-	// 	toBlock?: number,
-	// ): Promise<MessageContentEvent[]> {
-	// 	return await this.cache.contractOperation(mailer, async contract => {
-	// 		return await contract.queryFilter(contract.filters.MessageContent('0x' + contentId), fromBlock, toBlock);
-	// 	});
-	// }
-
-	// private async getMailPushEvents(
-	// 	mailer: IEVMMailerContractLink,
-	// 	recipient: Uint256 | null,
-	// 	sender: string | null,
-	// 	fromBlock?: number,
-	// 	toBlock?: number,
-	// ): Promise<MailPushEvent[]> {
-	// 	return await this.cache.contractOperation(mailer, async contract => {
-	// 		return await contract.queryFilter(
-	// 			contract.filters.MailPush(recipient ? `0x${recipient}` : null, sender),
-	// 			fromBlock,
-	// 			toBlock,
-	// 		);
-	// 	});
-	// }
-
-	// private async getMailBroadcastEvents(
-	// 	mailer: IEVMMailerContractLink,
-	// 	sender: string | null,
-	// 	fromBlock?: number,
-	// 	toBlock?: number,
-	// ): Promise<MailBroadcastEvent[]> {
-	// 	return await this.cache.contractOperation(mailer, async contract => {
-	// 		return await contract.queryFilter(contract.filters.MailBroadcast(sender), fromBlock, toBlock);
-	// 	});
-	// }
 
 	private mailPushLogToEvent(log: {
 		log: ethers.providers.Log;
