@@ -1,11 +1,8 @@
-import { IMessage, IMessageContent, IMessageCorruptedContent, MessageContentFailure, Uint256 } from '@ylide/sdk';
+import { IMessage, IMessageContent, IMessageCorruptedContent, MessageContentFailure } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
-import { IEVMMailerContractLink, IEVMEnrichedEvent } from '../../misc';
-import { EthereumBlockchainReader } from './EthereumBlockchainReader';
-import { EthereumMailerV8Wrapper } from '../../contract-wrappers/EthereumMailerV8Wrapper';
-import { TypedEvent } from '@ylide/ethereum-contracts/lib/common';
 
-export type IHistorySource = { type: 'recipient'; recipient: Uint256 } | { type: 'broadcast'; sender: string };
+import { IEVMEnrichedEvent } from '../../misc';
+import { EthereumBlockchainReader } from './EthereumBlockchainReader';
 
 export interface GenericMessageContentEventObject {
 	sender: string;
@@ -31,39 +28,6 @@ export class EthereumContentReader {
 		}
 		return true;
 	}
-
-	// async retrieveMessageContentByMessageHeader(
-	// 	mailer: { link: IEVMMailerContractLink; wrapper: EthereumMailerV8Wrapper },
-	// 	msg: IMessage,
-	// ): Promise<IMessageContent | IMessageCorruptedContent | null> {
-	// 	let i = msg.$$meta.event.blockNumber;
-	// 	const totalEvents: GenericMessageContentEventObject[] = [];
-	// 	let done = false;
-	// 	while (i >= mailer.link.creationBlock) {
-	// 		const partEvents = await mailer.wrapper.contractOperation(
-	// 			mailer.link,
-	// 			async (contract, provider, blockLimit) => {
-	// 				const events = await contract.queryFilter(
-	// 					contract.filters.MessageContent(msg.msgId),
-	// 					i - blockLimit,
-	// 					i,
-	// 				);
-	// 				i -= blockLimit;
-	// 				return events;
-	// 			},
-	// 		);
-	// 		totalEvents.push(...partEvents);
-	// 		if (this.enoughEvents(totalEvents)) {
-	// 			done = true;
-	// 			break;
-	// 		}
-	// 	}
-	// 	if (!done) {
-	// 		return null;
-	// 	}
-	// 	const messages = await this.blockchainReader.enrichEvents(totalEvents);
-	// 	return this.processMessageContent(msg.msgId, messages);
-	// }
 
 	static processMessageContent(
 		msgId: string,

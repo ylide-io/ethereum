@@ -1,4 +1,9 @@
 export * from './EthereumBlockchainController';
 export * from './EthereumWalletController';
-// export * from './EthereumBlockchainSource';
-// export * from './EthereumListSource';
+
+export * from './helpers/BetterWebSocketProvider';
+export * from './helpers/EthereumBlockchainReader';
+export * from './helpers/EthereumContentReader';
+export * from './helpers/ethersHelper';
+
+export * from './misc/BlockNumberRingBufferIndex';

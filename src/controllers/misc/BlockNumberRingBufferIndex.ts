@@ -1,6 +1,6 @@
-import { AscComparator, Uint256 } from '@ylide/sdk';
+import { Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
-import { eventANewerThanB, eventAOlderThanB, eventCmprDesc, IEVMEvent } from '../../misc';
+import { eventANewerThanB, eventAOlderThanB, eventCmprDesc } from '../../misc';
 
 export class BlockNumberRingBufferIndex {
 	static decodeIndexValue(hex: Uint256): number[] {
