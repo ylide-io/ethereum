@@ -42,9 +42,9 @@ import { EthereumMailerV6Wrapper } from '../contract-wrappers/EthereumMailerV6Wr
 import { EthereumMailerV7Wrapper } from '../contract-wrappers/EthereumMailerV7Wrapper';
 import { EthereumMailerV8Wrapper } from '../contract-wrappers/EthereumMailerV8Wrapper';
 
-import { MailerV6Source } from '../messages-sources/MailerV6Source';
-import { MailerV7Source } from '../messages-sources/MailerV7Source';
-import { MailerV8Source } from '../messages-sources/MailerV8Source';
+import { EVMMailerV6Source } from '../messages-sources/EVMMailerV6Source';
+import { EVMMailerV7Source } from '../messages-sources/EVMMailerV7Source';
+import { EVMMailerV8Source } from '../messages-sources/EVMMailerV8Source';
 
 export class EthereumBlockchainController extends AbstractBlockchainController {
 	readonly blockchainReader: EthereumBlockchainReader;
@@ -246,7 +246,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 
 		if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
-			return new MailerV8Source(
+			return new EVMMailerV8Source(
 				this,
 				mailer.link,
 				mailer.wrapper,
@@ -261,7 +261,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 					  },
 			);
 		} else if (mailer.wrapper instanceof EthereumMailerV7Wrapper) {
-			return new MailerV7Source(
+			return new EVMMailerV7Source(
 				this,
 				mailer.link,
 				mailer.wrapper,
@@ -276,7 +276,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 					  },
 			);
 		} else {
-			return new MailerV6Source(
+			return new EVMMailerV6Source(
 				this,
 				mailer.link,
 				mailer.wrapper,
