@@ -82,7 +82,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 	readonly currentMailer: {
 		link: IEVMMailerContractLink;
-		wrapper: EthereumMailerV8Wrapper | EthereumMailerV7Wrapper | EthereumMailerV6Wrapper;
+		wrapper: EthereumMailerV8Wrapper;
 	};
 	readonly currentRegistry: { link: IEVMRegistryContractLink; wrapper: EthereumRegistryV5Wrapper };
 
@@ -128,7 +128,9 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 		this.currentMailer = {
 			link: currentMailerLink,
-			wrapper: new EthereumBlockchainController.mailerWrappers[currentMailerLink.type](this.blockchainReader),
+			wrapper: new EthereumBlockchainController.mailerWrappers[currentMailerLink.type](
+				this.blockchainReader,
+			) as EthereumMailerV8Wrapper,
 		};
 
 		this.currentRegistry = {

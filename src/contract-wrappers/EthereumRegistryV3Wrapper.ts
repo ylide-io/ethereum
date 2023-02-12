@@ -13,37 +13,11 @@ export class EthereumRegistryV3Wrapper {
 		this.cache = new ContractCache(YlideRegistryV3__factory, blockchainReader);
 	}
 
-	private async contractOperation<T>(
-		registry: IEVMRegistryContractLink,
-		callback: (
-			contract: YlideRegistryV3,
-			provider: ethers.providers.Provider,
-			blockLimit: number,
-			latestNotSupported: boolean,
-			batchNotSupported: boolean,
-			stopTrying: () => void,
-		) => Promise<T>,
-	): Promise<T> {
-		return await this.blockchainReader.retryableOperation(
-			async (provider, blockLimit, latestNotSupported, batchNotSupported, stopTrying) => {
-				const contract = this.cache.getContract(registry.address, provider);
-				return await callback(
-					contract,
-					provider,
-					blockLimit,
-					latestNotSupported,
-					batchNotSupported,
-					stopTrying,
-				);
-			},
-		);
-	}
-
 	async getPublicKeyByAddress(
 		registry: IEVMRegistryContractLink,
 		address: string,
 	): Promise<ExternalYlidePublicKey | null> {
-		return await this.contractOperation(registry, async contract => {
+		return await this.cache.contractOperation(registry, async contract => {
 			const [entry, contractVersion, contractAddress] = await contract.functions.getPublicKey(address);
 			const { publicKey, block, timestamp, keyVersion } = entry;
 			if (keyVersion.toNumber() === 0) {
