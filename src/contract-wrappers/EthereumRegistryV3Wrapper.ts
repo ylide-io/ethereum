@@ -13,6 +13,19 @@ export class EthereumRegistryV3Wrapper {
 		this.cache = new ContractCache(YlideRegistryV3__factory, blockchainReader);
 	}
 
+	static async deploy(
+		signer: ethers.Signer,
+		from: string,
+		previousContractAddress: string = '0x0000000000000000000000000000000000000000',
+	) {
+		const factory = new YlideRegistryV3__factory(signer);
+		return (
+			await factory.deploy(previousContractAddress, {
+				from,
+			})
+		).address;
+	}
+
 	async getPublicKeyByAddress(
 		registry: IEVMRegistryContractLink,
 		address: string,

@@ -171,30 +171,6 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 	}
 
-	// async deployMailer() {
-	// 	const newInstance = new this.writeWeb3.eth.Contract(MAILER_ABI.abi as AbiItem[]);
-	// 	const tx = await newInstance
-	// 		.deploy({
-	// 			data: MAILER_ABI.bytecode,
-	// 		})
-	// 		.send({
-	// 			from: (await this.getAuthenticatedAccount())!.address,
-	// 		});
-	// 	console.log('contract address: ', tx.options.address); // tslint:disable-line
-	// }
-
-	// async deployRegistry() {
-	// 	const newInstance = new this.writeWeb3.eth.Contract(REGISTRY_ABI.abi as AbiItem[]);
-	// 	const tx = await newInstance
-	// 		.deploy({
-	// 			data: REGISTRY_ABI.bytecode,
-	// 		})
-	// 		.send({
-	// 			from: (await this.getAuthenticatedAccount())!.address,
-	// 		});
-	// 	console.log('contract address: ', tx.options.address); // tslint:disable-line
-	// }
-
 	private getRegistryByNetwork(network: EVMNetwork): {
 		link: IEVMRegistryContractLink;
 		wrapper: EthereumRegistryV3Wrapper | EthereumRegistryV5Wrapper | EthereumRegistryV6Wrapper;
@@ -536,6 +512,52 @@ export class EthereumWalletController extends AbstractWalletController {
 		encryptedKey: Uint8Array,
 	): Promise<Uint8Array> {
 		throw new Error('Native decryption is unavailable in Ethereum.');
+	}
+
+	// Deployments:
+
+	async deployRegistryV3(
+		me: IGenericAccount,
+		previousContractAddress: string = '0x0000000000000000000000000000000000000000',
+		options?: any,
+	): Promise<string> {
+		await this.ensureAccount(me);
+		const network = await this.ensureNetworkOptions('Deploy RegistryV3', options);
+		return await EthereumRegistryV3Wrapper.deploy(this.signer, me.address, previousContractAddress);
+	}
+
+	async deployRegistryV5(
+		me: IGenericAccount,
+		previousContractAddress: string = '0x0000000000000000000000000000000000000000',
+		options?: any,
+	): Promise<string> {
+		await this.ensureAccount(me);
+		const network = await this.ensureNetworkOptions('Deploy RegistryV5', options);
+		return await EthereumRegistryV5Wrapper.deploy(this.signer, me.address, previousContractAddress);
+	}
+
+	async deployRegistryV6(me: IGenericAccount, options?: any): Promise<string> {
+		await this.ensureAccount(me);
+		const network = await this.ensureNetworkOptions('Deploy RegistryV6', options);
+		return await EthereumRegistryV6Wrapper.deploy(this.signer, me.address);
+	}
+
+	async deployMailerV6(me: IGenericAccount, options?: any): Promise<string> {
+		await this.ensureAccount(me);
+		const network = await this.ensureNetworkOptions('Deploy MailerV6', options);
+		return await EthereumMailerV6Wrapper.deploy(this.signer, me.address);
+	}
+
+	async deployMailerV7(me: IGenericAccount, options?: any): Promise<string> {
+		await this.ensureAccount(me);
+		const network = await this.ensureNetworkOptions('Deploy MailerV7', options);
+		return await EthereumMailerV7Wrapper.deploy(this.signer, me.address);
+	}
+
+	async deployMailerV8(me: IGenericAccount, options?: any): Promise<string> {
+		await this.ensureAccount(me);
+		const network = await this.ensureNetworkOptions('Deploy MailerV8', options);
+		return await EthereumMailerV8Wrapper.deploy(this.signer, me.address);
 	}
 }
 

@@ -33,6 +33,15 @@ export class EthereumMailerV6Wrapper {
 		this.cache = new ContractCache(YlideMailerV6__factory, blockchainReader);
 	}
 
+	static async deploy(signer: ethers.Signer, from: string) {
+		const factory = new YlideMailerV6__factory(signer);
+		return (
+			await factory.deploy({
+				from,
+			})
+		).address;
+	}
+
 	private mailPushLogToEvent(log: {
 		log: ethers.providers.Log;
 		logDescription: ethers.utils.LogDescription;

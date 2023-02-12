@@ -13,6 +13,19 @@ export class EthereumRegistryV5Wrapper {
 		this.cache = new ContractCache(YlideRegistryV5__factory, blockchainReader);
 	}
 
+	static async deploy(
+		signer: ethers.Signer,
+		from: string,
+		previousContractAddress: string = '0x0000000000000000000000000000000000000000',
+	) {
+		const factory = new YlideRegistryV5__factory(signer);
+		return (
+			await factory.deploy(previousContractAddress, {
+				from,
+			})
+		).address;
+	}
+
 	async getOwner(registry: IEVMRegistryContractLink): Promise<string> {
 		return await this.cache.contractOperation(registry, async contract => {
 			return await contract.owner();
