@@ -75,6 +75,7 @@ export enum EVMMailerContractType {
 
 export enum EVMRegistryContractType {
 	EVMRegistryV3 = 'EVMRegistryV3',
+	EVMRegistryV4 = 'EVMRegistryV4',
 	EVMRegistryV5 = 'EVMRegistryV5',
 	EVMRegistryV6 = 'EVMRegistryV6',
 }

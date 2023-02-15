@@ -41,6 +41,7 @@ import { EthereumMailerV7Wrapper } from '../contract-wrappers/EthereumMailerV7Wr
 import { EthereumMailerV8Wrapper } from '../contract-wrappers/EthereumMailerV8Wrapper';
 
 import { EthereumRegistryV3Wrapper } from '../contract-wrappers/EthereumRegistryV3Wrapper';
+import { EthereumRegistryV4Wrapper } from '../contract-wrappers/EthereumRegistryV4Wrapper';
 import { EthereumRegistryV5Wrapper } from '../contract-wrappers/EthereumRegistryV5Wrapper';
 import { EthereumRegistryV6Wrapper } from '../contract-wrappers/EthereumRegistryV6Wrapper';
 
@@ -65,7 +66,11 @@ export class EthereumWalletController extends AbstractWalletController {
 	}[] = [];
 	readonly registries: {
 		link: IEVMRegistryContractLink;
-		wrapper: EthereumRegistryV3Wrapper | EthereumRegistryV5Wrapper | EthereumRegistryV6Wrapper;
+		wrapper:
+			| EthereumRegistryV3Wrapper
+			| EthereumRegistryV4Wrapper
+			| EthereumRegistryV5Wrapper
+			| EthereumRegistryV6Wrapper;
 	}[] = [];
 
 	private lastCurrentAccount: IGenericAccount | null = null;
@@ -173,7 +178,11 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	private getRegistryByNetwork(network: EVMNetwork): {
 		link: IEVMRegistryContractLink;
-		wrapper: EthereumRegistryV3Wrapper | EthereumRegistryV5Wrapper | EthereumRegistryV6Wrapper;
+		wrapper:
+			| EthereumRegistryV3Wrapper
+			| EthereumRegistryV4Wrapper
+			| EthereumRegistryV5Wrapper
+			| EthereumRegistryV6Wrapper;
 	} {
 		const id = EVM_CONTRACTS[network].currentRegistryId;
 		const existing = this.registries.find(r => r.link.id === id);
@@ -236,7 +245,10 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	async setBonucer(network: EVMNetwork, from: string, newBonucer: string, val: boolean) {
 		const registry = this.getRegistryByNetwork(network);
-		if (registry.wrapper instanceof EthereumRegistryV3Wrapper) {
+		if (
+			registry.wrapper instanceof EthereumRegistryV3Wrapper ||
+			registry.wrapper instanceof EthereumRegistryV4Wrapper
+		) {
 			throw new YlideError(YlideErrorType.NOT_SUPPORTED, { method: 'setBonucer' });
 		}
 		if (val) {
@@ -524,6 +536,16 @@ export class EthereumWalletController extends AbstractWalletController {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Deploy RegistryV3', options);
 		return await EthereumRegistryV3Wrapper.deploy(this.signer, me.address, previousContractAddress);
+	}
+
+	async deployRegistryV4(
+		me: IGenericAccount,
+		previousContractAddress: string = '0x0000000000000000000000000000000000000000',
+		options?: any,
+	): Promise<string> {
+		await this.ensureAccount(me);
+		const network = await this.ensureNetworkOptions('Deploy RegistryV4', options);
+		return await EthereumRegistryV4Wrapper.deploy(this.signer, me.address, previousContractAddress);
 	}
 
 	async deployRegistryV5(

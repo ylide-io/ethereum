@@ -35,6 +35,7 @@ import { EthereumBlockchainReader, IRPCDescriptor } from './helpers/EthereumBloc
 import { EthereumContentReader } from './helpers/EthereumContentReader';
 
 import { EthereumRegistryV3Wrapper } from '../contract-wrappers/EthereumRegistryV3Wrapper';
+import { EthereumRegistryV4Wrapper } from '../contract-wrappers/EthereumRegistryV4Wrapper';
 import { EthereumRegistryV5Wrapper } from '../contract-wrappers/EthereumRegistryV5Wrapper';
 import { EthereumRegistryV6Wrapper } from '../contract-wrappers/EthereumRegistryV6Wrapper';
 
@@ -64,9 +65,13 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 	static readonly registryWrappers: Record<
 		EVMRegistryContractType,
-		typeof EthereumRegistryV3Wrapper | typeof EthereumRegistryV5Wrapper | typeof EthereumRegistryV6Wrapper
+		| typeof EthereumRegistryV3Wrapper
+		| typeof EthereumRegistryV4Wrapper
+		| typeof EthereumRegistryV5Wrapper
+		| typeof EthereumRegistryV6Wrapper
 	> = {
 		[EVMRegistryContractType.EVMRegistryV3]: EthereumRegistryV3Wrapper,
+		[EVMRegistryContractType.EVMRegistryV4]: EthereumRegistryV4Wrapper,
 		[EVMRegistryContractType.EVMRegistryV5]: EthereumRegistryV5Wrapper,
 		[EVMRegistryContractType.EVMRegistryV6]: EthereumRegistryV6Wrapper,
 	};
@@ -77,7 +82,11 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}[] = [];
 	readonly registries: {
 		link: IEVMRegistryContractLink;
-		wrapper: EthereumRegistryV3Wrapper | EthereumRegistryV5Wrapper | EthereumRegistryV6Wrapper;
+		wrapper:
+			| EthereumRegistryV3Wrapper
+			| EthereumRegistryV4Wrapper
+			| EthereumRegistryV5Wrapper
+			| EthereumRegistryV6Wrapper;
 	}[] = [];
 
 	readonly currentMailer: {
