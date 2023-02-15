@@ -9,6 +9,7 @@ import {
 	BroadcastPushEvent,
 	MailPushEventObject,
 	BroadcastPushEventObject,
+	MessageContentEventObject,
 } from '@ylide/ethereum-contracts/lib/YlideMailerV8';
 import {
 	EVM_CONTRACT_TO_NETWORK,
@@ -24,11 +25,11 @@ import SmartBuffer from '@ylide/smart-buffer';
 import { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
 import { ethersEventToInternalEvent, EventParsed } from '../controllers/helpers/ethersHelper';
 import { decodeContentId } from '../misc/contentId';
-import { EthereumContentReader } from '../controllers/helpers/EthereumContentReader';
+import { EthereumContentReader, GenericMessageContentEventObject } from '../controllers/helpers/EthereumContentReader';
 import { ContractCache } from './ContractCache';
 
 export class EthereumMailerV8Wrapper {
-	private readonly cache: ContractCache<YlideMailerV8>;
+	public readonly cache: ContractCache<YlideMailerV8>;
 
 	constructor(public readonly blockchainReader: EthereumBlockchainReader) {
 		this.cache = new ContractCache(YlideMailerV8__factory, blockchainReader);
@@ -36,14 +37,10 @@ export class EthereumMailerV8Wrapper {
 
 	static async deploy(signer: ethers.Signer, from: string) {
 		const factory = new YlideMailerV8__factory(signer);
-		return (
-			await factory.deploy({
-				from,
-			})
-		).address;
+		return (await factory.deploy()).address;
 	}
 
-	private mailPushLogToEvent(log: {
+	mailPushLogToEvent(log: {
 		log: ethers.providers.Log;
 		logDescription: ethers.utils.LogDescription;
 	}): IEVMEvent<MailPushEventObject> {
@@ -64,7 +61,7 @@ export class EthereumMailerV8Wrapper {
 		};
 	}
 
-	private broadcastPushLogToEvent(log: {
+	broadcastPushLogToEvent(log: {
 		log: ethers.providers.Log;
 		logDescription: ethers.utils.LogDescription;
 	}): IEVMEvent<BroadcastPushEventObject> {
@@ -85,7 +82,7 @@ export class EthereumMailerV8Wrapper {
 		};
 	}
 
-	private validateMessage(mailer: IEVMMailerContractLink, message: IEVMMessage | null) {
+	validateMessage(mailer: IEVMMailerContractLink, message: IEVMMessage | null) {
 		if (!message) {
 			return;
 		}
@@ -98,10 +95,7 @@ export class EthereumMailerV8Wrapper {
 		throw new Error('Invalid message: not from this contract');
 	}
 
-	private processMailPushEvent(
-		mailer: IEVMMailerContractLink,
-		event: IEVMEnrichedEvent<MailPushEventObject>,
-	): IEVMMessage {
+	processMailPushEvent(mailer: IEVMMailerContractLink, event: IEVMEnrichedEvent<MailPushEventObject>): IEVMMessage {
 		return {
 			isBroadcast: false,
 			msgId: encodeEvmMsgId(
@@ -126,7 +120,7 @@ export class EthereumMailerV8Wrapper {
 		};
 	}
 
-	private processBroadcastPushEvent(
+	processBroadcastPushEvent(
 		mailer: IEVMMailerContractLink,
 		event: IEVMEnrichedEvent<BroadcastPushEventObject>,
 	): IEVMMessage {
@@ -154,7 +148,7 @@ export class EthereumMailerV8Wrapper {
 		};
 	}
 
-	private async retrieveHistoryDesc<T extends TypedEvent>(
+	async retrieveHistoryDesc<T extends TypedEvent>(
 		mailer: IEVMMailerContractLink,
 		getBaseIndex: () => Promise<number[]>,
 		getFilter: (contract: YlideMailerV8) => TypedEventFilter<T>,
@@ -197,7 +191,7 @@ export class EthereumMailerV8Wrapper {
 				divider: 128,
 			});
 
-			const enrichedEvents = await this.blockchainReader.enrichEvents<T>(
+			const enrichedEvents = await this.blockchainReader.enrichEvents<EventParsed<T>>(
 				preparedEvents.map(g => ethersEventToInternalEvent(g)),
 			);
 			const messages = enrichedEvents.map(e => processEvent(e));
@@ -329,7 +323,7 @@ export class EthereumMailerV8Wrapper {
 		const mailPushEvents = logs
 			.filter(l => l.logDescription.name === 'MailPush')
 			.map(l => this.mailPushLogToEvent(l));
-		const enriched = await this.blockchainReader.enrichEvents<MailPushEvent>(mailPushEvents);
+		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
@@ -365,7 +359,7 @@ export class EthereumMailerV8Wrapper {
 		const mailPushEvents = logs
 			.filter(l => l.logDescription.name === 'MailPush')
 			.map(l => this.mailPushLogToEvent(l));
-		const enriched = await this.blockchainReader.enrichEvents<MailPushEvent>(mailPushEvents);
+		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
@@ -405,7 +399,7 @@ export class EthereumMailerV8Wrapper {
 		const mailPushEvents = logs
 			.filter(l => l.logDescription.name === 'MailPush')
 			.map(l => this.mailPushLogToEvent(l));
-		const enriched = await this.blockchainReader.enrichEvents<MailPushEvent>(mailPushEvents);
+		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
@@ -433,7 +427,7 @@ export class EthereumMailerV8Wrapper {
 		const broadcastPushEvents = logs
 			.filter(l => l.logDescription.name === 'BroadcastPush')
 			.map(l => this.broadcastPushLogToEvent(l));
-		const enriched = await this.blockchainReader.enrichEvents<BroadcastPushEvent>(broadcastPushEvents);
+		const enriched = await this.blockchainReader.enrichEvents<BroadcastPushEventObject>(broadcastPushEvents);
 		const messages = enriched.map(e => this.processBroadcastPushEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
 	}
@@ -463,7 +457,7 @@ export class EthereumMailerV8Wrapper {
 		const broadcastPushEvents = logs
 			.filter(l => l.logDescription.name === 'BroadcastPush')
 			.map(l => this.broadcastPushLogToEvent(l));
-		const enriched = await this.blockchainReader.enrichEvents<BroadcastPushEvent>(broadcastPushEvents);
+		const enriched = await this.blockchainReader.enrichEvents<BroadcastPushEventObject>(broadcastPushEvents);
 		const messages = enriched.map(e => this.processBroadcastPushEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
 	}
@@ -512,7 +506,7 @@ export class EthereumMailerV8Wrapper {
 			if (!event) {
 				return null;
 			}
-			const [enriched] = await this.blockchainReader.enrichEvents<MailPushEvent>([
+			const [enriched] = await this.blockchainReader.enrichEvents<MailPushEventObject>([
 				ethersEventToInternalEvent(event),
 			]);
 			return this.processMailPushEvent(mailer, enriched);
@@ -533,7 +527,7 @@ export class EthereumMailerV8Wrapper {
 			if (!event) {
 				return null;
 			}
-			const [enriched] = await this.blockchainReader.enrichEvents<BroadcastPushEvent>([
+			const [enriched] = await this.blockchainReader.enrichEvents<BroadcastPushEventObject>([
 				ethersEventToInternalEvent(event),
 			]);
 			return this.processBroadcastPushEvent(mailer, enriched);
@@ -592,6 +586,16 @@ export class EthereumMailerV8Wrapper {
 		);
 	}
 
+	processMessageContentEvent(args: MessageContentEventObject): GenericMessageContentEventObject {
+		return {
+			contentId: args.contentId.toHexString().replace('0x', '').padStart(64, '0'),
+			sender: args.sender,
+			parts: args.parts,
+			partIdx: args.partIdx,
+			content: args.content,
+		};
+	}
+
 	async retrieveMessageContent(
 		mailer: IEVMMailerContractLink,
 		message: IEVMMessage,
@@ -601,7 +605,7 @@ export class EthereumMailerV8Wrapper {
 			const events: MessageContentEvent[] = [];
 			for (
 				let i = decodedContentId.blockNumber;
-				i < decodedContentId.blockNumber + decodedContentId.blockCountLock;
+				i <= decodedContentId.blockNumber + decodedContentId.blockCountLock;
 				i += blockLimit
 			) {
 				const newEvents = await await contract.queryFilter(
@@ -615,8 +619,8 @@ export class EthereumMailerV8Wrapper {
 				}
 			}
 			events.sort((a, b) => a.args.partIdx - b.args.partIdx);
-			const enrichedEvents = await this.blockchainReader.enrichEvents<MessageContentEvent>(
-				events.map(e => ethersEventToInternalEvent(e)),
+			const enrichedEvents = await this.blockchainReader.enrichEvents(
+				events.map(e => ethersEventToInternalEvent(e, this.processMessageContentEvent.bind(this))),
 			);
 			const content = EthereumContentReader.processMessageContent(message.msgId, enrichedEvents);
 			return EthereumContentReader.verifyMessageContent(message, content);

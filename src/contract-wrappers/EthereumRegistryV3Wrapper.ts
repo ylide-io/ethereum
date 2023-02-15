@@ -3,11 +3,12 @@ import { YlideRegistryV3, YlideRegistryV3__factory } from '@ylide/ethereum-contr
 import { ExternalYlidePublicKey, PublicKey, PublicKeyType } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
-import { IEVMRegistryContractLink } from '../misc';
+import { IEVMEnrichedEvent, IEVMRegistryContractLink } from '../misc';
 import { ContractCache } from './ContractCache';
+import { KeyAttachedEventObject } from '@ylide/ethereum-contracts/lib/YlideRegistryV3';
 
 export class EthereumRegistryV3Wrapper {
-	private readonly cache: ContractCache<YlideRegistryV3>;
+	public readonly cache: ContractCache<YlideRegistryV3>;
 
 	constructor(public readonly blockchainReader: EthereumBlockchainReader) {
 		this.cache = new ContractCache(YlideRegistryV3__factory, blockchainReader);
@@ -19,11 +20,26 @@ export class EthereumRegistryV3Wrapper {
 		previousContractAddress: string = '0x0000000000000000000000000000000000000000',
 	) {
 		const factory = new YlideRegistryV3__factory(signer);
-		return (
-			await factory.deploy(previousContractAddress, {
-				from,
-			})
-		).address;
+		return (await factory.deploy(previousContractAddress)).address;
+	}
+
+	processKeyAttachedEvent(event: IEVMEnrichedEvent<KeyAttachedEventObject>): {
+		address: string;
+		key: ExternalYlidePublicKey;
+	} {
+		const { publicKey, keyVersion, addr } = event.event.parsed;
+		return {
+			address: addr,
+			key: {
+				keyVersion: keyVersion.toNumber(),
+				publicKey: PublicKey.fromBytes(
+					PublicKeyType.YLIDE,
+					SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '')).bytes,
+				),
+				timestamp: event.block.timestamp,
+				registrar: 0,
+			},
+		};
 	}
 
 	async getPublicKeyByAddress(

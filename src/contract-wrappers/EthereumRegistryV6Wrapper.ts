@@ -1,16 +1,16 @@
 import { ethers } from 'ethers';
 import { YlideRegistryV6, YlideRegistryV6__factory } from '@ylide/ethereum-contracts';
-import { KeyAttachedEvent } from '@ylide/ethereum-contracts/lib/YlideRegistryV6';
+import { KeyAttachedEvent, KeyAttachedEventObject } from '@ylide/ethereum-contracts/lib/YlideRegistryV6';
 import { ExternalYlidePublicKey, PublicKey, PublicKeyType, Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
-import { IEventPosition, IEVMRegistryContractLink } from '../misc';
+import { IEventPosition, IEVMEnrichedEvent, IEVMRegistryContractLink } from '../misc';
 import { ContractCache } from './ContractCache';
 import { BlockNumberRingBufferIndex } from '../controllers/misc/BlockNumberRingBufferIndex';
 import { ethersEventToInternalEvent } from '../controllers/helpers/ethersHelper';
 
 export class EthereumRegistryV6Wrapper {
-	private readonly cache: ContractCache<YlideRegistryV6>;
+	public readonly cache: ContractCache<YlideRegistryV6>;
 
 	constructor(public readonly blockchainReader: EthereumBlockchainReader) {
 		this.cache = new ContractCache(YlideRegistryV6__factory, blockchainReader);
@@ -18,11 +18,26 @@ export class EthereumRegistryV6Wrapper {
 
 	static async deploy(signer: ethers.Signer, from: string) {
 		const factory = new YlideRegistryV6__factory(signer);
-		return (
-			await factory.deploy({
-				from,
-			})
-		).address;
+		return (await factory.deploy()).address;
+	}
+
+	processKeyAttachedEvent(event: IEVMEnrichedEvent<KeyAttachedEventObject>): {
+		address: string;
+		key: ExternalYlidePublicKey;
+	} {
+		const { publicKey, keyVersion, addr } = event.event.parsed;
+		return {
+			address: addr,
+			key: {
+				keyVersion: keyVersion,
+				publicKey: PublicKey.fromBytes(
+					PublicKeyType.YLIDE,
+					SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '')).bytes,
+				),
+				timestamp: event.block.timestamp,
+				registrar: event.event.parsed.registrar,
+			},
+		};
 	}
 
 	async getOwner(registry: IEVMRegistryContractLink): Promise<string> {
@@ -107,7 +122,7 @@ export class EthereumRegistryV6Wrapper {
 				divider: 128,
 			});
 
-			const enrichedEvents = await this.blockchainReader.enrichEvents<KeyAttachedEvent>(
+			const enrichedEvents = await this.blockchainReader.enrichEvents<KeyAttachedEventObject>(
 				events.map(e => ethersEventToInternalEvent(e)),
 			);
 

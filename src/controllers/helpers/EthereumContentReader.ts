@@ -5,6 +5,7 @@ import { IEVMEnrichedEvent } from '../../misc';
 import { EthereumBlockchainReader } from './EthereumBlockchainReader';
 
 export interface GenericMessageContentEventObject {
+	contentId: string;
 	sender: string;
 	parts: number;
 	partIdx: number;

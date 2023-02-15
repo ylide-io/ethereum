@@ -9,6 +9,7 @@ import {
 	MailBroadcastEvent,
 	MailPushEventObject,
 	MailBroadcastEventObject,
+	MailContentEventObject,
 } from '@ylide/ethereum-contracts/lib/YlideMailerV7';
 import {
 	EVM_CONTRACT_TO_NETWORK,
@@ -23,11 +24,11 @@ import { decodeEvmMsgId, encodeEvmMsgId } from '../misc/evmMsgId';
 import SmartBuffer from '@ylide/smart-buffer';
 import { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
 import { ethersEventToInternalEvent, EventParsed } from '../controllers/helpers/ethersHelper';
-import { EthereumContentReader } from '../controllers/helpers/EthereumContentReader';
+import { EthereumContentReader, GenericMessageContentEventObject } from '../controllers/helpers/EthereumContentReader';
 import { ContractCache } from './ContractCache';
 
 export class EthereumMailerV7Wrapper {
-	private readonly cache: ContractCache<YlideMailerV7>;
+	public readonly cache: ContractCache<YlideMailerV7>;
 
 	constructor(public readonly blockchainReader: EthereumBlockchainReader) {
 		this.cache = new ContractCache(YlideMailerV7__factory, blockchainReader);
@@ -35,14 +36,10 @@ export class EthereumMailerV7Wrapper {
 
 	static async deploy(signer: ethers.Signer, from: string) {
 		const factory = new YlideMailerV7__factory(signer);
-		return (
-			await factory.deploy({
-				from,
-			})
-		).address;
+		return (await factory.deploy()).address;
 	}
 
-	private mailPushLogToEvent(log: {
+	mailPushLogToEvent(log: {
 		log: ethers.providers.Log;
 		logDescription: ethers.utils.LogDescription;
 	}): IEVMEvent<MailPushEventObject> {
@@ -63,7 +60,7 @@ export class EthereumMailerV7Wrapper {
 		};
 	}
 
-	private broadcastPushLogToEvent(log: {
+	broadcastPushLogToEvent(log: {
 		log: ethers.providers.Log;
 		logDescription: ethers.utils.LogDescription;
 	}): IEVMEvent<MailBroadcastEventObject> {
@@ -84,7 +81,7 @@ export class EthereumMailerV7Wrapper {
 		};
 	}
 
-	private validateMessage(mailer: IEVMMailerContractLink, message: IEVMMessage | null) {
+	validateMessage(mailer: IEVMMailerContractLink, message: IEVMMessage | null) {
 		if (!message) {
 			return;
 		}
@@ -97,10 +94,7 @@ export class EthereumMailerV7Wrapper {
 		throw new Error('Invalid message: not from this contract');
 	}
 
-	private processMailPushEvent(
-		mailer: IEVMMailerContractLink,
-		event: IEVMEnrichedEvent<MailPushEventObject>,
-	): IEVMMessage {
+	processMailPushEvent(mailer: IEVMMailerContractLink, event: IEVMEnrichedEvent<MailPushEventObject>): IEVMMessage {
 		return {
 			isBroadcast: false,
 			msgId: encodeEvmMsgId(
@@ -125,7 +119,7 @@ export class EthereumMailerV7Wrapper {
 		};
 	}
 
-	private processMailBroadcastEvent(
+	processMailBroadcastEvent(
 		mailer: IEVMMailerContractLink,
 		event: IEVMEnrichedEvent<MailBroadcastEventObject>,
 	): IEVMMessage {
@@ -153,7 +147,7 @@ export class EthereumMailerV7Wrapper {
 		};
 	}
 
-	private async retrieveHistoryDesc<T extends TypedEvent>(
+	async retrieveHistoryDesc<T extends TypedEvent>(
 		mailer: IEVMMailerContractLink,
 		getBaseIndex: () => Promise<number[]>,
 		getFilter: (contract: YlideMailerV7) => TypedEventFilter<T>,
@@ -196,7 +190,7 @@ export class EthereumMailerV7Wrapper {
 				divider: 128,
 			});
 
-			const enrichedEvents = await this.blockchainReader.enrichEvents<T>(
+			const enrichedEvents = await this.blockchainReader.enrichEvents<EventParsed<T>>(
 				preparedEvents.map(g => ethersEventToInternalEvent(g)),
 			);
 			const messages = enrichedEvents.map(e => processEvent(e));
@@ -328,7 +322,7 @@ export class EthereumMailerV7Wrapper {
 		const mailPushEvents = logs
 			.filter(l => l.logDescription.name === 'MailPush')
 			.map(l => this.mailPushLogToEvent(l));
-		const enriched = await this.blockchainReader.enrichEvents<MailPushEvent>(mailPushEvents);
+		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
@@ -364,7 +358,7 @@ export class EthereumMailerV7Wrapper {
 		const mailPushEvents = logs
 			.filter(l => l.logDescription.name === 'MailPush')
 			.map(l => this.mailPushLogToEvent(l));
-		const enriched = await this.blockchainReader.enrichEvents<MailPushEvent>(mailPushEvents);
+		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
@@ -400,7 +394,7 @@ export class EthereumMailerV7Wrapper {
 		const mailPushEvents = logs
 			.filter(l => l.logDescription.name === 'MailPush')
 			.map(l => this.mailPushLogToEvent(l));
-		const enriched = await this.blockchainReader.enrichEvents<MailPushEvent>(mailPushEvents);
+		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
@@ -428,7 +422,7 @@ export class EthereumMailerV7Wrapper {
 		const broadcastPushEvents = logs
 			.filter(l => l.logDescription.name === 'MailBroadcast')
 			.map(l => this.broadcastPushLogToEvent(l));
-		const enriched = await this.blockchainReader.enrichEvents<MailBroadcastEvent>(broadcastPushEvents);
+		const enriched = await this.blockchainReader.enrichEvents<MailBroadcastEventObject>(broadcastPushEvents);
 		const messages = enriched.map(e => this.processMailBroadcastEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
 	}
@@ -456,7 +450,7 @@ export class EthereumMailerV7Wrapper {
 		const broadcastPushEvents = logs
 			.filter(l => l.logDescription.name === 'MailBroadcast')
 			.map(l => this.broadcastPushLogToEvent(l));
-		const enriched = await this.blockchainReader.enrichEvents<MailBroadcastEvent>(broadcastPushEvents);
+		const enriched = await this.blockchainReader.enrichEvents<MailBroadcastEventObject>(broadcastPushEvents);
 		const messages = enriched.map(e => this.processMailBroadcastEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
 	}
@@ -496,7 +490,7 @@ export class EthereumMailerV7Wrapper {
 			if (!event) {
 				return null;
 			}
-			const [enriched] = await this.blockchainReader.enrichEvents<MailPushEvent>([
+			const [enriched] = await this.blockchainReader.enrichEvents<MailPushEventObject>([
 				ethersEventToInternalEvent(event),
 			]);
 			return this.processMailPushEvent(mailer, enriched);
@@ -517,7 +511,7 @@ export class EthereumMailerV7Wrapper {
 			if (!event) {
 				return null;
 			}
-			const [enriched] = await this.blockchainReader.enrichEvents<MailBroadcastEvent>([
+			const [enriched] = await this.blockchainReader.enrichEvents<MailBroadcastEventObject>([
 				ethersEventToInternalEvent(event),
 			]);
 			return this.processMailBroadcastEvent(mailer, enriched);
@@ -576,6 +570,16 @@ export class EthereumMailerV7Wrapper {
 		);
 	}
 
+	processMessageContentEvent(args: MailContentEventObject): GenericMessageContentEventObject {
+		return {
+			contentId: args.msgId.toHexString().replace('0x', '').padStart(64, '0'),
+			sender: args.sender,
+			parts: args.parts,
+			partIdx: args.partIdx,
+			content: args.content,
+		};
+	}
+
 	async retrieveMessageContent(
 		mailer: IEVMMailerContractLink,
 		message: IEVMMessage,
@@ -595,8 +599,8 @@ export class EthereumMailerV7Wrapper {
 				}
 			}
 			events.sort((a, b) => a.args.partIdx - b.args.partIdx);
-			const enrichedEvents = await this.blockchainReader.enrichEvents<MailContentEvent>(
-				events.map(e => ethersEventToInternalEvent(e)),
+			const enrichedEvents = await this.blockchainReader.enrichEvents(
+				events.map(e => ethersEventToInternalEvent(e, this.processMessageContentEvent.bind(this))),
 			);
 			const content = EthereumContentReader.processMessageContent(message.msgId, enrichedEvents);
 			return EthereumContentReader.verifyMessageContent(message, content);

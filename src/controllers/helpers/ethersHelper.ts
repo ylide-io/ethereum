@@ -28,7 +28,14 @@ export const ethersTxToInternalTx = (tx: Transaction): IEVMTransaction => {
 	};
 };
 
-export const ethersEventToInternalEvent = <T extends Event>(event: T): IEVMEvent<EventParsed<T>> => {
+// (args: EventParsed<T>) => D = args => args as unknown as D
+
+function ethersEventToInternalEvent<T extends Event>(event: T): IEVMEvent<EventParsed<T>>;
+function ethersEventToInternalEvent<T extends Event, D>(
+	event: T,
+	argsTransform: (args: EventParsed<T>) => D,
+): IEVMEvent<D>;
+function ethersEventToInternalEvent(event: Event, argsTransform?: (args: any) => any): IEVMEvent<any> {
 	return {
 		blockNumber: event.blockNumber,
 		blockHash: event.blockHash,
@@ -38,6 +45,8 @@ export const ethersEventToInternalEvent = <T extends Event>(event: T): IEVMEvent
 		eventName: event.event || '',
 		topics: event.topics,
 		data: event.data,
-		parsed: (event.args || {}) as EventParsed<T>,
+		parsed: argsTransform ? argsTransform(event.args || {}) : event.args || {},
 	};
-};
+}
+
+export { ethersEventToInternalEvent };

@@ -53,6 +53,14 @@ export class EthereumBlockchainReader {
 		//
 	}
 
+	async init() {
+		for (const rpc of this.rpcs) {
+			if (rpc.rpcUrl === 'http://localhost:8545/') {
+				await (rpc.provider as ethers.providers.JsonRpcProvider).send('hardhat_mine', ['0x81']);
+			}
+		}
+	}
+
 	async retryableOperation<T>(
 		callback: (
 			provider: ethers.providers.Provider,
@@ -109,9 +117,7 @@ export class EthereumBlockchainReader {
 		});
 	}
 
-	async enrichEvents<T extends Event>(
-		msgs: IEVMEvent<EventParsed<T>>[],
-	): Promise<IEVMEnrichedEvent<EventParsed<T>>[]> {
+	async enrichEvents<T>(msgs: IEVMEvent<T>[]): Promise<IEVMEnrichedEvent<T>[]> {
 		if (!msgs.length) {
 			return [];
 		}

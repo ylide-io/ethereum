@@ -152,7 +152,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	async init(): Promise<void> {
-		// no-op
+		await this.blockchainReader.init();
 	}
 
 	// private tryGetNameService(): EthereumNameService | null {

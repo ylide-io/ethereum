@@ -6,7 +6,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		registryContracts: [
 			{
 				id: 1,
-				type: EVMRegistryContractType.EVMRegistryV5,
+				type: EVMRegistryContractType.EVMRegistryV6,
 				address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
 				creationBlock: 1,
 				verified: true,
@@ -16,7 +16,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 			{
 				id: 2,
 				type: EVMMailerContractType.EVMMailerV8,
-				address: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+				address: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0',
 				creationBlock: 1,
 				verified: true,
 			},
@@ -39,7 +39,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				id: 4,
 				type: EVMMailerContractType.EVMMailerV6,
 				address: '0x003c0ac0e7fff5452fb7de73925ce18f91660532',
-				creationBlock: 15841992,
+				creationBlock: 15883991,
 				verified: false,
 			},
 		],
@@ -467,7 +467,7 @@ export const EVM_RPCS: Record<
 	[EVMNetwork.LOCAL_HARDHAT]: [{ rpc: 'http://localhost:8545/' }],
 
 	[EVMNetwork.ETHEREUM]: [
-		{ rpc: 'wss://eth-mainnet.g.alchemy.com/v2/MbanB2kJ4QyiFjOlUTSmkUj8lfbU6T6K' },
+		{ rpc: 'wss://eth-mainnet.g.alchemy.com/v2/MbanB2kJ4QyiFjOlUTSmkUj8lfbU6T6K', blockLimit: 20000 },
 		{ rpc: 'wss://mainnet.infura.io/ws/v3/3bcb970aa2dd447cbad6ac4301ed63bf' },
 		{ rpc: 'https://mainnet.infura.io/v3/3bcb970aa2dd447cbad6ac4301ed63bf' },
 		{ rpc: 'https://eth-mainnet.public.blastapi.io' },
@@ -476,11 +476,11 @@ export const EVM_RPCS: Record<
 	[EVMNetwork.BNBCHAIN]: [
 		{
 			rpc: 'wss://bsc-mainnet.nodereal.io/ws/v1/03e041fbd4e74ce489f9be55da8e895a',
-			blockLimit: 50000,
+			blockLimit: 49999,
 		},
 		{
 			rpc: 'https://still-tiniest-surf.bsc.discover.quiknode.pro/390c72acf357bb7fc5f2b9175a08d48b774c69db/',
-			blockLimit: 3500,
+			blockLimit: 3499,
 			lastestNotSupported: true,
 		},
 		{ rpc: 'https://bsc-dataseed.binance.org/' },
@@ -488,18 +488,18 @@ export const EVM_RPCS: Record<
 		{ rpc: 'https://bsc-dataseed3.binance.org' },
 	],
 	[EVMNetwork.POLYGON]: [
-		{ rpc: 'wss://polygon-mainnet.g.alchemy.com/v2/QsyQEuK4OgNSuo086MfKTXhO4DQCfYFu' },
-		{ rpc: 'https://polygon-mainnet.g.alchemy.com/v2/QsyQEuK4OgNSuo086MfKTXhO4DQCfYFu' },
+		{ rpc: 'wss://polygon-mainnet.g.alchemy.com/v2/QsyQEuK4OgNSuo086MfKTXhO4DQCfYFu', blockLimit: 20000 },
+		{ rpc: 'https://polygon-mainnet.g.alchemy.com/v2/QsyQEuK4OgNSuo086MfKTXhO4DQCfYFu', blockLimit: 20000 },
 	],
 	[EVMNetwork.ARBITRUM]: [
-		{ rpc: 'wss://arb-mainnet.g.alchemy.com/v2/KY0LKW4PMTxWlVz8DkyBZ_IODtnn5_7r' },
-		{ rpc: 'https://arb-mainnet.g.alchemy.com/v2/KY0LKW4PMTxWlVz8DkyBZ_IODtnn5_7r' },
+		{ rpc: 'wss://arb-mainnet.g.alchemy.com/v2/KY0LKW4PMTxWlVz8DkyBZ_IODtnn5_7r', blockLimit: 20000 },
+		{ rpc: 'https://arb-mainnet.g.alchemy.com/v2/KY0LKW4PMTxWlVz8DkyBZ_IODtnn5_7r', blockLimit: 20000 },
 		{ rpc: 'https://arb1.arbitrum.io/rpc' },
 		{ rpc: 'https://rpc.ankr.com/arbitrum' },
 	],
 	[EVMNetwork.OPTIMISM]: [
-		{ rpc: 'wss://opt-mainnet.g.alchemy.com/v2/G8JwqBBJNnRouFnVbsmGA0E4WZtJNqPO' },
-		{ rpc: 'https://opt-mainnet.g.alchemy.com/v2/G8JwqBBJNnRouFnVbsmGA0E4WZtJNqPO' },
+		{ rpc: 'wss://opt-mainnet.g.alchemy.com/v2/G8JwqBBJNnRouFnVbsmGA0E4WZtJNqPO', blockLimit: 20000 },
+		{ rpc: 'https://opt-mainnet.g.alchemy.com/v2/G8JwqBBJNnRouFnVbsmGA0E4WZtJNqPO', blockLimit: 20000 },
 		{ rpc: 'https://mainnet.optimism.io' },
 		{ rpc: 'https://optimism-mainnet.public.blastapi.io' },
 		{ rpc: 'https://rpc.ankr.com/optimism' },
@@ -550,8 +550,8 @@ export const EVM_RPCS: Record<
 	],
 	[EVMNetwork.MOONRIVER]: [{ rpc: 'https://rpc.api.moonriver.moonbeam.network' }],
 	[EVMNetwork.ASTAR]: [
-		{ rpc: 'https://astar-mainnet.g.alchemy.com/v2/Ib5I59bSB2Vv41PJlF2TWWqjND4ppGdi', blockLimit: 30000 },
 		{ rpc: 'wss://astar-mainnet.g.alchemy.com/v2/Ib5I59bSB2Vv41PJlF2TWWqjND4ppGdi', blockLimit: 30000 },
+		{ rpc: 'https://astar-mainnet.g.alchemy.com/v2/Ib5I59bSB2Vv41PJlF2TWWqjND4ppGdi', blockLimit: 30000 },
 		{
 			rpc: 'https://astar.blastapi.io/cc59bb68-a7ff-4278-9f16-278ba49d7635',
 			blockLimit: 500,
