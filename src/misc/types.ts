@@ -85,6 +85,7 @@ export interface IEVMBaseContractLink {
 	verified: boolean;
 	address: string;
 	creationBlock: number;
+	terminationBlock?: number;
 }
 
 export interface IEVMMailerContractLink extends IEVMBaseContractLink {

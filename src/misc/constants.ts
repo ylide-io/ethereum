@@ -516,7 +516,8 @@ export const EVM_RPCS: Record<
 	[EVMNetwork.LOCAL_HARDHAT]: [{ rpc: 'http://localhost:8545/' }],
 
 	[EVMNetwork.ETHEREUM]: [
-		{ rpc: 'wss://eth-mainnet.g.alchemy.com/v2/MbanB2kJ4QyiFjOlUTSmkUj8lfbU6T6K', blockLimit: 20000 },
+		{ rpc: 'wss://eth-mainnet.g.alchemy.com/v2/MbanB2kJ4QyiFjOlUTSmkUj8lfbU6T6K', blockLimit: 30000 },
+		{ rpc: 'https://eth-mainnet.g.alchemy.com/v2/MbanB2kJ4QyiFjOlUTSmkUj8lfbU6T6K', blockLimit: 30000 },
 		{ rpc: 'wss://mainnet.infura.io/ws/v3/3bcb970aa2dd447cbad6ac4301ed63bf' },
 		{ rpc: 'https://mainnet.infura.io/v3/3bcb970aa2dd447cbad6ac4301ed63bf' },
 		{ rpc: 'https://eth-mainnet.public.blastapi.io' },
@@ -537,18 +538,18 @@ export const EVM_RPCS: Record<
 		{ rpc: 'https://bsc-dataseed3.binance.org' },
 	],
 	[EVMNetwork.POLYGON]: [
-		{ rpc: 'wss://polygon-mainnet.g.alchemy.com/v2/QsyQEuK4OgNSuo086MfKTXhO4DQCfYFu', blockLimit: 20000 },
-		{ rpc: 'https://polygon-mainnet.g.alchemy.com/v2/QsyQEuK4OgNSuo086MfKTXhO4DQCfYFu', blockLimit: 20000 },
+		{ rpc: 'wss://polygon-mainnet.g.alchemy.com/v2/QsyQEuK4OgNSuo086MfKTXhO4DQCfYFu', blockLimit: 30000 },
+		{ rpc: 'https://polygon-mainnet.g.alchemy.com/v2/QsyQEuK4OgNSuo086MfKTXhO4DQCfYFu', blockLimit: 30000 },
 	],
 	[EVMNetwork.ARBITRUM]: [
-		{ rpc: 'wss://arb-mainnet.g.alchemy.com/v2/KY0LKW4PMTxWlVz8DkyBZ_IODtnn5_7r', blockLimit: 20000 },
-		{ rpc: 'https://arb-mainnet.g.alchemy.com/v2/KY0LKW4PMTxWlVz8DkyBZ_IODtnn5_7r', blockLimit: 20000 },
+		{ rpc: 'wss://arb-mainnet.g.alchemy.com/v2/KY0LKW4PMTxWlVz8DkyBZ_IODtnn5_7r', blockLimit: 30000 },
+		{ rpc: 'https://arb-mainnet.g.alchemy.com/v2/KY0LKW4PMTxWlVz8DkyBZ_IODtnn5_7r', blockLimit: 30000 },
 		{ rpc: 'https://arb1.arbitrum.io/rpc' },
 		{ rpc: 'https://rpc.ankr.com/arbitrum' },
 	],
 	[EVMNetwork.OPTIMISM]: [
-		{ rpc: 'wss://opt-mainnet.g.alchemy.com/v2/G8JwqBBJNnRouFnVbsmGA0E4WZtJNqPO', blockLimit: 20000 },
-		{ rpc: 'https://opt-mainnet.g.alchemy.com/v2/G8JwqBBJNnRouFnVbsmGA0E4WZtJNqPO', blockLimit: 20000 },
+		{ rpc: 'wss://opt-mainnet.g.alchemy.com/v2/G8JwqBBJNnRouFnVbsmGA0E4WZtJNqPO', blockLimit: 30000 },
+		{ rpc: 'https://opt-mainnet.g.alchemy.com/v2/G8JwqBBJNnRouFnVbsmGA0E4WZtJNqPO', blockLimit: 30000 },
 		{ rpc: 'https://mainnet.optimism.io' },
 		{ rpc: 'https://optimism-mainnet.public.blastapi.io' },
 		{ rpc: 'https://rpc.ankr.com/optimism' },
