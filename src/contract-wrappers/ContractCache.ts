@@ -25,7 +25,11 @@ export class ContractCache<Contract = any> {
 
 			return contract;
 		} else {
-			return this.contractCache[address].get(provider)!;
+			const result = this.contractCache[address].get(provider);
+			if (!result) {
+				throw new Error('This should never happen: contract not found');
+			}
+			return result;
 		}
 	}
 
@@ -43,8 +47,6 @@ export class ContractCache<Contract = any> {
 		return await this.blockchainReader.retryableOperation(
 			async (provider, blockLimit, latestNotSupported, batchNotSupported, stopTrying) => {
 				if (provider instanceof WebSocketProvider) {
-					if (provider.websocket.readyState !== WebSocket.OPEN) {
-					}
 					await provider.ready;
 				}
 				const contract = this.getContract(contractLink.address, provider);

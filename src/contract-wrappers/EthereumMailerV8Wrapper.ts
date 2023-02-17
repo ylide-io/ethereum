@@ -91,7 +91,9 @@ export class EthereumMailerV8Wrapper {
 			if (decodedId.contractId === mailer.id) {
 				return;
 			}
-		} catch (e) {}
+		} catch (e) {
+			// ignore
+		}
 		throw new Error('Invalid message: not from this contract');
 	}
 
@@ -608,7 +610,7 @@ export class EthereumMailerV8Wrapper {
 				i <= decodedContentId.blockNumber + decodedContentId.blockCountLock;
 				i += blockLimit
 			) {
-				const newEvents = await await contract.queryFilter(
+				const newEvents = await contract.queryFilter(
 					contract.filters.MessageContent('0x' + message.$$meta.contentId),
 					i,
 					Math.min(i + blockLimit, decodedContentId.blockNumber + decodedContentId.blockCountLock),

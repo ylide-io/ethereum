@@ -102,7 +102,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 
 		this.providerObject = options.providerObject || (window as any).ethereum;
-		this.signer = options.signer!;
+		this.signer = options.signer;
 
 		this._wallet = options.wallet;
 
@@ -118,7 +118,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 		this.blockchainReader = EthereumBlockchainReader.createEthereumBlockchainReader([
 			{
-				rpcUrlOrProvider: this.signer.provider!,
+				rpcUrlOrProvider: this.signer.provider,
 				blockLimit: 500,
 				latestNotSupported: true,
 				batchNotSupported: true,
@@ -189,7 +189,10 @@ export class EthereumWalletController extends AbstractWalletController {
 		if (existing) {
 			return existing;
 		} else {
-			const link = EVM_CONTRACTS[network].registryContracts.find(r => r.id === id)!;
+			const link = EVM_CONTRACTS[network].registryContracts.find(r => r.id === id);
+			if (!link) {
+				throw new Error(`Network ${network} has no current registry`);
+			}
 			const wrapper = new EthereumBlockchainController.registryWrappers[link.type](this.blockchainReader);
 			this.registries.push({
 				link,
@@ -208,13 +211,16 @@ export class EthereumWalletController extends AbstractWalletController {
 		if (existing) {
 			return existing;
 		} else {
-			const link = EVM_CONTRACTS[network].mailerContracts.find(r => r.id === id)!;
+			const link = EVM_CONTRACTS[network].mailerContracts.find(r => r.id === id);
+			if (!link) {
+				throw new Error(`Network ${network} has no current mailer`);
+			}
 			const wrapper = new EthereumBlockchainController.mailerWrappers[link.type](this.blockchainReader);
 			this.mailers.push({
 				link,
-				wrapper: wrapper,
+				wrapper,
 			});
-			return { link, wrapper: wrapper };
+			return { link, wrapper };
 		}
 	}
 
@@ -230,14 +236,17 @@ export class EthereumWalletController extends AbstractWalletController {
 			}
 			return existing as any;
 		} else {
-			const link = EVM_CONTRACTS[network].mailerContracts.find(r => r.id === id)!;
+			const link = EVM_CONTRACTS[network].mailerContracts.find(r => r.id === id);
+			if (!link) {
+				throw new Error(`Network ${network} has no current mailer`);
+			}
 			if (link.type !== EVMMailerContractType.EVMMailerV8) {
 				throw new Error(`Network ${network} has no modern mailer`);
 			}
 			const wrapper = new EthereumBlockchainController.mailerWrappers[link.type](this.blockchainReader);
 			this.mailers.push({
 				link,
-				wrapper: wrapper,
+				wrapper,
 			});
 			return { link, wrapper: wrapper as any };
 		}
@@ -337,7 +346,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	// account block
 	async getAuthenticatedAccount(): Promise<IGenericAccount | null> {
-		const accounts: string[] = await this.signer.provider!.listAccounts();
+		const accounts: string[] = await this.signer.provider.listAccounts();
 		if (accounts.length) {
 			this.lastCurrentAccount = {
 				blockchain: 'evm',
@@ -530,7 +539,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	async deployRegistryV3(
 		me: IGenericAccount,
-		previousContractAddress: string = '0x0000000000000000000000000000000000000000',
+		previousContractAddress = '0x0000000000000000000000000000000000000000',
 		options?: any,
 	): Promise<string> {
 		await this.ensureAccount(me);
@@ -540,7 +549,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	async deployRegistryV4(
 		me: IGenericAccount,
-		previousContractAddress: string = '0x0000000000000000000000000000000000000000',
+		previousContractAddress = '0x0000000000000000000000000000000000000000',
 		options?: any,
 	): Promise<string> {
 		await this.ensureAccount(me);
@@ -550,7 +559,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	async deployRegistryV5(
 		me: IGenericAccount,
-		previousContractAddress: string = '0x0000000000000000000000000000000000000000',
+		previousContractAddress = '0x0000000000000000000000000000000000000000',
 		options?: any,
 	): Promise<string> {
 		await this.ensureAccount(me);
@@ -591,12 +600,12 @@ export class EthereumWalletController extends AbstractWalletController {
 // 	wallet: 'web3',
 // };
 
-function getWalletFactory(
+const getWalletFactory = (
 	wallet: string,
 	isWalletAvailable: () => Promise<boolean>,
 	provider: (options?: any) => Promise<ethers.Signer>,
 	providerObject: () => Promise<any>,
-): WalletControllerFactory {
+): WalletControllerFactory => {
 	return {
 		create: async (options?: any) =>
 			new EthereumWalletController(
@@ -614,7 +623,7 @@ function getWalletFactory(
 		wallet,
 		isWalletAvailable,
 	};
-}
+};
 
 export const evmWalletFactories: Record<string, WalletControllerFactory> = {
 	binance: getWalletFactory(

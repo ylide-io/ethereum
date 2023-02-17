@@ -1,14 +1,14 @@
 import { BitPackReader, BitPackWriter } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 
-export function encodeEvmMsgId(
+export const encodeEvmMsgId = (
 	isBroacast: boolean,
 	contractId2bytes: number,
 	blockNumber4bytes: number,
 	txIndex2bytes: number,
 	logIndex2bytes: number,
 	// contentIdUint256Hex: Uint256,
-) {
+) => {
 	const writer = new BitPackWriter();
 	writer.writeBit(1);
 	writer.writeBit(isBroacast ? 1 : 0);
@@ -20,9 +20,9 @@ export function encodeEvmMsgId(
 	// const bytes = SmartBuffer.ofHexString(contentIdUint256Hex).bytes;
 	// writer.writeBytes(bytes);
 	return new SmartBuffer(writer.toBuffer()).toBase64String();
-}
+};
 
-export function decodeEvmMsgId(msgId: string) {
+export const decodeEvmMsgId = (msgId: string) => {
 	const buffer = SmartBuffer.ofBase64String(msgId);
 	const reader = BitPackReader.fromBuffer(buffer.bytes, true);
 	if (reader.readBit() !== 1) {
@@ -47,4 +47,4 @@ export function decodeEvmMsgId(msgId: string) {
 		logIndex: logIndex2bytes,
 		// contentId: contentIdUint256Hex as Uint256,
 	};
-}
+};

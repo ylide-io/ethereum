@@ -17,7 +17,7 @@ export class EthereumRegistryV4Wrapper {
 	static async deploy(
 		signer: ethers.Signer,
 		from: string,
-		previousContractAddress: string = '0x0000000000000000000000000000000000000000',
+		previousContractAddress = '0x0000000000000000000000000000000000000000',
 	) {
 		const factory = new YlideRegistryV4__factory(signer);
 		return (await factory.deploy(previousContractAddress)).address;

@@ -10,7 +10,7 @@ export class BetterWebSocketProvider extends WebSocketProviderClass() {
 	private requests: ethers.providers.WebSocketProvider['_requests'] = {};
 
 	private handler = {
-		get(target: BetterWebSocketProvider, prop: string, receiver: unknown) {
+		get: (target: BetterWebSocketProvider, prop: string, receiver: unknown) => {
 			const value = target.provider && Reflect.get(target.provider, prop, receiver);
 
 			return value instanceof Function ? value.bind(target.provider) : value;
@@ -39,12 +39,11 @@ export class BetterWebSocketProvider extends WebSocketProviderClass() {
 		on('open', () => {
 			let event;
 			while ((event = this.events.pop())) {
-				console.log('bb');
 				provider._events.push(event);
 				provider._startEvent(event);
 			}
 
-			for (const key in this.requests) {
+			for (const key of Object.keys(this.requests)) {
 				provider._requests[key] = this.requests[key];
 				provider._websocket.send(this.requests[key].payload);
 				delete this.requests[key];

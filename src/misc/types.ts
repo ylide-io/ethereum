@@ -24,6 +24,7 @@ export enum EVMNetwork {
 export interface IEVMBlock {
 	hash: string;
 	parentHash: string;
+	// eslint-disable-next-line id-denylist
 	number: number;
 	timestamp: number;
 }
@@ -40,7 +41,7 @@ export interface IEVMTransaction {
 	chainId: number;
 }
 
-export interface IEVMEvent<Parsed = {}> {
+export interface IEVMEvent<Parsed = object> {
 	blockNumber: number;
 	blockHash: string;
 
@@ -50,13 +51,13 @@ export interface IEVMEvent<Parsed = {}> {
 	logIndex: number;
 
 	eventName: string;
-	topics: Array<string>;
+	topics: string[];
 	data: string;
 
 	parsed: Parsed;
 }
 
-export interface IEVMEnrichedEvent<ParsedEvent = {}> {
+export interface IEVMEnrichedEvent<ParsedEvent = object> {
 	event: IEVMEvent<ParsedEvent>;
 	tx: IEVMTransaction;
 	block: IEVMBlock;

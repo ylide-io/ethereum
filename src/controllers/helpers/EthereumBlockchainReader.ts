@@ -105,13 +105,13 @@ export class EthereumBlockchainReader {
 		return block;
 	}
 
-	async getBalance(address: string): Promise<{ original: string; numeric: number; string: string; e18: string }> {
+	async getBalance(address: string): Promise<{ original: string; numeric: number; textual: string; e18: string }> {
 		return await this.retryableOperation(async rpc => {
 			const bn = await rpc.getBalance(address);
 			return {
 				original: bn.toString(),
 				numeric: Number(ethers.utils.formatUnits(bn, 'ether')),
-				string: ethers.utils.formatUnits(bn, 'ether'),
+				textual: ethers.utils.formatUnits(bn, 'ether'),
 				e18: bn.toString(),
 			};
 		});

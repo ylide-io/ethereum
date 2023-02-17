@@ -132,8 +132,14 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			wrapper: new EthereumBlockchainController.registryWrappers[link.type](this.blockchainReader),
 		}));
 
-		const currentMailerLink = contracts.mailerContracts.find(c => c.id === contracts.currentMailerId)!;
-		const currentRegistryLink = contracts.registryContracts.find(c => c.id === contracts.currentRegistryId)!;
+		const currentMailerLink = contracts.mailerContracts.find(c => c.id === contracts.currentMailerId);
+		if (!currentMailerLink) {
+			throw new Error('Current mailer not found');
+		}
+		const currentRegistryLink = contracts.registryContracts.find(c => c.id === contracts.currentRegistryId);
+		if (!currentRegistryLink) {
+			throw new Error('Current registry not found');
+		}
 
 		this.currentMailer = {
 			link: currentMailerLink,
@@ -359,13 +365,13 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	};
 }
 
-function getBlockchainFactory(network: EVMNetwork): BlockchainControllerFactory {
+const getBlockchainFactory = (network: EVMNetwork): BlockchainControllerFactory => {
 	return {
 		create: async (options?: any) => new EthereumBlockchainController(Object.assign({ network }, options || {})),
 		blockchain: EVM_NAMES[network],
 		blockchainGroup: 'evm',
 	};
-}
+};
 
 export const evmBlockchainFactories: Record<EVMNetwork, BlockchainControllerFactory> = {
 	[EVMNetwork.LOCAL_HARDHAT]: getBlockchainFactory(EVMNetwork.LOCAL_HARDHAT),

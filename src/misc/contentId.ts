@@ -11,7 +11,7 @@
 
 import { BitPackReader, Uint256 } from '@ylide/sdk';
 
-export function decodeContentId(contentIdHex: Uint256) {
+export const decodeContentId = (contentIdHex: Uint256) => {
 	const bitsReader = BitPackReader.fromHex(contentIdHex, false);
 	const version = bitsReader.readUint8();
 	const blockNumber = bitsReader.readBits(32);
@@ -26,4 +26,4 @@ export function decodeContentId(contentIdHex: Uint256) {
 		hash,
 		contentId: contentIdHex,
 	};
-}
+};

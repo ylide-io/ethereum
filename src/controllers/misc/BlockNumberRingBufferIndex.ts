@@ -1,3 +1,4 @@
+/* eslint-disable no-bitwise */
 import { Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { eventANewerThanB, eventAOlderThanB, eventCmprDesc } from '../../misc';
@@ -7,7 +8,6 @@ export class BlockNumberRingBufferIndex {
 		const uint8 = SmartBuffer.ofHexString(hex).bytes;
 		const idx = uint8[0];
 		const sp = uint8[1];
-		/* tslint:disable:no-bitwise */
 		const vals = [
 			(uint8[2] << 16) + (uint8[3] << 8) + uint8[4],
 			(uint8[5] << 16) + (uint8[6] << 8) + uint8[7],
@@ -77,7 +77,7 @@ export class BlockNumberRingBufferIndex {
 			index = await getBaseIndex();
 		}
 		let events: Full[] = [];
-		let nextPeriodEnd: number = 0;
+		let nextPeriodEnd = 0;
 		while (true) {
 			if (index.length === 0) {
 				break;
@@ -90,7 +90,7 @@ export class BlockNumberRingBufferIndex {
 			}
 			index.sort((a, b) => b - a);
 			index = index.filter((e, i, a) => a.indexOf(e) === i);
-			let currentPeriod = {
+			const currentPeriod = {
 				start: index[0] * 128,
 				end: nextPeriodEnd ? nextPeriodEnd : index[0] * 128 + 127,
 			};

@@ -11,6 +11,7 @@ export const ethersBlockToInternalBlock = (block: Block | BlockWithTransactions)
 	return {
 		hash: block.hash,
 		parentHash: block.parentHash,
+		// eslint-disable-next-line id-denylist
 		number: block.number,
 		timestamp: block.timestamp,
 	};
@@ -18,7 +19,9 @@ export const ethersBlockToInternalBlock = (block: Block | BlockWithTransactions)
 
 export const ethersTxToInternalTx = (tx: Transaction): IEVMTransaction => {
 	return {
+		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 		hash: tx.hash!,
+		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 		from: tx.from!,
 		to: tx.to || null,
 		nonce: tx.nonce,
@@ -35,6 +38,7 @@ function ethersEventToInternalEvent<T extends Event, D>(
 	event: T,
 	argsTransform: (args: EventParsed<T>) => D,
 ): IEVMEvent<D>;
+// eslint-disable-next-line prefer-arrow/prefer-arrow-functions
 function ethersEventToInternalEvent(event: Event, argsTransform?: (args: any) => any): IEVMEvent<any> {
 	return {
 		blockNumber: event.blockNumber,

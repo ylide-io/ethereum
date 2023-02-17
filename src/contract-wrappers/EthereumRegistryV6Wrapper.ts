@@ -29,7 +29,7 @@ export class EthereumRegistryV6Wrapper {
 		return {
 			address: addr,
 			key: {
-				keyVersion: keyVersion,
+				keyVersion,
 				publicKey: PublicKey.fromBytes(
 					PublicKeyType.YLIDE,
 					SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '')).bytes,
