@@ -222,6 +222,9 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 
 		if (parsed.isBroadcast) {
+			if (!(mailer.wrapper instanceof EthereumMailerV8Wrapper)) {
+				throw new Error('Broadcasts are only supported by mailer V8 and higher');
+			}
 			return await mailer.wrapper.getBroadcastPushEvent(
 				mailer.link,
 				parsed.blockNumber,
@@ -243,11 +246,18 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	getBlockchainSourceSubjects(subject: ISourceSubject): IBlockchainSourceSubject[] {
-		return this.mailers.map(m => ({
-			...subject,
-			blockchain: this.blockchain(),
-			id: `evm-${this.blockchain()}-mailer-${String(m.link.id)}`,
-		}));
+		return this.mailers
+			.filter(m => {
+				// only V8+ mailers support broadcasts
+				return (
+					subject.type === BlockchainSourceType.DIRECT || m.link.type === EVMMailerContractType.EVMMailerV8
+				);
+			})
+			.map(m => ({
+				...subject,
+				blockchain: this.blockchain(),
+				id: `evm-${this.blockchain()}-mailer-${String(m.link.id)}`,
+			}));
 	}
 
 	ininiateMessagesSource(subject: IBlockchainSourceSubject): LowLevelMessagesSource {
@@ -268,7 +278,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				subject.type === BlockchainSourceType.BROADCAST
 					? {
 							type: 'broadcast',
-							sender: subject.sender,
+							feedId: subject.feedId,
 					  }
 					: {
 							type: 'recipient',
@@ -283,7 +293,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				subject.type === BlockchainSourceType.BROADCAST
 					? {
 							type: 'broadcast',
-							sender: subject.sender,
+							feedId: subject.feedId,
 					  }
 					: {
 							type: 'recipient',
@@ -298,7 +308,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				subject.type === BlockchainSourceType.BROADCAST
 					? {
 							type: 'broadcast',
-							sender: subject.sender,
+							feedId: subject.feedId,
 					  }
 					: {
 							type: 'recipient',

@@ -27,7 +27,7 @@ export class EVMMailerV8Source extends GenericMessagesSource {
 				: (fromMessage, toMessage, limit) =>
 						wrapper.retrieveBroadcastHistoryDesc(
 							mailer,
-							source.sender,
+							source.feedId,
 							fromMessage,
 							false,
 							toMessage,

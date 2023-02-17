@@ -573,7 +573,7 @@ export const EVM_RPCS: Record<
 		{ rpc: 'https://evm.cronos.org', blockLimit: 2000 },
 		{ rpc: 'https://cronosrpc-1.xstaking.sg', blockLimit: 2000 },
 	],
-	[EVMNetwork.FANTOM]: [{ rpc: 'https://rpc.fantom.network' }],
+	[EVMNetwork.FANTOM]: [{ rpc: 'https://rpc.fantom.network', blockLimit: 10000 }],
 	[EVMNetwork.KLAYTN]: [
 		{ rpc: 'https://public-node-api.klaytnapi.com/v1/cypress', batchNotSupported: true },
 		{ rpc: 'https://klaytn01.fandom.finance' },

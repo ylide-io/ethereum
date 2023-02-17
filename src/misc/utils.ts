@@ -1,4 +1,6 @@
+import { Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
+import { BigNumber } from 'ethers';
 
 export interface IEventPosition {
 	blockNumber: number;
@@ -24,4 +26,8 @@ export const eventAOlderThanB = (a: IEventPosition, b: IEventPosition, orEqual =
 
 export const eventANewerThanB = (a: IEventPosition, b: IEventPosition, orEqual = false) => {
 	return orEqual ? eventCmprDesc(a, b) <= 0 : eventCmprDesc(a, b) < 0;
+};
+
+export const bnToUint256 = (bn: BigNumber) => {
+	return bn.toHexString().replace('0x', '').padStart(64, '0') as Uint256;
 };

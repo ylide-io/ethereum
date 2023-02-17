@@ -6,9 +6,7 @@ import { BlockNumberRingBufferIndex } from '../controllers/misc/BlockNumberRingB
 import {
 	MailContentEvent,
 	MailPushEvent,
-	MailBroadcastEvent,
 	MailPushEventObject,
-	MailBroadcastEventObject,
 	MailContentEventObject,
 } from '@ylide/ethereum-contracts/lib/YlideMailerV6';
 import {
@@ -60,27 +58,6 @@ export class EthereumMailerV6Wrapper {
 		};
 	}
 
-	broadcastPushLogToEvent(log: {
-		log: ethers.providers.Log;
-		logDescription: ethers.utils.LogDescription;
-	}): IEVMEvent<MailBroadcastEventObject> {
-		return {
-			blockNumber: log.log.blockNumber,
-			blockHash: log.log.blockHash,
-
-			transactionHash: log.log.transactionHash,
-			transactionIndex: log.log.transactionIndex,
-
-			logIndex: log.log.logIndex,
-
-			eventName: log.logDescription.name,
-			topics: log.log.topics,
-			data: log.log.data,
-
-			parsed: log.logDescription.args as unknown as MailBroadcastEventObject,
-		};
-	}
-
 	validateMessage(mailer: IEVMMailerContractLink, message: IEVMMessage | null) {
 		if (!message) {
 			return;
@@ -99,6 +76,7 @@ export class EthereumMailerV6Wrapper {
 	processMailPushEvent(mailer: IEVMMailerContractLink, event: IEVMEnrichedEvent<MailPushEventObject>): IEVMMessage {
 		return {
 			isBroadcast: false,
+			feedId: '0000000000000000000000000000000000000000000000000000000000000000' as Uint256,
 			msgId: encodeEvmMsgId(
 				false,
 				mailer.id,
@@ -111,34 +89,6 @@ export class EthereumMailerV6Wrapper {
 			recipientAddress: event.event.parsed.recipient.toHexString().replace('0x', '').padStart(64, '0') as Uint256,
 			blockchain: EVM_NAMES[EVM_CONTRACT_TO_NETWORK[mailer.id]],
 			key: SmartBuffer.ofHexString(event.event.parsed.key.replace('0x', '')).bytes,
-			$$meta: {
-				contentId: event.event.parsed.msgId.toHexString().replace('0x', '').padStart(64, '0') as Uint256,
-				index: BlockNumberRingBufferIndex.decodeIndexValue(
-					event.event.parsed.mailList.toHexString().replace('0x', '').padStart(64, '0') as Uint256,
-				),
-				...event,
-			},
-		};
-	}
-
-	processMailBroadcastEvent(
-		mailer: IEVMMailerContractLink,
-		event: IEVMEnrichedEvent<MailBroadcastEventObject>,
-	): IEVMMessage {
-		return {
-			isBroadcast: true,
-			msgId: encodeEvmMsgId(
-				true,
-				mailer.id,
-				event.event.blockNumber,
-				event.event.transactionIndex,
-				event.event.logIndex,
-			),
-			createdAt: event.block.timestamp,
-			senderAddress: event.tx.from,
-			recipientAddress: '0'.repeat(64) as Uint256,
-			blockchain: EVM_NAMES[EVM_CONTRACT_TO_NETWORK[mailer.id]],
-			key: new Uint8Array(0),
 			$$meta: {
 				contentId: event.event.parsed.msgId.toHexString().replace('0x', '').padStart(64, '0') as Uint256,
 				index: BlockNumberRingBufferIndex.decodeIndexValue(
@@ -387,62 +337,6 @@ export class EthereumMailerV6Wrapper {
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
-	async sendBroadcast(
-		mailer: IEVMMailerContractLink,
-		signer: ethers.Signer,
-		from: string,
-		uniqueId: number,
-		content: Uint8Array,
-	): Promise<{
-		tx: ethers.ContractTransaction;
-		receipt: ethers.ContractReceipt;
-		logs: ethers.utils.LogDescription[];
-		broadcastPushEvents: IEVMEvent<MailBroadcastEventObject>[];
-		messages: IEVMMessage[];
-	}> {
-		const contract = this.cache.getContract(mailer.address, signer);
-		const tx = await contract.broadcastMail(uniqueId, content, { from });
-		const receipt = await tx.wait();
-		const logs = receipt.logs.map(l => ({
-			log: l,
-			logDescription: contract.interface.parseLog(l),
-		}));
-		const broadcastPushEvents = logs
-			.filter(l => l.logDescription.name === 'MailBroadcast')
-			.map(l => this.broadcastPushLogToEvent(l));
-		const enriched = await this.blockchainReader.enrichEvents<MailBroadcastEventObject>(broadcastPushEvents);
-		const messages = enriched.map(e => this.processMailBroadcastEvent(mailer, e));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
-	}
-
-	async sendBroadcastHeader(
-		mailer: IEVMMailerContractLink,
-		signer: ethers.Signer,
-		from: string,
-		uniqueId: number,
-		initTime: number,
-	): Promise<{
-		tx: ethers.ContractTransaction;
-		receipt: ethers.ContractReceipt;
-		logs: ethers.utils.LogDescription[];
-		broadcastPushEvents: IEVMEvent<MailBroadcastEventObject>[];
-		messages: IEVMMessage[];
-	}> {
-		const contract = this.cache.getContract(mailer.address, signer);
-		const tx = await contract.broadcastMailHeader(uniqueId, initTime, { from });
-		const receipt = await tx.wait();
-		const logs = receipt.logs.map(l => ({
-			log: l,
-			logDescription: contract.interface.parseLog(l),
-		}));
-		const broadcastPushEvents = logs
-			.filter(l => l.logDescription.name === 'MailBroadcast')
-			.map(l => this.broadcastPushLogToEvent(l));
-		const enriched = await this.blockchainReader.enrichEvents<MailBroadcastEventObject>(broadcastPushEvents);
-		const messages = enriched.map(e => this.processMailBroadcastEvent(mailer, e));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
-	}
-
 	async sendMessageContentPart(
 		mailer: IEVMMailerContractLink,
 		signer: ethers.Signer,
@@ -485,27 +379,6 @@ export class EthereumMailerV6Wrapper {
 		});
 	}
 
-	async getBroadcastPushEvent(
-		mailer: IEVMMailerContractLink,
-		blockNumber: number,
-		txIndex: number,
-		logIndex: number,
-	): Promise<IEVMMessage | null> {
-		return await this.cache.contractOperation(mailer, async (contract, provider) => {
-			const events = await contract.queryFilter(contract.filters.MailBroadcast(), blockNumber, blockNumber);
-			const event = events.find(
-				e => e.blockNumber === blockNumber && e.transactionIndex === txIndex && e.logIndex === logIndex,
-			);
-			if (!event) {
-				return null;
-			}
-			const [enriched] = await this.blockchainReader.enrichEvents<MailBroadcastEventObject>([
-				ethersEventToInternalEvent(event),
-			]);
-			return this.processMailBroadcastEvent(mailer, enriched);
-		});
-	}
-
 	async retrieveMailHistoryDesc(
 		mailer: IEVMMailerContractLink,
 		recipient: Uint256,
@@ -520,32 +393,6 @@ export class EthereumMailerV6Wrapper {
 		const processEvent = (event: IEVMEnrichedEvent<MailPushEventObject>) =>
 			this.processMailPushEvent(mailer, event);
 		return await this.retrieveHistoryDesc<MailPushEvent>(
-			mailer,
-			getBaseIndex,
-			getFilter,
-			processEvent,
-			fromMessage,
-			includeFromMessage,
-			toMessage,
-			includeToMessage,
-			limit,
-		);
-	}
-
-	async retrieveBroadcastHistoryDesc(
-		mailer: IEVMMailerContractLink,
-		sender: string,
-		fromMessage: IEVMMessage | null,
-		includeFromMessage: boolean,
-		toMessage: IEVMMessage | null,
-		includeToMessage: boolean,
-		limit: number | null,
-	): Promise<IEVMMessage[]> {
-		const getBaseIndex: () => Promise<number[]> = () => this.getSenderToBroadcastIndex(mailer, sender);
-		const getFilter = (contract: YlideMailerV6) => contract.filters.MailBroadcast(sender);
-		const processEvent = (event: IEVMEnrichedEvent<MailBroadcastEventObject>) =>
-			this.processMailBroadcastEvent(mailer, event);
-		return await this.retrieveHistoryDesc<MailBroadcastEvent>(
 			mailer,
 			getBaseIndex,
 			getFilter,

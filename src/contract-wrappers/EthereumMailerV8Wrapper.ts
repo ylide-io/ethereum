@@ -12,6 +12,7 @@ import {
 	MessageContentEventObject,
 } from '@ylide/ethereum-contracts/lib/YlideMailerV8';
 import {
+	bnToUint256,
 	EVM_CONTRACT_TO_NETWORK,
 	EVM_NAMES,
 	IEventPosition,
@@ -100,6 +101,7 @@ export class EthereumMailerV8Wrapper {
 	processMailPushEvent(mailer: IEVMMailerContractLink, event: IEVMEnrichedEvent<MailPushEventObject>): IEVMMessage {
 		return {
 			isBroadcast: false,
+			feedId: '0000000000000000000000000000000000000000000000000000000000000000' as Uint256,
 			msgId: encodeEvmMsgId(
 				false,
 				mailer.id,
@@ -128,6 +130,7 @@ export class EthereumMailerV8Wrapper {
 	): IEVMMessage {
 		return {
 			isBroadcast: true,
+			feedId: bnToUint256(event.event.parsed.feedId),
 			msgId: encodeEvmMsgId(
 				true,
 				mailer.id,
@@ -141,10 +144,8 @@ export class EthereumMailerV8Wrapper {
 			blockchain: EVM_NAMES[EVM_CONTRACT_TO_NETWORK[mailer.id]],
 			key: new Uint8Array(0),
 			$$meta: {
-				contentId: event.event.parsed.contentId.toHexString().replace('0x', '').padStart(64, '0') as Uint256,
-				index: BlockNumberRingBufferIndex.decodeIndexValue(
-					event.event.parsed.previousEventsIndex.toHexString().replace('0x', '').padStart(64, '0') as Uint256,
-				),
+				contentId: bnToUint256(event.event.parsed.contentId),
+				index: BlockNumberRingBufferIndex.decodeIndexValue(bnToUint256(event.event.parsed.previousEventsIndex)),
 				...event,
 			},
 		};
@@ -216,18 +217,96 @@ export class EthereumMailerV8Wrapper {
 		});
 	}
 
-	async getSenderToBroadcastIndex(mailer: IEVMMailerContractLink, sender: string): Promise<number[]> {
+	async createFeed(
+		mailer: IEVMMailerContractLink,
+		signer: ethers.Signer,
+		from: string,
+		isPublic: boolean,
+	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt; feedId: Uint256 | null }> {
+		const contract = this.cache.getContract(mailer.address, signer);
+		const tx = await contract.createFeed(isPublic, { from });
+		const receipt = await tx.wait();
+		const feedId = receipt.events?.[0].args?.feedId ? bnToUint256(receipt.events?.[0].args?.feedId) : null;
+		return { tx, receipt, feedId };
+	}
+
+	async changeFeedPublicity(
+		mailer: IEVMMailerContractLink,
+		signer: ethers.Signer,
+		from: string,
+		feedId: Uint256,
+		isPublic: boolean,
+	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
+		const contract = this.cache.getContract(mailer.address, signer);
+		const tx = await contract.changeFeedPublicity(`0x${feedId}`, isPublic, { from });
+		const receipt = await tx.wait();
+		return { tx, receipt };
+	}
+
+	async transferFeedOwnership(
+		mailer: IEVMMailerContractLink,
+		signer: ethers.Signer,
+		from: string,
+		feedId: Uint256,
+		newOwner: string,
+	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
+		const contract = this.cache.getContract(mailer.address, signer);
+		const tx = await contract.transferFeedOwnership(`0x${feedId}`, newOwner, { from });
+		const receipt = await tx.wait();
+		return { tx, receipt };
+	}
+
+	async addFeedWriter(
+		mailer: IEVMMailerContractLink,
+		signer: ethers.Signer,
+		from: string,
+		feedId: Uint256,
+		writer: string,
+	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
+		const contract = this.cache.getContract(mailer.address, signer);
+		const tx = await contract.addFeedWriter(`0x${feedId}`, writer, { from });
+		const receipt = await tx.wait();
+		return { tx, receipt };
+	}
+
+	async removeFeedWriter(
+		mailer: IEVMMailerContractLink,
+		signer: ethers.Signer,
+		from: string,
+		feedId: Uint256,
+		writer: string,
+	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
+		const contract = this.cache.getContract(mailer.address, signer);
+		const tx = await contract.removeFeedWriter(`0x${feedId}`, writer, { from });
+		const receipt = await tx.wait();
+		return { tx, receipt };
+	}
+
+	async getFeedMessageIndex(mailer: IEVMMailerContractLink, feedId: Uint256): Promise<number[]> {
 		return await this.cache.contractOperation(mailer, async contract => {
-			const [bn] = await contract.functions.senderToBroadcastIndex(sender);
-			const index = bn.toHexString().replace('0x', '').padStart(64, '0') as Uint256;
+			const [owner, isPublic, messagesIndex, messagesCount] = await contract.functions.feeds(`0x${feedId}`);
+			const index = bnToUint256(messagesIndex);
 			return BlockNumberRingBufferIndex.decodeIndexValue(index);
 		});
 	}
 
-	async getBroadcastSenderMessagesCount(mailer: IEVMMailerContractLink, sender: string): Promise<number> {
+	async getFeedMessagesCount(mailer: IEVMMailerContractLink, feedId: Uint256): Promise<number> {
 		return await this.cache.contractOperation(mailer, async contract => {
-			const [bn] = await contract.functions.broadcastMessagesCount(sender);
-			return bn.toNumber();
+			const [owner, isPublic, messagesIndex, messagesCount] = await contract.functions.feeds(`0x${feedId}`);
+			return messagesCount.toNumber();
+		});
+	}
+
+	async getFeedOwner(mailer: IEVMMailerContractLink, feedId: Uint256): Promise<string> {
+		return await this.cache.contractOperation(mailer, async contract => {
+			const [owner, messagesIndex, messagesCount] = await contract.functions.feeds(feedId);
+			return owner;
+		});
+	}
+
+	async isFeedWriter(mailer: IEVMMailerContractLink, feedId: Uint256, address: string): Promise<boolean> {
+		return await this.cache.contractOperation(mailer, async contract => {
+			return await contract.isFeedWriter(`0x${feedId}`, address);
 		});
 	}
 
@@ -410,6 +489,7 @@ export class EthereumMailerV8Wrapper {
 		mailer: IEVMMailerContractLink,
 		signer: ethers.Signer,
 		from: string,
+		feedId: Uint256,
 		uniqueId: number,
 		content: Uint8Array,
 	): Promise<{
@@ -420,7 +500,7 @@ export class EthereumMailerV8Wrapper {
 		messages: IEVMMessage[];
 	}> {
 		const contract = this.cache.getContract(mailer.address, signer);
-		const tx = await contract.sendBroadcast(uniqueId, content, { from });
+		const tx = await contract.sendBroadcast(`0x${feedId}`, uniqueId, content, { from });
 		const receipt = await tx.wait();
 		const logs = receipt.logs.map(l => ({
 			log: l,
@@ -438,6 +518,7 @@ export class EthereumMailerV8Wrapper {
 		mailer: IEVMMailerContractLink,
 		signer: ethers.Signer,
 		from: string,
+		feedId: Uint256,
 		uniqueId: number,
 		firstBlockNumber: number,
 		partsCount: number,
@@ -450,7 +531,14 @@ export class EthereumMailerV8Wrapper {
 		messages: IEVMMessage[];
 	}> {
 		const contract = this.cache.getContract(mailer.address, signer);
-		const tx = await contract.sendBroadcastHeader(uniqueId, firstBlockNumber, partsCount, blockCountLock, { from });
+		const tx = await contract.sendBroadcastHeader(
+			`0x${feedId}`,
+			uniqueId,
+			firstBlockNumber,
+			partsCount,
+			blockCountLock,
+			{ from },
+		);
 		const receipt = await tx.wait();
 		const logs = receipt.logs.map(l => ({
 			log: l,
@@ -522,7 +610,11 @@ export class EthereumMailerV8Wrapper {
 		logIndex: number,
 	): Promise<IEVMMessage | null> {
 		return await this.cache.contractOperation(mailer, async (contract, provider) => {
-			const events = await contract.queryFilter(contract.filters.BroadcastPush(), blockNumber, blockNumber);
+			const events: BroadcastPushEvent[] = await contract.queryFilter(
+				contract.filters.BroadcastPush(),
+				blockNumber,
+				blockNumber,
+			);
 			const event = events.find(
 				e => e.blockNumber === blockNumber && e.transactionIndex === txIndex && e.logIndex === logIndex,
 			);
@@ -564,15 +656,15 @@ export class EthereumMailerV8Wrapper {
 
 	async retrieveBroadcastHistoryDesc(
 		mailer: IEVMMailerContractLink,
-		sender: string,
+		feedId: Uint256,
 		fromMessage: IEVMMessage | null,
 		includeFromMessage: boolean,
 		toMessage: IEVMMessage | null,
 		includeToMessage: boolean,
 		limit: number | null,
 	): Promise<IEVMMessage[]> {
-		const getBaseIndex: () => Promise<number[]> = () => this.getSenderToBroadcastIndex(mailer, sender);
-		const getFilter = (contract: YlideMailerV8) => contract.filters.BroadcastPush(sender);
+		const getBaseIndex: () => Promise<number[]> = () => this.getFeedMessageIndex(mailer, feedId);
+		const getFilter = (contract: YlideMailerV8) => contract.filters.BroadcastPush(null, feedId);
 		const processEvent = (event: IEVMEnrichedEvent<BroadcastPushEventObject>) =>
 			this.processBroadcastPushEvent(mailer, event);
 		return await this.retrieveHistoryDesc<BroadcastPushEvent>(
