@@ -538,31 +538,31 @@ export const EVM_RPCS: Record<
 		{ rpc: 'https://bsc-dataseed3.binance.org' },
 	],
 	[EVMNetwork.POLYGON]: [
-		{ rpc: 'wss://polygon-mainnet.g.alchemy.com/v2/QsyQEuK4OgNSuo086MfKTXhO4DQCfYFu', blockLimit: 30000 },
 		{ rpc: 'https://polygon-mainnet.g.alchemy.com/v2/QsyQEuK4OgNSuo086MfKTXhO4DQCfYFu', blockLimit: 30000 },
+		{ rpc: 'wss://polygon-mainnet.g.alchemy.com/v2/QsyQEuK4OgNSuo086MfKTXhO4DQCfYFu', blockLimit: 30000 },
 	],
 	[EVMNetwork.ARBITRUM]: [
-		{ rpc: 'wss://arb-mainnet.g.alchemy.com/v2/KY0LKW4PMTxWlVz8DkyBZ_IODtnn5_7r', blockLimit: 30000 },
 		{ rpc: 'https://arb-mainnet.g.alchemy.com/v2/KY0LKW4PMTxWlVz8DkyBZ_IODtnn5_7r', blockLimit: 30000 },
+		{ rpc: 'wss://arb-mainnet.g.alchemy.com/v2/KY0LKW4PMTxWlVz8DkyBZ_IODtnn5_7r', blockLimit: 30000 },
 		{ rpc: 'https://arb1.arbitrum.io/rpc' },
 		{ rpc: 'https://rpc.ankr.com/arbitrum' },
 	],
 	[EVMNetwork.OPTIMISM]: [
-		{ rpc: 'wss://opt-mainnet.g.alchemy.com/v2/G8JwqBBJNnRouFnVbsmGA0E4WZtJNqPO', blockLimit: 30000 },
 		{ rpc: 'https://opt-mainnet.g.alchemy.com/v2/G8JwqBBJNnRouFnVbsmGA0E4WZtJNqPO', blockLimit: 30000 },
+		{ rpc: 'wss://opt-mainnet.g.alchemy.com/v2/G8JwqBBJNnRouFnVbsmGA0E4WZtJNqPO', blockLimit: 30000 },
 		{ rpc: 'https://mainnet.optimism.io' },
 		{ rpc: 'https://optimism-mainnet.public.blastapi.io' },
 		{ rpc: 'https://rpc.ankr.com/optimism' },
 	],
 	[EVMNetwork.AVALANCHE]: [
 		{
+			rpc: 'https://rpc.ankr.com/avalanche',
+			blockLimit: 3000,
+		},
+		{
 			rpc: 'https://avalanche-mainnet.infura.io/v3/3bcb970aa2dd447cbad6ac4301ed63bf',
 			blockLimit: 2048,
 			batchNotSupported: true,
-		},
-		{
-			rpc: 'https://rpc.ankr.com/avalanche',
-			blockLimit: 3000,
 		},
 		{
 			rpc: 'https://ava-mainnet.blastapi.io/cc59bb68-a7ff-4278-9f16-278ba49d7635/ext/bc/C/rpc',
@@ -575,38 +575,38 @@ export const EVM_RPCS: Record<
 	],
 	[EVMNetwork.FANTOM]: [{ rpc: 'https://rpc.fantom.network', blockLimit: 10000 }],
 	[EVMNetwork.KLAYTN]: [
-		{ rpc: 'https://public-node-api.klaytnapi.com/v1/cypress', batchNotSupported: true },
+		{ rpc: 'https://public-node-api.klaytnapi.com/v1/cypress', batchNotSupported: true, blockLimit: 50000 },
 		{ rpc: 'https://klaytn01.fandom.finance' },
 		{ rpc: 'https://klaytn02.fandom.finance' },
 	],
 	[EVMNetwork.GNOSIS]: [
-		{ rpc: 'wss://rpc.gnosischain.com/wss' },
-		{ rpc: 'https://rpc.gnosischain.com' },
+		{ rpc: 'https://rpc.gnosischain.com', blockLimit: 10000 },
+		{ rpc: 'wss://rpc.gnosischain.com/wss', blockLimit: 10000 },
 		{ rpc: 'https://cosmopolitan-dawn-sky.xdai.discover.quiknode.pro/4405e640361b4c7ef17a3f07431647fd6375fc29/' },
 		{ rpc: 'https://xdai-rpc.gateway.pokt.network' },
 		{ rpc: 'https://gnosis-mainnet.public.blastapi.io' },
 	],
-	[EVMNetwork.AURORA]: [{ rpc: 'https://mainnet.aurora.dev' }],
+	[EVMNetwork.AURORA]: [{ rpc: 'https://mainnet.aurora.dev', blockLimit: 10000 }],
 
 	[EVMNetwork.CELO]: [
+		{ rpc: 'https://forno.celo.org', blockLimit: 10000 },
 		{ rpc: 'wss://forno.celo.org/ws' },
-		{ rpc: 'https://forno.celo.org' },
 		{ rpc: 'https://rpc.ankr.com/celo' },
 	],
 	[EVMNetwork.MOONBEAM]: [
+		{ rpc: 'https://rpc.api.moonbeam.network', blockLimit: 2000 },
 		{ rpc: 'wss://wss.api.moonbeam.network' },
-		{ rpc: 'https://rpc.api.moonbeam.network' },
 		{ rpc: 'https://moonbeam.public.blastapi.io' },
 	],
-	[EVMNetwork.MOONRIVER]: [{ rpc: 'https://rpc.api.moonriver.moonbeam.network' }],
+	[EVMNetwork.MOONRIVER]: [{ rpc: 'https://rpc.api.moonriver.moonbeam.network', blockLimit: 2000 }],
 	[EVMNetwork.ASTAR]: [
-		{ rpc: 'wss://astar-mainnet.g.alchemy.com/v2/Ib5I59bSB2Vv41PJlF2TWWqjND4ppGdi', blockLimit: 30000 },
 		{ rpc: 'https://astar-mainnet.g.alchemy.com/v2/Ib5I59bSB2Vv41PJlF2TWWqjND4ppGdi', blockLimit: 30000 },
+		{ rpc: 'wss://astar-mainnet.g.alchemy.com/v2/Ib5I59bSB2Vv41PJlF2TWWqjND4ppGdi', blockLimit: 30000 },
 		{
 			rpc: 'https://astar.blastapi.io/cc59bb68-a7ff-4278-9f16-278ba49d7635',
 			blockLimit: 500,
 			lastestNotSupported: true,
 		},
 	],
-	[EVMNetwork.METIS]: [{ rpc: 'https://andromeda.metis.io/?owner=1088' }],
+	[EVMNetwork.METIS]: [{ rpc: 'https://andromeda.metis.io/?owner=1088', blockLimit: 10000 }],
 };
