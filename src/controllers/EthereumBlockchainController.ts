@@ -328,7 +328,10 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	async extractPublicKeyFromAddress(address: string): Promise<ExternalYlidePublicKey | null> {
-		return this.currentRegistry.wrapper.getPublicKeyByAddress(this.currentRegistry.link, address);
+		const raw = await Promise.all(this.registries.map(reg => reg.wrapper.getPublicKeyByAddress(reg.link, address)));
+		const active = raw.filter(r => r !== null) as ExternalYlidePublicKey[];
+		active.sort((a, b) => b.timestamp - a.timestamp);
+		return active.length ? active[0] : null;
 	}
 
 	async extractPublicKeysHistoryByAddress(address: string): Promise<ExternalYlidePublicKey[]> {

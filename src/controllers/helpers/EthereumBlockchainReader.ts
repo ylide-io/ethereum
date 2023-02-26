@@ -30,7 +30,7 @@ export class EthereumBlockchainReader {
 				if (rpc.rpcUrlOrProvider.startsWith('ws')) {
 					provider = new BetterWebSocketProvider(rpc.rpcUrlOrProvider);
 				} else if (rpc.rpcUrlOrProvider.startsWith('http')) {
-					provider = new ethers.providers.JsonRpcProvider(rpc.rpcUrlOrProvider);
+					provider = new ethers.providers.StaticJsonRpcProvider(rpc.rpcUrlOrProvider);
 				} else {
 					throw new Error('Invalid rpcUrlOrProvider: ' + rpc.rpcUrlOrProvider);
 				}

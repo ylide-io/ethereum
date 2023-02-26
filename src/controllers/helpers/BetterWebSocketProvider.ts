@@ -1,7 +1,5 @@
 import { ethers } from 'ethers';
 
-const WEBSOCKET_RECONNECT_DELAY = 500;
-
 const WebSocketProviderClass = (): new () => ethers.providers.WebSocketProvider => class {} as never;
 
 export class BetterWebSocketProvider extends WebSocketProviderClass() {
@@ -19,12 +17,12 @@ export class BetterWebSocketProvider extends WebSocketProviderClass() {
 
 	constructor(private providerUrl: string) {
 		super();
-		this.create();
+		this.create(0);
 
 		return new Proxy(this, this.handler);
 	}
 
-	private create() {
+	private create(attempt: number) {
 		if (this.provider) {
 			this.events = [...this.events, ...this.provider._events];
 			this.requests = { ...this.requests, ...this.provider._requests };
@@ -53,7 +51,10 @@ export class BetterWebSocketProvider extends WebSocketProviderClass() {
 			provider._wsReady = false;
 
 			if (code !== 1000) {
-				setTimeout(() => this.create(), WEBSOCKET_RECONNECT_DELAY);
+				setTimeout(
+					() => this.create(attempt + 1),
+					attempt < 3 ? 500 : attempt < 6 ? 5000 : attempt < 12 ? 10000 : 30000,
+				);
 			}
 		});
 
