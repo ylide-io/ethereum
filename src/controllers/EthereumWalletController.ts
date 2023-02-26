@@ -406,6 +406,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	async sendMail(
 		me: IGenericAccount,
+		feedId: Uint256,
 		contentData: Uint8Array,
 		recipients: { address: Uint256; messageKey: MessageKey }[],
 		options?: any,
@@ -422,6 +423,7 @@ export class EthereumWalletController extends AbstractWalletController {
 				mailer.link,
 				this.signer,
 				me.address,
+				feedId,
 				uniqueId,
 				recipients[0].address,
 				recipients[0].messageKey.toBytes(),
@@ -434,6 +436,7 @@ export class EthereumWalletController extends AbstractWalletController {
 				mailer.link,
 				this.signer,
 				me.address,
+				feedId,
 				uniqueId,
 				recipients.map(r => r.address),
 				recipients.map(r => r.messageKey.toBytes()),
@@ -465,6 +468,7 @@ export class EthereumWalletController extends AbstractWalletController {
 					mailer.link,
 					this.signer,
 					me.address,
+					feedId,
 					uniqueId,
 					firstBlockNumber,
 					chunks.length,

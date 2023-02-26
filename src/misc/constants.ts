@@ -7,7 +7,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 			{
 				id: 1,
 				type: EVMRegistryContractType.EVMRegistryV6,
-				address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+				address: '0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e',
 				creationBlock: 1,
 				verified: true,
 			},
@@ -16,7 +16,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 			{
 				id: 2,
 				type: EVMMailerContractType.EVMMailerV8,
-				address: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0',
+				address: '0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0',
 				creationBlock: 1,
 				verified: true,
 			},

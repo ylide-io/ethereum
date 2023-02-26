@@ -107,4 +107,6 @@ export interface IEVMNetworkContracts {
 
 export type IEVMMessage = IMessage<IEVMMeta>;
 
-export type IHistorySource = { type: 'recipient'; recipient: Uint256 } | { type: 'broadcast'; feedId: Uint256 };
+export type IHistorySource =
+	| { type: 'recipient'; feedId: Uint256; recipient: Uint256 }
+	| { type: 'broadcast'; feedId: Uint256 };

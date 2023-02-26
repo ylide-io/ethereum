@@ -282,6 +282,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 					  }
 					: {
 							type: 'recipient',
+							feedId: subject.feedId,
 							recipient: subject.recipient,
 					  },
 			);
@@ -297,6 +298,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 					  }
 					: {
 							type: 'recipient',
+							feedId: subject.feedId,
 							recipient: subject.recipient,
 					  },
 			);
@@ -312,6 +314,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 					  }
 					: {
 							type: 'recipient',
+							feedId: subject.feedId,
 							recipient: subject.recipient,
 					  },
 			);

@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+/* eslint-disable @typescript-eslint/no-misused-promises */
+/* eslint-disable prefer-arrow/prefer-arrow-functions */
 import { Signer } from 'ethers';
 import { describe, it, before } from 'mocha';
 import { YlideRegistryV6, YlideRegistryV6__factory } from '@ylide/ethereum-contracts';
