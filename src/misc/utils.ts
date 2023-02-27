@@ -1,5 +1,4 @@
 import { Uint256 } from '@ylide/sdk';
-import SmartBuffer from '@ylide/smart-buffer';
 import { BigNumber } from 'ethers';
 
 export interface IEventPosition {

@@ -1,6 +1,6 @@
 import { EVMMailerContractType, EVMRegistryContractType, EVMNetwork, IEVMNetworkContracts } from './types';
 
-// last contract id: 40, next id is 41
+// last contract id: 41, next id is 42
 export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 	[EVMNetwork.LOCAL_HARDHAT]: {
 		registryContracts: [
@@ -280,6 +280,13 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 25479320,
 				verified: true,
 			},
+			{
+				id: 41,
+				type: EVMRegistryContractType.EVMRegistryV6,
+				address: '0x1e7a0dabf7411d570da53c0f8af54dde8d792c72',
+				creationBlock: 26682170,
+				verified: false,
+			},
 		],
 		mailerContracts: [
 			{
@@ -289,9 +296,16 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 24758425,
 				verified: false,
 			},
+			{
+				id: 42,
+				type: EVMMailerContractType.EVMMailerV8,
+				address: '0x822cc63c031fb213af9a73efb78682e490d7074a',
+				creationBlock: 26682200,
+				verified: false,
+			},
 		],
-		currentRegistryId: 21,
-		currentMailerId: 22,
+		currentRegistryId: 41,
+		currentMailerId: 42,
 	},
 	[EVMNetwork.AURORA]: {
 		registryContracts: [

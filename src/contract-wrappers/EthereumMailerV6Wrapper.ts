@@ -131,6 +131,8 @@ export class EthereumMailerV6Wrapper {
 				getBaseIndex,
 				queryEntries: async (fromB, toB) => await contract.queryFilter(getFilter(contract), fromB, toB),
 
+				getLastBlockNumber: () => provider.getBlockNumber(),
+
 				blockLimit,
 
 				fromEntry: fromMessage ? { ...fromMessage.$$meta.event, index: fromMessage.$$meta.index } : null,

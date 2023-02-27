@@ -111,6 +111,8 @@ export class EthereumRegistryV6Wrapper {
 				queryEntries: async (fromB, toB) =>
 					await contract.queryFilter(contract.filters.KeyAttached(address), fromB, toB),
 
+				getLastBlockNumber: () => provider.getBlockNumber(),
+
 				blockLimit,
 
 				fromEntry: null,

@@ -19,7 +19,7 @@ specifiers:
   '@typescript-eslint/parser': 5.52.0
   '@ylide/ethereum-contracts': link:../ethereum-contracts
   '@ylide/sdk': link:../sdk
-  '@ylide/smart-buffer': 0.0.10
+  '@ylide/smart-buffer': 0.0.11
   chai: 4.3.7
   eslint: 8.33.0
   eslint-config-prettier: 8.6.0
@@ -45,7 +45,7 @@ dependencies:
   '@ethersproject/providers': 5.7.2
   '@ylide/ethereum-contracts': link:../ethereum-contracts
   '@ylide/sdk': link:../sdk
-  '@ylide/smart-buffer': 0.0.10
+  '@ylide/smart-buffer': 0.0.11
   ethers: 5.7.2
   eventemitter3: 5.0.0
   semaphore-promise: 1.4.1
@@ -1218,8 +1218,8 @@ packages:
       eslint-visitor-keys: 3.3.0
     dev: true
 
-  /@ylide/smart-buffer/0.0.10:
-    resolution: {integrity: sha512-hMDlUFdVxFpF+j0xFCBZrmMRLoaC/KqjsP9lX22Xk9VewhQ9qsPTk4i3vMruhzfLgyYwwHIeTidFAEEsf4nG0g==}
+  /@ylide/smart-buffer/0.0.11:
+    resolution: {integrity: sha512-5o7sCNGhkmxlZo/89Aw+RdspcskQtt6t8ADU3gSlylalCn7l9ZVAeeSyMEUwWObjiyWF2yjyAt51UyWHa0QjLQ==}
     dev: false
 
   /abbrev/1.0.9:

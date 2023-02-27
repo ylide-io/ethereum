@@ -39,6 +39,8 @@ export class BlockNumberRingBufferIndex {
 		getBaseIndex,
 		queryEntries,
 
+		getLastBlockNumber,
+
 		blockLimit,
 		fromEntry,
 		includeFromEntry,
@@ -51,6 +53,8 @@ export class BlockNumberRingBufferIndex {
 
 		getBaseIndex: () => Promise<number[]>;
 		queryEntries: (fromBlock: number, toBlock: number) => Promise<Full[]>;
+
+		getLastBlockNumber: () => Promise<number>;
 
 		blockLimit: number;
 		fromEntry: {
@@ -76,8 +80,9 @@ export class BlockNumberRingBufferIndex {
 		} else {
 			index = await getBaseIndex();
 		}
+		const lastBlockNumber = await getLastBlockNumber();
 		let events: Full[] = [];
-		let nextPeriodEnd = 0;
+		let nextPeriodEnd = lastBlockNumber;
 		while (true) {
 			if (index.length === 0) {
 				break;
@@ -92,7 +97,7 @@ export class BlockNumberRingBufferIndex {
 			index = index.filter((e, i, a) => a.indexOf(e) === i);
 			const currentPeriod = {
 				start: index[0] * 128,
-				end: nextPeriodEnd ? nextPeriodEnd : index[0] * 128 + 127,
+				end: nextPeriodEnd ? Math.min(index[0] * 128 + 127, nextPeriodEnd) : index[0] * 128 + 127,
 			};
 			nextPeriodEnd = 0;
 			while (index.length > 0) {
