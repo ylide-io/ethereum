@@ -19,6 +19,7 @@ import {
 	WalletEvent,
 	YlideError,
 	YlideErrorType,
+	YLIDE_MAIN_FEED_ID,
 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 
@@ -224,33 +225,33 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 	}
 
-	private getModernMailerByNetwork(network: EVMNetwork): {
-		link: IEVMMailerContractLink;
-		wrapper: EthereumMailerV8Wrapper;
-	} {
-		const id = EVM_CONTRACTS[network].currentMailerId;
-		const existing = this.mailers.find(r => r.link.id === id);
-		if (existing) {
-			if (existing.link.type !== EVMMailerContractType.EVMMailerV8) {
-				throw new Error(`Network ${network} has no modern mailer`);
-			}
-			return existing as any;
-		} else {
-			const link = EVM_CONTRACTS[network].mailerContracts.find(r => r.id === id);
-			if (!link) {
-				throw new Error(`Network ${network} has no current mailer`);
-			}
-			if (link.type !== EVMMailerContractType.EVMMailerV8) {
-				throw new Error(`Network ${network} has no modern mailer`);
-			}
-			const wrapper = new EthereumBlockchainController.mailerWrappers[link.type](this.blockchainReader);
-			this.mailers.push({
-				link,
-				wrapper,
-			});
-			return { link, wrapper: wrapper as any };
-		}
-	}
+	// private getModernMailerByNetwork(network: EVMNetwork): {
+	// 	link: IEVMMailerContractLink;
+	// 	wrapper: EthereumMailerV8Wrapper;
+	// } {
+	// 	const id = EVM_CONTRACTS[network].currentMailerId;
+	// 	const existing = this.mailers.find(r => r.link.id === id);
+	// 	if (existing) {
+	// 		if (existing.link.type !== EVMMailerContractType.EVMMailerV8) {
+	// 			throw new Error(`Network ${network} has no modern mailer`);
+	// 		}
+	// 		return existing as any;
+	// 	} else {
+	// 		const link = EVM_CONTRACTS[network].mailerContracts.find(r => r.id === id);
+	// 		if (!link) {
+	// 			throw new Error(`Network ${network} has no current mailer`);
+	// 		}
+	// 		if (link.type !== EVMMailerContractType.EVMMailerV8) {
+	// 			throw new Error(`Network ${network} has no modern mailer`);
+	// 		}
+	// 		const wrapper = new EthereumBlockchainController.mailerWrappers[link.type](this.blockchainReader);
+	// 		this.mailers.push({
+	// 			link,
+	// 			wrapper,
+	// 		});
+	// 		return { link, wrapper: wrapper as any };
+	// 	}
+	// }
 
 	async setBonucer(network: EVMNetwork, from: string, newBonucer: string, val: boolean) {
 		const registry = this.getRegistryByNetwork(network);
@@ -413,73 +414,136 @@ export class EthereumWalletController extends AbstractWalletController {
 	): Promise<SendMailResult> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Publish message', options);
-		const mailer = this.getModernMailerByNetwork(network);
+		const mailer = this.getMailerByNetwork(network);
 
 		const uniqueId = Math.floor(Math.random() * 4 * 10 ** 9);
 		const chunks = MessageChunks.splitMessageChunks(contentData);
 
 		if (chunks.length === 1 && recipients.length === 1) {
-			const { messages } = await mailer.wrapper.sendSmallMail(
-				mailer.link,
-				this.signer,
-				me.address,
-				feedId,
-				uniqueId,
-				recipients[0].address,
-				recipients[0].messageKey.toBytes(),
-				chunks[0],
-			);
-
-			return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
-		} else if (chunks.length === 1 && recipients.length < Math.ceil((15.5 * 1024 - chunks[0].byteLength) / 70)) {
-			const { messages } = await mailer.wrapper.sendBulkMail(
-				mailer.link,
-				this.signer,
-				me.address,
-				feedId,
-				uniqueId,
-				recipients.map(r => r.address),
-				recipients.map(r => r.messageKey.toBytes()),
-				chunks[0],
-			);
-
-			return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
-		} else {
-			const firstBlockNumber = await this.signer.provider.getBlockNumber();
-			const blockLock = 600;
-			// const msgId = await mailer.buildHash(me.address, uniqueId, firstBlockNumber);
-			for (let i = 0; i < chunks.length; i++) {
-				const { tx, receipt, logs } = await mailer.wrapper.sendMessageContentPart(
-					mailer.link,
-					this.signer,
-					me.address,
-					uniqueId,
-					firstBlockNumber,
-					blockLock,
-					chunks.length,
-					i,
-					chunks[i],
-				);
-			}
-			const msgs: IEVMMessage[] = [];
-			for (let i = 0; i < recipients.length; i += 210) {
-				const recs = recipients.slice(i, i + 210);
-				const { messages } = await mailer.wrapper.addMailRecipients(
+			if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+				const { messages } = await mailer.wrapper.sendSmallMail(
 					mailer.link,
 					this.signer,
 					me.address,
 					feedId,
 					uniqueId,
-					firstBlockNumber,
-					chunks.length,
-					blockLock,
-					recs.map(r => r.address),
-					recs.map(r => r.messageKey.toBytes()),
+					recipients[0].address,
+					recipients[0].messageKey.toBytes(),
+					chunks[0],
 				);
-				msgs.push(...messages);
+				return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
+			} else {
+				if (feedId !== YLIDE_MAIN_FEED_ID) {
+					throw new Error('FeedId is not supported');
+				}
+				const { messages } = await mailer.wrapper.sendSmallMail(
+					mailer.link,
+					this.signer,
+					me.address,
+					uniqueId,
+					recipients[0].address,
+					recipients[0].messageKey.toBytes(),
+					chunks[0],
+				);
+				return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 			}
+		} else if (chunks.length === 1 && recipients.length < Math.ceil((15.5 * 1024 - chunks[0].byteLength) / 70)) {
+			if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+				const { messages } = await mailer.wrapper.sendBulkMail(
+					mailer.link,
+					this.signer,
+					me.address,
+					feedId,
+					uniqueId,
+					recipients.map(r => r.address),
+					recipients.map(r => r.messageKey.toBytes()),
+					chunks[0],
+				);
+				return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
+			} else {
+				if (feedId !== YLIDE_MAIN_FEED_ID) {
+					throw new Error('FeedId is not supported');
+				}
+				const { messages } = await mailer.wrapper.sendBulkMail(
+					mailer.link,
+					this.signer,
+					me.address,
+					uniqueId,
+					recipients.map(r => r.address),
+					recipients.map(r => r.messageKey.toBytes()),
+					chunks[0],
+				);
+				return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
+			}
+		} else {
+			if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+				const firstBlockNumber = await this.signer.provider.getBlockNumber();
+				const blockLock = 600;
+				// const msgId = await mailer.buildHash(me.address, uniqueId, firstBlockNumber);
+				for (let i = 0; i < chunks.length; i++) {
+					const { tx, receipt, logs } = await mailer.wrapper.sendMessageContentPart(
+						mailer.link,
+						this.signer,
+						me.address,
+						uniqueId,
+						firstBlockNumber,
+						blockLock,
+						chunks.length,
+						i,
+						chunks[i],
+					);
+				}
+				const msgs: IEVMMessage[] = [];
+				for (let i = 0; i < recipients.length; i += 210) {
+					const recs = recipients.slice(i, i + 210);
+					const { messages } = await mailer.wrapper.addMailRecipients(
+						mailer.link,
+						this.signer,
+						me.address,
+						feedId,
+						uniqueId,
+						firstBlockNumber,
+						chunks.length,
+						blockLock,
+						recs.map(r => r.address),
+						recs.map(r => r.messageKey.toBytes()),
+					);
+					msgs.push(...messages);
+				}
 
-			return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
+				return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
+			} else {
+				const initTime = Math.floor(Date.now() / 1000);
+
+				for (let i = 0; i < chunks.length; i++) {
+					await mailer.wrapper.sendMessageContentPart(
+						mailer.link,
+						this.signer,
+						me.address,
+						uniqueId,
+						initTime,
+						chunks.length,
+						i,
+						chunks[i],
+					);
+				}
+				const msgs: IEVMMessage[] = [];
+				for (let i = 0; i < recipients.length; i += 210) {
+					const recs = recipients.slice(i, i + 210);
+					const { messages } = await mailer.wrapper.addMailRecipients(
+						mailer.link,
+						this.signer,
+						me.address,
+						uniqueId,
+						initTime,
+						recs.map(r => r.address),
+						recs.map(r => r.messageKey.toBytes()),
+					);
+					msgs.push(...messages);
+				}
+
+				return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
+			}
 		}
 	}
 
@@ -491,10 +555,14 @@ export class EthereumWalletController extends AbstractWalletController {
 	): Promise<SendBroadcastResult> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Broadcast message', options);
-		const mailer = this.getModernMailerByNetwork(network);
+		const mailer = this.getMailerByNetwork(network);
 
 		const uniqueId = Math.floor(Math.random() * 4 * 10 ** 9);
 		const chunks = MessageChunks.splitMessageChunks(contentData);
+
+		if (!(mailer.wrapper instanceof EthereumMailerV8Wrapper)) {
+			throw new Error('Broadcasts are supported only in MailerV8');
+		}
 
 		if (chunks.length === 1) {
 			const { messages } = await mailer.wrapper.sendBroadcast(
