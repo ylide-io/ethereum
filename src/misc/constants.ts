@@ -1,6 +1,6 @@
 import { EVMMailerContractType, EVMRegistryContractType, EVMNetwork, IEVMNetworkContracts } from './types';
 
-// last contract id: 41, next id is 42
+// last contract id: 47, next id is 48
 export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 	[EVMNetwork.LOCAL_HARDHAT]: {
 		registryContracts: [
@@ -84,6 +84,13 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 34868841,
 				verified: false,
 			},
+			{
+				id: 46,
+				type: EVMRegistryContractType.EVMRegistryV6,
+				address: '0x7cefe876a8b57e7d52840bd3007533e7501587cc',
+				creationBlock: 39852322,
+				verified: true,
+			},
 		],
 		mailerContracts: [
 			{
@@ -94,15 +101,22 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				verified: true,
 			},
 			{
-				id: 41,
+				id: 43,
 				type: EVMMailerContractType.EVMMailerV6,
 				address: '0x003c0ac0e7fff5452fb7de73925ce18f91660532',
 				creationBlock: 34869078,
 				verified: true,
 			},
+			{
+				id: 47,
+				type: EVMMailerContractType.EVMMailerV8,
+				address: '0xad0404834332174c3e78ad095254ac7a5a62cc3e',
+				creationBlock: 39852277,
+				verified: true,
+			},
 		],
-		currentRegistryId: 7,
-		currentMailerId: 8,
+		currentRegistryId: 46,
+		currentMailerId: 47,
 	},
 	[EVMNetwork.AVALANCHE]: {
 		registryContracts: [
@@ -222,6 +236,13 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 50113599,
 				verified: false,
 			},
+			{
+				id: 44,
+				type: EVMRegistryContractType.EVMRegistryV6,
+				address: '0x7e5acf25334ff987bfe492c88b366e26a435462d',
+				creationBlock: 56745366,
+				verified: true,
+			},
 		],
 		mailerContracts: [
 			{
@@ -238,9 +259,16 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 50113669,
 				verified: true,
 			},
+			{
+				id: 45,
+				type: EVMMailerContractType.EVMMailerV8,
+				address: '0x1df52e2658d40ab8db09f80a2da0900bd0b0b8d4',
+				creationBlock: 56745288,
+				verified: true,
+			},
 		],
-		currentRegistryId: 17,
-		currentMailerId: 18,
+		currentRegistryId: 44,
+		currentMailerId: 45,
 	},
 	[EVMNetwork.KLAYTN]: {
 		registryContracts: [
