@@ -28,6 +28,7 @@ import {
 	EVMNetwork,
 	EVM_CHAINS,
 	EVM_CHAIN_ID_TO_NETWORK,
+	EVM_CHUNK_SIZES,
 	EVM_CONTRACTS,
 	EVM_NAMES,
 	IEVMMailerContractLink,
@@ -417,10 +418,12 @@ export class EthereumWalletController extends AbstractWalletController {
 		const mailer = this.getMailerByNetwork(network);
 
 		const uniqueId = Math.floor(Math.random() * 4 * 10 ** 9);
-		const chunks = MessageChunks.splitMessageChunks(contentData);
+		const chunkSize = EVM_CHUNK_SIZES[network];
+		const chunks = MessageChunks.splitMessageChunks(contentData, chunkSize);
 
 		if (chunks.length === 1 && recipients.length === 1) {
 			if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+				console.log(`Sending small mail, chunk length: ${chunks[0].length} bytes`);
 				const { messages } = await mailer.wrapper.sendSmallMail(
 					mailer.link,
 					this.signer,
@@ -436,6 +439,7 @@ export class EthereumWalletController extends AbstractWalletController {
 				if (feedId !== YLIDE_MAIN_FEED_ID) {
 					throw new Error('FeedId is not supported');
 				}
+				console.log(`Sending small mail, chunk length: ${chunks[0].length} bytes`);
 				const { messages } = await mailer.wrapper.sendSmallMail(
 					mailer.link,
 					this.signer,
@@ -449,6 +453,7 @@ export class EthereumWalletController extends AbstractWalletController {
 			}
 		} else if (chunks.length === 1 && recipients.length < Math.ceil((15.5 * 1024 - chunks[0].byteLength) / 70)) {
 			if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+				console.log(`Sending bulk mail, chunk length: ${chunks[0].length} bytes`);
 				const { messages } = await mailer.wrapper.sendBulkMail(
 					mailer.link,
 					this.signer,
@@ -464,6 +469,7 @@ export class EthereumWalletController extends AbstractWalletController {
 				if (feedId !== YLIDE_MAIN_FEED_ID) {
 					throw new Error('FeedId is not supported');
 				}
+				console.log(`Sending bulk mail, chunk length: ${chunks[0].length} bytes`);
 				const { messages } = await mailer.wrapper.sendBulkMail(
 					mailer.link,
 					this.signer,
@@ -481,6 +487,7 @@ export class EthereumWalletController extends AbstractWalletController {
 				const blockLock = 600;
 				// const msgId = await mailer.buildHash(me.address, uniqueId, firstBlockNumber);
 				for (let i = 0; i < chunks.length; i++) {
+					console.log(`Sending multi mail, current chunk length: ${chunks[i].length} bytes`);
 					const { tx, receipt, logs } = await mailer.wrapper.sendMessageContentPart(
 						mailer.link,
 						this.signer,
@@ -513,9 +520,10 @@ export class EthereumWalletController extends AbstractWalletController {
 
 				return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 			} else {
-				const initTime = Math.floor(Date.now() / 1000);
+				const initTime = Math.floor(Date.now() / 1000) - 60;
 
 				for (let i = 0; i < chunks.length; i++) {
+					console.log(`Sending multi mail, current chunk length: ${chunks[i].length} bytes`);
 					await mailer.wrapper.sendMessageContentPart(
 						mailer.link,
 						this.signer,

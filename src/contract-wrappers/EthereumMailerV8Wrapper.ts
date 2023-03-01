@@ -28,6 +28,7 @@ import { ethersEventToInternalEvent, EventParsed } from '../controllers/helpers/
 import { decodeContentId } from '../misc/contentId';
 import { EthereumContentReader, GenericMessageContentEventObject } from '../controllers/helpers/EthereumContentReader';
 import { ContractCache } from './ContractCache';
+import { LogDescription } from '@ethersproject/abi';
 
 export class EthereumMailerV8Wrapper {
 	public readonly cache: ContractCache<YlideMailerV8>;
@@ -706,7 +707,15 @@ export class EthereumMailerV8Wrapper {
 			{ from },
 		);
 		const receipt = await tx.wait();
-		const logs = receipt.logs.map(l => contract.interface.parseLog(l));
+		const logs = receipt.logs
+			.map(l => {
+				try {
+					return contract.interface.parseLog(l);
+				} catch (err) {
+					return;
+				}
+			})
+			.filter(l => !!l) as LogDescription[];
 		return { tx, receipt, logs };
 	}
 

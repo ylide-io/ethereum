@@ -624,3 +624,24 @@ export const EVM_RPCS: Record<
 	],
 	[EVMNetwork.METIS]: [{ rpc: 'https://andromeda.metis.io/?owner=1088', blockLimit: 10000 }],
 };
+
+export const EVM_CHUNK_SIZES: Record<EVMNetwork, number> = {
+	[EVMNetwork.LOCAL_HARDHAT]: 15 * 1024,
+
+	[EVMNetwork.ETHEREUM]: 15 * 1024,
+	[EVMNetwork.BNBCHAIN]: 15 * 1024,
+	[EVMNetwork.POLYGON]: 15 * 1024,
+	[EVMNetwork.AVALANCHE]: 15 * 1024,
+	[EVMNetwork.OPTIMISM]: 15 * 1024,
+	[EVMNetwork.ARBITRUM]: 15 * 1024,
+	[EVMNetwork.CRONOS]: 15 * 1024,
+	[EVMNetwork.FANTOM]: 15 * 1024,
+	[EVMNetwork.KLAYTN]: 15 * 1024,
+	[EVMNetwork.GNOSIS]: 15 * 1024,
+	[EVMNetwork.AURORA]: 15 * 1024,
+	[EVMNetwork.CELO]: 15 * 1024,
+	[EVMNetwork.MOONBEAM]: 15 * 1024,
+	[EVMNetwork.MOONRIVER]: 15 * 1024,
+	[EVMNetwork.METIS]: 15 * 1024,
+	[EVMNetwork.ASTAR]: 15 * 1024,
+};
