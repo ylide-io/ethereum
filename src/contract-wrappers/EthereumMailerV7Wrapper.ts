@@ -270,13 +270,32 @@ export class EthereumMailerV7Wrapper {
 		const contract = this.cache.getContract(mailer.address, signer);
 		const tx = await contract.sendSmallMail(uniqueId, `0x${recipient}`, key, content, { from });
 		const receipt = await tx.wait();
-		const logs = receipt.logs.map(l => ({
-			log: l,
-			logDescription: contract.interface.parseLog(l),
-		}));
+		const logs = receipt.logs
+			.map(l => {
+				try {
+					return {
+						log: l,
+						logDescription: contract.interface.parseLog(l),
+					};
+				} catch (err) {
+					return {
+						log: l,
+						logDescription: null,
+					};
+				}
+			})
+			.filter(
+				(l): l is { log: ethers.providers.Log; logDescription: ethers.utils.LogDescription } =>
+					l.logDescription !== null,
+			);
 		const mailPushEvents = logs
 			.filter(l => l.logDescription.name === 'MailPush')
-			.map(l => this.mailPushLogToEvent(l));
+			.map(l =>
+				this.mailPushLogToEvent({
+					log: l.log,
+					logDescription: l.logDescription,
+				}),
+			);
 		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
@@ -306,13 +325,32 @@ export class EthereumMailerV7Wrapper {
 			{ from },
 		);
 		const receipt = await tx.wait();
-		const logs = receipt.logs.map(l => ({
-			log: l,
-			logDescription: contract.interface.parseLog(l),
-		}));
+		const logs = receipt.logs
+			.map(l => {
+				try {
+					return {
+						log: l,
+						logDescription: contract.interface.parseLog(l),
+					};
+				} catch (err) {
+					return {
+						log: l,
+						logDescription: null,
+					};
+				}
+			})
+			.filter(
+				(l): l is { log: ethers.providers.Log; logDescription: ethers.utils.LogDescription } =>
+					l.logDescription !== null,
+			);
 		const mailPushEvents = logs
 			.filter(l => l.logDescription.name === 'MailPush')
-			.map(l => this.mailPushLogToEvent(l));
+			.map(l =>
+				this.mailPushLogToEvent({
+					log: l.log,
+					logDescription: l.logDescription,
+				}),
+			);
 		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
@@ -342,13 +380,32 @@ export class EthereumMailerV7Wrapper {
 			{ from },
 		);
 		const receipt = await tx.wait();
-		const logs = receipt.logs.map(l => ({
-			log: l,
-			logDescription: contract.interface.parseLog(l),
-		}));
+		const logs = receipt.logs
+			.map(l => {
+				try {
+					return {
+						log: l,
+						logDescription: contract.interface.parseLog(l),
+					};
+				} catch (err) {
+					return {
+						log: l,
+						logDescription: null,
+					};
+				}
+			})
+			.filter(
+				(l): l is { log: ethers.providers.Log; logDescription: ethers.utils.LogDescription } =>
+					l.logDescription !== null,
+			);
 		const mailPushEvents = logs
 			.filter(l => l.logDescription.name === 'MailPush')
-			.map(l => this.mailPushLogToEvent(l));
+			.map(l =>
+				this.mailPushLogToEvent({
+					log: l.log,
+					logDescription: l.logDescription,
+				}),
+			);
 		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
@@ -376,7 +433,7 @@ export class EthereumMailerV7Wrapper {
 				try {
 					return contract.interface.parseLog(l);
 				} catch (err) {
-					return;
+					return null;
 				}
 			})
 			.filter(l => !!l) as LogDescription[];
