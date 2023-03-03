@@ -1,5 +1,6 @@
 import { BitPackReader, BitPackWriter } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
+import { IEVMMailerContractLink, IEVMMessage } from './types';
 
 export const encodeEvmMsgId = (
 	isBroacast: boolean,
@@ -47,4 +48,19 @@ export const decodeEvmMsgId = (msgId: string) => {
 		logIndex: logIndex2bytes,
 		// contentId: contentIdUint256Hex as Uint256,
 	};
+};
+
+export const validateMessage = (mailer: IEVMMailerContractLink, message: IEVMMessage | null) => {
+	if (!message) {
+		return;
+	}
+	try {
+		const decodedId = decodeEvmMsgId(message.msgId);
+		if (decodedId.contractId === mailer.id) {
+			return;
+		}
+	} catch (e) {
+		// ignore
+	}
+	throw new Error('Invalid message: not from this contract');
 };

@@ -10,12 +10,13 @@ import { describe, it, before } from 'mocha';
 import { mine } from '@nomicfoundation/hardhat-network-helpers';
 import { YlideMailerV8, YlideMailerV8__factory } from '@ylide/ethereum-contracts';
 import { EthereumBlockchainReader } from '../src/controllers/helpers/EthereumBlockchainReader';
-import { EthereumMailerV8Wrapper } from '../src/contract-wrappers/EthereumMailerV8Wrapper';
+import { EthereumMailerV8Wrapper } from '../src/contract-wrappers/v8/EthereumMailerV8Wrapper';
 import { EVMMailerContractType, IEVMMailerContractLink, IEVMMessage } from '../src';
 import { Uint256, YLIDE_MAIN_FEED_ID } from '@ylide/sdk';
 import { decodeContentId } from '../src/misc/contentId';
 
 describe('YlideMailerV8', function () {
+	this.timeout('2000s');
 	it('Should deploy', async function () {
 		const signer = await hre.ethers.getSigner('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
 		const mailerFactory = new YlideMailerV8__factory(signer);
@@ -24,16 +25,16 @@ describe('YlideMailerV8', function () {
 
 	describe('EthereumBlockchainReader', async function () {
 		let ownerSigner: Signer;
-		let benificiarySigner: Signer;
+		let beneficiarySigner: Signer;
 		let userSigner: Signer;
 
 		let readerForOwner: EthereumBlockchainReader;
-		let readerForBenificiary: EthereumBlockchainReader;
+		let readerForBeneficiary: EthereumBlockchainReader;
 		let readerForUser: EthereumBlockchainReader;
 
 		before(async function () {
 			ownerSigner = await hre.ethers.getSigner('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
-			benificiarySigner = await hre.ethers.getSigner('0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC');
+			beneficiarySigner = await hre.ethers.getSigner('0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC');
 			userSigner = await hre.ethers.getSigner('0x70997970C51812dc3A010C7d01b50e0d17dc79C8');
 
 			readerForOwner = EthereumBlockchainReader.createEthereumBlockchainReader([
@@ -42,9 +43,9 @@ describe('YlideMailerV8', function () {
 					blockLimit: 100,
 				},
 			]);
-			readerForBenificiary = EthereumBlockchainReader.createEthereumBlockchainReader([
+			readerForBeneficiary = EthereumBlockchainReader.createEthereumBlockchainReader([
 				{
-					rpcUrlOrProvider: benificiarySigner.provider!,
+					rpcUrlOrProvider: beneficiarySigner.provider!,
 					blockLimit: 100,
 				},
 			]);
@@ -75,51 +76,51 @@ describe('YlideMailerV8', function () {
 				it('Set & get owner', async function () {
 					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
 
-					const ownerBeforeTxToSet = await ownerMailerV8Wrapper.getOwner(mailerDesc);
+					const ownerBeforeTxToSet = await ownerMailerV8Wrapper.globals.getOwner(mailerDesc);
 
 					expect(ownerBeforeTxToSet, 'Owner before tx to set must be zero-address').to.equal(
 						await ownerSigner.getAddress(),
 					);
 
-					const txToSet = await ownerMailerV8Wrapper.setOwner(
+					const txToSet = await ownerMailerV8Wrapper.globals.setOwner(
 						mailerDesc,
 						ownerSigner,
 						await ownerSigner.getAddress(),
 						await userSigner.getAddress(),
 					);
 
-					const ownerAfterTxToSet = await ownerMailerV8Wrapper.getOwner(mailerDesc);
+					const ownerAfterTxToSet = await ownerMailerV8Wrapper.globals.getOwner(mailerDesc);
 
 					expect(ownerAfterTxToSet, 'Owner after tx to set must be user address').to.equal(
 						await userSigner.getAddress(),
 					);
 				});
-				it('Set & get benificiary', async function () {
+				it('Set & get beneficiary', async function () {
 					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
 
-					const benificiaryBeforeTxToSet = await ownerMailerV8Wrapper.getBenificiary(mailerDesc);
+					const beneficiaryBeforeTxToSet = await ownerMailerV8Wrapper.globals.getBeneficiary(mailerDesc);
 
-					expect(benificiaryBeforeTxToSet, 'Benificiary before tx to set must be owner address').to.equal(
+					expect(beneficiaryBeforeTxToSet, 'Beneficiary before tx to set must be owner address').to.equal(
 						await ownerSigner.getAddress(),
 					);
 
-					const txToSet = await ownerMailerV8Wrapper.setBenificiary(
+					const txToSet = await ownerMailerV8Wrapper.globals.setBeneficiary(
 						mailerDesc,
 						ownerSigner,
 						await ownerSigner.getAddress(),
 						await userSigner.getAddress(),
 					);
 
-					const benificiaryAfterTxToSet = await ownerMailerV8Wrapper.getBenificiary(mailerDesc);
+					const beneficiaryAfterTxToSet = await ownerMailerV8Wrapper.globals.getBeneficiary(mailerDesc);
 
-					expect(benificiaryAfterTxToSet, 'Benificiary after tx to set must be user address').to.equal(
+					expect(beneficiaryAfterTxToSet, 'Beneficiary after tx to set must be user address').to.equal(
 						await userSigner.getAddress(),
 					);
 				});
 				it('Set & get fees', async function () {
 					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
 
-					const feesBeforeTxToSet = await ownerMailerV8Wrapper.getFees(mailerDesc);
+					const feesBeforeTxToSet = await ownerMailerV8Wrapper.globals.getFees(mailerDesc);
 					expect(
 						feesBeforeTxToSet.contentPartFee.toNumber(),
 						'Content part fee before tx to set must be zero',
@@ -132,7 +133,7 @@ describe('YlideMailerV8', function () {
 						feesBeforeTxToSet.broadcastFee.toNumber(),
 						'Broadcast fee before tx to set must be zero',
 					).to.equal(0);
-					const txToSet = await ownerMailerV8Wrapper.setFees(
+					const txToSet = await ownerMailerV8Wrapper.globals.setFees(
 						mailerDesc,
 						ownerSigner,
 						await ownerSigner.getAddress(),
@@ -142,7 +143,7 @@ describe('YlideMailerV8', function () {
 							broadcastFee: BigNumber.from(3),
 						},
 					);
-					const feesAfterTxToSet = await ownerMailerV8Wrapper.getFees(mailerDesc);
+					const feesAfterTxToSet = await ownerMailerV8Wrapper.globals.getFees(mailerDesc);
 					expect(
 						feesAfterTxToSet.contentPartFee.toNumber(),
 						'Content part fee after tx to set must be 1',
@@ -155,6 +156,532 @@ describe('YlideMailerV8', function () {
 						feesAfterTxToSet.broadcastFee.toNumber(),
 						'Broadcast fee after tx to set must be 3',
 					).to.equal(3);
+				});
+				it('Set & get prices', async function () {
+					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
+
+					const pricesBeforeTxToSet = await ownerMailerV8Wrapper.globals.getPrices(mailerDesc);
+
+					expect(
+						pricesBeforeTxToSet.broadcastFeedCreationPrice,
+						'Broadcast feed creation price before tx to set must be zero',
+					).to.equal('0');
+					expect(
+						pricesBeforeTxToSet.mailingFeedCreationPrice,
+						'Mailing feed creation price before tx to set must be zero',
+					).to.equal('0');
+
+					const txToSet = await ownerMailerV8Wrapper.globals.setPrices(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						{
+							broadcastFeedCreationPrice: '1',
+							mailingFeedCreationPrice: '2',
+						},
+					);
+
+					const pricesAfterTxToSet = await ownerMailerV8Wrapper.globals.getPrices(mailerDesc);
+
+					expect(
+						pricesAfterTxToSet.broadcastFeedCreationPrice,
+						'Broadcast feed creation price after tx to set must be 1',
+					).to.equal('1');
+					expect(
+						pricesAfterTxToSet.mailingFeedCreationPrice,
+						'Mailing feed creation price after tx to set must be 2',
+					).to.equal('2');
+				});
+			});
+			describe('Feed management', function () {
+				it('Create & manage mailing feed', async function () {
+					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+
+					const { feedId } = await userMailerV8Wrapper.mailing.createMailingFeed(
+						mailerDesc,
+						userSigner,
+						await userSigner.getAddress(),
+						BigNumber.from(0),
+					);
+
+					expect(feedId).not.to.be.null;
+
+					const feed = await userMailerV8Wrapper.mailing.getMailingFeedParams(mailerDesc, feedId!);
+
+					expect(feed.owner, 'Feed owner must be user address').to.equal(await userSigner.getAddress());
+					expect(feed.recipientFee.toNumber(), 'Feed recipient fee must be zero').to.equal(0);
+					expect(feed.beneficiary, 'Feed beneficiary must be user address').to.equal(
+						await userSigner.getAddress(),
+					);
+
+					await userMailerV8Wrapper.mailing.setMailingFeedOwner(
+						mailerDesc,
+						userSigner,
+						await userSigner.getAddress(),
+						feedId!,
+						await ownerSigner.getAddress(),
+					);
+
+					const feed2 = await userMailerV8Wrapper.mailing.getMailingFeedParams(mailerDesc, feedId!);
+
+					expect(feed2.owner, 'Feed owner must be owner address').to.equal(await ownerSigner.getAddress());
+
+					await userMailerV8Wrapper.mailing.setMailingFeedFees(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						feedId!,
+						{
+							recipientFee: BigNumber.from(1),
+						},
+					);
+
+					const feed3 = await userMailerV8Wrapper.mailing.getMailingFeedParams(mailerDesc, feedId!);
+
+					expect(feed3.recipientFee.toNumber(), 'Feed recipient fee must be 1').to.equal(1);
+
+					await userMailerV8Wrapper.mailing.setMailingFeedBeneficiary(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						feedId!,
+						await beneficiarySigner.getAddress(),
+					);
+
+					const feed4 = await userMailerV8Wrapper.mailing.getMailingFeedParams(mailerDesc, feedId!);
+
+					expect(feed4.beneficiary, 'Feed beneficiary must be beneficiary address').to.equal(
+						await beneficiarySigner.getAddress(),
+					);
+				});
+				it('Create & send and receive messages in mailing feed', async function () {
+					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
+
+					const { feedId } = await userMailerV8Wrapper.mailing.createMailingFeed(
+						mailerDesc,
+						userSigner,
+						await userSigner.getAddress(),
+						BigNumber.from(0),
+					);
+
+					const uniqueId = 123;
+					const recipientHex = '1234567890123456789012345678901234567890123456789012345678901234' as Uint256;
+					const key = new Uint8Array([1, 2, 3, 4, 5, 6]);
+					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
+
+					await mine(129);
+
+					const { tx, receipt, logs } = await userMailerV8Wrapper.mailing.sendSmallMail(
+						mailerDesc,
+						userSigner,
+						await userSigner.getAddress(),
+						feedId!,
+						uniqueId,
+						recipientHex,
+						key,
+						content,
+						BigNumber.from(0),
+					);
+
+					expect(receipt, 'Receipt must be present').to.not.be.undefined;
+
+					const mailPush = logs.find(log => log.name === 'MailPush');
+					const messageContent = logs.find(log => log.name === 'MessageContent');
+
+					expect(mailPush, 'MailPush event must be present').to.not.be.undefined;
+					expect(mailPush!.args.sender, 'Sender must be user address').to.equal(
+						await userSigner.getAddress(),
+					);
+					expect(
+						mailPush!.args.recipient.toHexString(),
+						'Recipient must be 0x1234567890123456789012345678901234567890123456789012345678901234',
+					).to.equal('0x1234567890123456789012345678901234567890123456789012345678901234');
+					expect(mailPush!.args.key, 'Key must be 0x010203040506').to.equal('0x010203040506');
+					expect(
+						mailPush!.args.previousFeedEventsIndex.toNumber(),
+						'previousFeedEventsIndex must be 0',
+					).to.equal(0);
+
+					const contentId = decodeContentId(mailPush!.args.contentId.toHexString());
+					expect(contentId.version, 'Version must be 8').to.equal(8);
+					expect(contentId.partsCount, 'Parts count must be 1').to.equal(1);
+					expect(contentId.blockCountLock, 'Block count lock must be 0').to.equal(0);
+
+					expect(messageContent, 'MessageContent event must be present').to.not.be.undefined;
+					expect(messageContent!.args.content, 'Content must be 0x080708070807').to.equal('0x080708070807');
+					expect(messageContent!.args.sender, 'Sender must be user address').to.equal(
+						await userSigner.getAddress(),
+					);
+					expect(messageContent!.args.parts, 'Parts must be 1').to.equal(1);
+					expect(messageContent!.args.partIdx, 'partIdx must be 0').to.equal(0);
+
+					// retrieve:
+
+					const msgs = await userMailerV8Wrapper.mailing.retrieveMailHistoryDesc(
+						mailerDesc,
+						feedId!,
+						'1234567890123456789012345678901234567890123456789012345678901234' as Uint256,
+						null,
+						false,
+						null,
+						false,
+						10,
+					);
+
+					expect(msgs.length, 'Messages count must be 1').to.equal(1);
+					expect(msgs[0].feedId, 'Feed id must be new feedId').to.equal(feedId);
+					expect(msgs[0].key.join(','), 'Key must be 1,2,3,4,5,6').to.equal('1,2,3,4,5,6');
+				});
+				it('Create & manage broadcast feed', async function () {
+					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+
+					const { feedId: feedId1 } = await userMailerV8Wrapper.broadcast.createBroadcastFeed(
+						mailerDesc,
+						userSigner,
+						await userSigner.getAddress(),
+						true,
+						BigNumber.from(0),
+					);
+
+					expect(feedId1).not.to.be.null;
+
+					const feed1 = await userMailerV8Wrapper.broadcast.getBroadcastFeedParams(mailerDesc, feedId1!);
+					const isUserWriter = await userMailerV8Wrapper.broadcast.isBroadcastFeedWriter(
+						mailerDesc,
+						feedId1!,
+						await userSigner.getAddress(),
+					);
+					const isOwnerWriter = await userMailerV8Wrapper.broadcast.isBroadcastFeedWriter(
+						mailerDesc,
+						feedId1!,
+						await ownerSigner.getAddress(),
+					);
+
+					expect(feed1.owner, 'Feed owner must be user address').to.equal(await userSigner.getAddress());
+					expect(feed1.isPublic, 'Feed isPublic must be true').to.be.true;
+					expect(isUserWriter, 'User must be writer').to.be.true;
+					expect(isOwnerWriter, 'Owner must not be writer').to.be.false;
+
+					await userMailerV8Wrapper.broadcast.addBroadcastFeedWriter(
+						mailerDesc,
+						userSigner,
+						await userSigner.getAddress(),
+						feedId1!,
+						await ownerSigner.getAddress(),
+					);
+
+					const isOwnerWriterAfterAdd = await userMailerV8Wrapper.broadcast.isBroadcastFeedWriter(
+						mailerDesc,
+						feedId1!,
+						await ownerSigner.getAddress(),
+					);
+
+					expect(isOwnerWriterAfterAdd, 'Owner must be writer').to.be.true;
+
+					await userMailerV8Wrapper.broadcast.removeBroadcastFeedWriter(
+						mailerDesc,
+						userSigner,
+						await userSigner.getAddress(),
+						feedId1!,
+						await userSigner.getAddress(),
+					);
+
+					const isUserWriterAfterRemove = await userMailerV8Wrapper.broadcast.isBroadcastFeedWriter(
+						mailerDesc,
+						feedId1!,
+						await userSigner.getAddress(),
+					);
+
+					expect(isUserWriterAfterRemove, 'User must not be writer').to.be.false;
+
+					await userMailerV8Wrapper.broadcast.setBroadcastFeedPublicity(
+						mailerDesc,
+						userSigner,
+						await userSigner.getAddress(),
+						feedId1!,
+						false,
+					);
+
+					const feed1AfterChange = await userMailerV8Wrapper.broadcast.getBroadcastFeedParams(
+						mailerDesc,
+						feedId1!,
+					);
+
+					expect(feed1AfterChange.isPublic, 'Feed isPublic must be false').to.be.false;
+
+					await userMailerV8Wrapper.broadcast.setBroadcastFeedOwner(
+						mailerDesc,
+						userSigner,
+						await userSigner.getAddress(),
+						feedId1!,
+						await ownerSigner.getAddress(),
+					);
+
+					const feed1AfterTransfer = await userMailerV8Wrapper.broadcast.getBroadcastFeedParams(
+						mailerDesc,
+						feedId1!,
+					);
+
+					expect(feed1AfterTransfer.owner, 'Feed owner must be owner address').to.equal(
+						await ownerSigner.getAddress(),
+					);
+				});
+				it('Create & send and receive broadcast', async function () {
+					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
+
+					const { feedId: feedId1 } = await userMailerV8Wrapper.broadcast.createBroadcastFeed(
+						mailerDesc,
+						userSigner,
+						await userSigner.getAddress(),
+						true,
+						BigNumber.from(0),
+					);
+
+					expect(feedId1).not.to.be.null;
+
+					const uniqueId = 123;
+					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
+
+					await mine(129);
+
+					const { tx, receipt, logs } = await userMailerV8Wrapper.broadcast.sendBroadcast(
+						mailerDesc,
+						userSigner,
+						await userSigner.getAddress(),
+						feedId1!,
+						uniqueId,
+						content,
+						BigNumber.from(0),
+					);
+
+					expect(receipt, 'Receipt must be present').to.not.be.undefined;
+					expect(receipt.status, 'Receipt status must be 1').to.equal(1);
+
+					const broadcastPush = logs.find(log => log.name === 'BroadcastPush');
+					const messageContent = logs.find(log => log.name === 'MessageContent');
+
+					expect(broadcastPush, 'BroadcastPush event must be present').to.not.be.undefined;
+					expect(broadcastPush!.args.sender, 'Sender must be user address').to.equal(
+						await userSigner.getAddress(),
+					);
+					expect(
+						broadcastPush!.args.previousFeedEventsIndex.toNumber(),
+						'previousFeedEventsIndex must be 0',
+					).to.equal(0);
+
+					const contentId = decodeContentId(broadcastPush!.args.contentId.toHexString());
+					expect(contentId.version, 'Version must be 8').to.equal(8);
+					expect(contentId.partsCount, 'Parts count must be 1').to.equal(1);
+					expect(contentId.blockCountLock, 'Block count lock must be 0').to.equal(0);
+
+					expect(messageContent, 'MessageContent event must be present').to.not.be.undefined;
+					expect(messageContent!.args.content, 'Content must be 0x080708070807').to.equal('0x080708070807');
+					expect(messageContent!.args.sender, 'Sender must be user address').to.equal(
+						await userSigner.getAddress(),
+					);
+					expect(messageContent!.args.parts, 'Parts must be 1').to.equal(1);
+					expect(messageContent!.args.partIdx, 'partIdx must be 0').to.equal(0);
+
+					const msgs = await userMailerV8Wrapper.broadcast.retrieveBroadcastHistoryDesc(
+						mailerDesc,
+						feedId1!,
+						null,
+						false,
+						null,
+						false,
+						10,
+					);
+
+					expect(msgs.length, 'Messages count must be 1').to.equal(1);
+					expect(msgs[0].senderAddress, 'Sender must be user address').to.equal(
+						await userSigner.getAddress(),
+					);
+					expect(msgs[0].isBroadcast, 'isBroadcast must be true').to.be.true;
+
+					const retrievedContent = await userMailerV8Wrapper.content.retrieveMessageContent(
+						mailerDesc,
+						msgs[0],
+					);
+
+					expect(retrievedContent).not.to.be.null;
+					if (retrievedContent === null) {
+						return;
+					}
+					expect(retrievedContent.corrupted, 'Content must not be corrupted').to.be.false;
+					if (retrievedContent.corrupted) {
+						return;
+					}
+
+					expect(retrievedContent.content.join(','), 'Content must be 8,7,8,7,8,7').to.equal('8,7,8,7,8,7');
+
+					await userMailerV8Wrapper.broadcast.setBroadcastFeedPublicity(
+						mailerDesc,
+						userSigner,
+						await userSigner.getAddress(),
+						feedId1!,
+						false,
+					);
+
+					let wasError = false;
+
+					try {
+						const {
+							tx: tx2,
+							receipt: receipt2,
+							logs: logs2,
+						} = await userMailerV8Wrapper.broadcast.sendBroadcast(
+							mailerDesc,
+							ownerSigner,
+							await ownerSigner.getAddress(),
+							feedId1!,
+							uniqueId + 1,
+							content,
+							BigNumber.from(0),
+						);
+					} catch (err: any) {
+						wasError = true;
+						expect(err, 'Error must be present').to.not.be.undefined;
+						expect(err.reason, 'Error reason must be correct').to.equal(
+							"VM Exception while processing transaction: reverted with reason string 'You are not allowed to write to this feed'",
+						);
+					}
+
+					expect(wasError, 'Error must be thrown').to.be.true;
+
+					await userMailerV8Wrapper.broadcast.addBroadcastFeedWriter(
+						mailerDesc,
+						userSigner,
+						await userSigner.getAddress(),
+						feedId1!,
+						await ownerSigner.getAddress(),
+					);
+
+					const {
+						tx: tx3,
+						receipt: receipt3,
+						logs: logs3,
+					} = await userMailerV8Wrapper.broadcast.sendBroadcast(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						feedId1!,
+						uniqueId + 1,
+						content,
+						BigNumber.from(0),
+					);
+
+					expect(receipt3, 'Receipt must be present').to.not.be.undefined;
+					expect(receipt3.status, 'Receipt status must be 1').to.equal(1);
+				});
+				it('Create priced feeds', async function () {
+					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
+
+					const txToSet = await ownerMailerV8Wrapper.globals.setPrices(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						{
+							broadcastFeedCreationPrice: '10',
+							mailingFeedCreationPrice: '20',
+						},
+					);
+
+					let wasError1 = false;
+
+					try {
+						await ownerMailerV8Wrapper.broadcast.createBroadcastFeed(
+							mailerDesc,
+							ownerSigner,
+							await ownerSigner.getAddress(),
+							true,
+							BigNumber.from(0),
+						);
+					} catch (err: any) {
+						wasError1 = true;
+						expect(err, 'Error must be present').to.not.be.undefined;
+						expect(err.reason, 'Error reason must be correct').to.equal(
+							'Transaction reverted without a reason string',
+						);
+					}
+
+					expect(wasError1, 'Error must be thrown').to.be.true;
+
+					let wasError2 = false;
+
+					try {
+						await ownerMailerV8Wrapper.broadcast.createBroadcastFeed(
+							mailerDesc,
+							ownerSigner,
+							await ownerSigner.getAddress(),
+							true,
+							BigNumber.from(5),
+						);
+					} catch (err: any) {
+						wasError2 = true;
+						expect(err, 'Error must be present').to.not.be.undefined;
+						expect(err.reason, 'Error reason must be correct').to.equal(
+							'Transaction reverted without a reason string',
+						);
+					}
+
+					expect(wasError2, 'Error must be thrown').to.be.true;
+
+					await ownerMailerV8Wrapper.broadcast.createBroadcastFeed(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						true,
+						BigNumber.from(10),
+					);
+
+					// TODO: mailing
+
+					let wasError4 = false;
+
+					try {
+						await ownerMailerV8Wrapper.mailing.createMailingFeed(
+							mailerDesc,
+							ownerSigner,
+							await ownerSigner.getAddress(),
+							BigNumber.from(0),
+						);
+					} catch (err: any) {
+						wasError4 = true;
+						expect(err, 'Error must be present').to.not.be.undefined;
+						expect(err.reason, 'Error reason must be correct').to.equal(
+							'Transaction reverted without a reason string',
+						);
+					}
+
+					expect(wasError4, 'Error must be thrown').to.be.true;
+
+					let wasError5 = false;
+
+					try {
+						await ownerMailerV8Wrapper.mailing.createMailingFeed(
+							mailerDesc,
+							ownerSigner,
+							await ownerSigner.getAddress(),
+							BigNumber.from(15),
+						);
+					} catch (err: any) {
+						wasError5 = true;
+						expect(err, 'Error must be present').to.not.be.undefined;
+						expect(err.reason, 'Error reason must be correct').to.equal(
+							'Transaction reverted without a reason string',
+						);
+					}
+
+					expect(wasError5, 'Error must be thrown').to.be.true;
+
+					await ownerMailerV8Wrapper.mailing.createMailingFeed(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						BigNumber.from(20),
+					);
 				});
 			});
 			describe('Sending messages', function () {
@@ -172,7 +699,7 @@ describe('YlideMailerV8', function () {
 					const key = new Uint8Array([1, 2, 3, 4, 5, 6]);
 					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
 
-					const { tx, receipt, logs } = await userMailerV8Wrapper.sendSmallMail(
+					const { tx, receipt, logs } = await userMailerV8Wrapper.mailing.sendSmallMail(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -181,6 +708,7 @@ describe('YlideMailerV8', function () {
 						recipientHex,
 						key,
 						content,
+						BigNumber.from(0),
 					);
 
 					expect(receipt, 'Receipt must be present').to.not.be.undefined;
@@ -225,7 +753,7 @@ describe('YlideMailerV8', function () {
 					const key2 = new Uint8Array([6, 5, 4, 3, 2, 1]);
 					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
 
-					const { tx, receipt, logs } = await userMailerV8Wrapper.sendBulkMail(
+					const { tx, receipt, logs } = await userMailerV8Wrapper.mailing.sendBulkMail(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -234,6 +762,7 @@ describe('YlideMailerV8', function () {
 						[recipient1Hex, recipient2Hex],
 						[key1, key2],
 						content,
+						BigNumber.from(0),
 					);
 
 					expect(receipt, 'Receipt must be present').to.not.be.undefined;
@@ -305,7 +834,7 @@ describe('YlideMailerV8', function () {
 						tx: tx1,
 						receipt: receipt1,
 						logs: logs1,
-					} = await userMailerV8Wrapper.sendMessageContentPart(
+					} = await userMailerV8Wrapper.content.sendMessageContentPart(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -315,13 +844,14 @@ describe('YlideMailerV8', function () {
 						2,
 						0,
 						content1,
+						BigNumber.from(0),
 					);
 
 					const {
 						tx: tx2,
 						receipt: receipt2,
 						logs: logs2,
-					} = await userMailerV8Wrapper.sendMessageContentPart(
+					} = await userMailerV8Wrapper.content.sendMessageContentPart(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -331,6 +861,7 @@ describe('YlideMailerV8', function () {
 						2,
 						1,
 						content2,
+						BigNumber.from(0),
 					);
 
 					expect(receipt1, 'Receipt must be present').to.not.be.undefined;
@@ -361,7 +892,7 @@ describe('YlideMailerV8', function () {
 						tx: tx3,
 						receipt: receipt3,
 						logs: logs3,
-					} = await userMailerV8Wrapper.addMailRecipients(
+					} = await userMailerV8Wrapper.mailing.addMailRecipients(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -372,6 +903,7 @@ describe('YlideMailerV8', function () {
 						100,
 						[recipient1Hex, recipient2Hex],
 						[key1, key2],
+						BigNumber.from(0),
 					);
 
 					expect(receipt3, 'Receipt must be present').to.not.be.undefined;
@@ -423,13 +955,14 @@ describe('YlideMailerV8', function () {
 					const uniqueId = 123;
 					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
 
-					const { tx, receipt, logs } = await userMailerV8Wrapper.sendBroadcast(
+					const { tx, receipt, logs } = await userMailerV8Wrapper.broadcast.sendBroadcast(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
 						'0000000000000000000000000000000000000000000000000000000000000002' as Uint256,
 						uniqueId,
 						content,
+						BigNumber.from(0),
 					);
 
 					expect(receipt, 'Receipt must be present').to.not.be.undefined;
@@ -472,7 +1005,7 @@ describe('YlideMailerV8', function () {
 						tx: tx1,
 						receipt: receipt1,
 						logs: logs1,
-					} = await userMailerV8Wrapper.sendMessageContentPart(
+					} = await userMailerV8Wrapper.content.sendMessageContentPart(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -482,13 +1015,14 @@ describe('YlideMailerV8', function () {
 						2,
 						0,
 						content1,
+						BigNumber.from(0),
 					);
 
 					const {
 						tx: tx2,
 						receipt: receipt2,
 						logs: logs2,
-					} = await userMailerV8Wrapper.sendMessageContentPart(
+					} = await userMailerV8Wrapper.content.sendMessageContentPart(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -498,6 +1032,7 @@ describe('YlideMailerV8', function () {
 						2,
 						1,
 						content2,
+						BigNumber.from(0),
 					);
 
 					expect(receipt1, 'Receipt must be present').to.not.be.undefined;
@@ -528,7 +1063,7 @@ describe('YlideMailerV8', function () {
 						tx: tx3,
 						receipt: receipt3,
 						logs: logs3,
-					} = await userMailerV8Wrapper.sendBroadcastHeader(
+					} = await userMailerV8Wrapper.broadcast.sendBroadcastHeader(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -537,6 +1072,7 @@ describe('YlideMailerV8', function () {
 						currentBlock,
 						2,
 						100,
+						BigNumber.from(0),
 					);
 
 					expect(receipt3, 'Receipt must be present').to.not.be.undefined;
@@ -575,6 +1111,7 @@ describe('YlideMailerV8', function () {
 							Uint256,
 							Uint8Array,
 							Uint8Array,
+							BigNumber,
 						];
 						uniqueId: number;
 						recipientHex: Uint256;
@@ -587,7 +1124,17 @@ describe('YlideMailerV8', function () {
 						const key = new Uint8Array([2, 7, 2, 7, 2, 7, i]);
 						const content = new Uint8Array([1, 3, 1, 3, 1, 3, i]);
 						events.push({
-							args: [d, s, a, YLIDE_MAIN_FEED_ID, uniqueId, recipientHex, key, content],
+							args: [
+								d,
+								s,
+								a,
+								YLIDE_MAIN_FEED_ID,
+								uniqueId,
+								recipientHex,
+								key,
+								content,
+								BigNumber.from(0),
+							],
 							uniqueId,
 							recipientHex,
 							key,
@@ -599,7 +1146,7 @@ describe('YlideMailerV8', function () {
 
 				const generateSmallBroadcastEvents = async (d: IEVMMailerContractLink, s: Signer, count: number) => {
 					const events: {
-						args: [IEVMMailerContractLink, Signer, string, Uint256, number, Uint8Array];
+						args: [IEVMMailerContractLink, Signer, string, Uint256, number, Uint8Array, BigNumber];
 						uniqueId: number;
 						content: Uint8Array;
 					}[] = [];
@@ -615,6 +1162,7 @@ describe('YlideMailerV8', function () {
 								'0000000000000000000000000000000000000000000000000000000000000002' as Uint256,
 								uniqueId,
 								content,
+								BigNumber.from(0),
 							],
 							uniqueId,
 							content,
@@ -632,7 +1180,7 @@ describe('YlideMailerV8', function () {
 						includeToMessage: boolean,
 						limit: number,
 					) =>
-						m.retrieveMailHistoryDesc(
+						m.mailing.retrieveMailHistoryDesc(
 							mailerDesc,
 							YLIDE_MAIN_FEED_ID,
 							r,
@@ -652,7 +1200,7 @@ describe('YlideMailerV8', function () {
 						includeToMessage: boolean,
 						limit: number,
 					) =>
-						m.retrieveBroadcastHistoryDesc(
+						m.broadcast.retrieveBroadcastHistoryDesc(
 							mailerDesc,
 							'0000000000000000000000000000000000000000000000000000000000000002' as Uint256,
 							fromMessage,
@@ -703,6 +1251,7 @@ describe('YlideMailerV8', function () {
 							Uint256,
 							Uint8Array,
 							Uint8Array,
+							BigNumber,
 						];
 						uniqueId: number;
 						recipientHex: Uint256;
@@ -714,7 +1263,7 @@ describe('YlideMailerV8', function () {
 						await mine(skipBefore);
 					}
 					for (const event of events) {
-						await m.sendSmallMail(...event.args);
+						await m.mailing.sendSmallMail(...event.args);
 						if (skipBetween) {
 							await mine(skipBetween);
 						}
@@ -730,7 +1279,7 @@ describe('YlideMailerV8', function () {
 					skipBetween: number,
 					skipAfter: number,
 					events: {
-						args: [IEVMMailerContractLink, Signer, string, Uint256, number, Uint8Array];
+						args: [IEVMMailerContractLink, Signer, string, Uint256, number, Uint8Array, BigNumber];
 						uniqueId: number;
 						content: Uint8Array;
 					}[],
@@ -739,7 +1288,7 @@ describe('YlideMailerV8', function () {
 						await mine(skipBefore);
 					}
 					for (const event of events) {
-						await m.sendBroadcast(...event.args);
+						await m.broadcast.sendBroadcast(...event.args);
 						if (skipBetween) {
 							await mine(skipBetween);
 						}
@@ -835,6 +1384,7 @@ describe('YlideMailerV8', function () {
 					});
 
 					it('Send & retrieve messages history 5 fromMessage includes', async () => {
+						this.timeout('2000s');
 						await publishMails(userMailerV8Wrapper, 129, 0, 300, events);
 
 						const slice2 = rEvents.slice(0, 15); // last 15 events
@@ -849,6 +1399,7 @@ describe('YlideMailerV8', function () {
 					});
 
 					it('Send & retrieve messages history 5 fromMessage includes, long period', async () => {
+						this.timeout('2000s');
 						await publishMails(userMailerV8Wrapper, 129, 101, 300, events);
 
 						const slice2 = rEvents.slice(0, 15); // last 15 events
@@ -863,6 +1414,7 @@ describe('YlideMailerV8', function () {
 					});
 
 					it('Send & retrieve messages history 5 fromMessage includes, toMessage includes', async () => {
+						this.timeout('2000s');
 						await publishMails(userMailerV8Wrapper, 129, 0, 300, events);
 
 						const slice2 = rEvents.slice(0, 15); // last 15 events
@@ -882,6 +1434,7 @@ describe('YlideMailerV8', function () {
 					});
 
 					it('Send & retrieve messages history 5 fromMessage includes, toMessage includes, long period', async () => {
+						this.timeout('2000s');
 						await publishMails(userMailerV8Wrapper, 129, 101, 300, events);
 
 						const slice2 = rEvents.slice(0, 15); // last 15 events
@@ -985,6 +1538,7 @@ describe('YlideMailerV8', function () {
 					});
 
 					it('Send & retrieve messages history 5 fromMessage includes', async () => {
+						this.timeout('2000s');
 						await publishBroadcasts(userMailerV8Wrapper, 129, 0, 300, events);
 
 						const slice2 = rEvents.slice(0, 15); // last 15 events
@@ -999,6 +1553,7 @@ describe('YlideMailerV8', function () {
 					});
 
 					it('Send & retrieve messages history 5 fromMessage includes, long period', async () => {
+						this.timeout('2000s');
 						await publishBroadcasts(userMailerV8Wrapper, 129, 101, 300, events);
 
 						const slice2 = rEvents.slice(0, 15); // last 15 events
@@ -1013,6 +1568,7 @@ describe('YlideMailerV8', function () {
 					});
 
 					it('Send & retrieve messages history 5 fromMessage includes, toMessage includes', async () => {
+						this.timeout('2000s');
 						await publishBroadcasts(userMailerV8Wrapper, 129, 0, 300, events);
 
 						const slice2 = rEvents.slice(0, 15); // last 15 events
@@ -1032,6 +1588,7 @@ describe('YlideMailerV8', function () {
 					});
 
 					it('Send & retrieve messages history 5 fromMessage includes, toMessage includes, long period', async () => {
+						this.timeout('2000s');
 						await publishBroadcasts(userMailerV8Wrapper, 129, 101, 300, events);
 
 						const slice2 = rEvents.slice(0, 15); // last 15 events
@@ -1058,7 +1615,7 @@ describe('YlideMailerV8', function () {
 					const key = new Uint8Array([1, 2, 3, 4, 5, 6]);
 					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
 
-					const { tx, receipt, logs } = await userMailerV8Wrapper.sendSmallMail(
+					const { tx, receipt, logs } = await userMailerV8Wrapper.mailing.sendSmallMail(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -1067,6 +1624,7 @@ describe('YlideMailerV8', function () {
 						recipientHex,
 						key,
 						content,
+						BigNumber.from(0),
 					);
 
 					expect(receipt, 'Receipt must be present').to.not.be.undefined;
@@ -1099,7 +1657,7 @@ describe('YlideMailerV8', function () {
 					const key2 = new Uint8Array([6, 5, 4, 3, 2, 1]);
 					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
 
-					const { tx, receipt, logs } = await userMailerV8Wrapper.sendBulkMail(
+					const { tx, receipt, logs } = await userMailerV8Wrapper.mailing.sendBulkMail(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -1108,6 +1666,7 @@ describe('YlideMailerV8', function () {
 						[recipient1Hex, recipient2Hex],
 						[key1, key2],
 						content,
+						BigNumber.from(0),
 					);
 
 					expect(receipt, 'Receipt must be present').to.not.be.undefined;
@@ -1179,7 +1738,7 @@ describe('YlideMailerV8', function () {
 						tx: tx1,
 						receipt: receipt1,
 						logs: logs1,
-					} = await userMailerV8Wrapper.sendMessageContentPart(
+					} = await userMailerV8Wrapper.content.sendMessageContentPart(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -1189,13 +1748,14 @@ describe('YlideMailerV8', function () {
 						2,
 						0,
 						content1,
+						BigNumber.from(0),
 					);
 
 					const {
 						tx: tx2,
 						receipt: receipt2,
 						logs: logs2,
-					} = await userMailerV8Wrapper.sendMessageContentPart(
+					} = await userMailerV8Wrapper.content.sendMessageContentPart(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -1205,6 +1765,7 @@ describe('YlideMailerV8', function () {
 						2,
 						1,
 						content2,
+						BigNumber.from(0),
 					);
 
 					expect(receipt1, 'Receipt must be present').to.not.be.undefined;
@@ -1235,7 +1796,7 @@ describe('YlideMailerV8', function () {
 						tx: tx3,
 						receipt: receipt3,
 						logs: logs3,
-					} = await userMailerV8Wrapper.addMailRecipients(
+					} = await userMailerV8Wrapper.mailing.addMailRecipients(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -1246,6 +1807,7 @@ describe('YlideMailerV8', function () {
 						100,
 						[recipient1Hex, recipient2Hex],
 						[key1, key2],
+						BigNumber.from(0),
 					);
 
 					expect(receipt3, 'Receipt must be present').to.not.be.undefined;
@@ -1297,13 +1859,14 @@ describe('YlideMailerV8', function () {
 					const uniqueId = 123;
 					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
 
-					const { tx, receipt, logs } = await userMailerV8Wrapper.sendBroadcast(
+					const { tx, receipt, logs } = await userMailerV8Wrapper.broadcast.sendBroadcast(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
 						'0000000000000000000000000000000000000000000000000000000000000002' as Uint256,
 						uniqueId,
 						content,
+						BigNumber.from(0),
 					);
 
 					expect(receipt, 'Receipt must be present').to.not.be.undefined;
@@ -1346,7 +1909,7 @@ describe('YlideMailerV8', function () {
 						tx: tx1,
 						receipt: receipt1,
 						logs: logs1,
-					} = await userMailerV8Wrapper.sendMessageContentPart(
+					} = await userMailerV8Wrapper.content.sendMessageContentPart(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -1356,13 +1919,14 @@ describe('YlideMailerV8', function () {
 						2,
 						0,
 						content1,
+						BigNumber.from(0),
 					);
 
 					const {
 						tx: tx2,
 						receipt: receipt2,
 						logs: logs2,
-					} = await userMailerV8Wrapper.sendMessageContentPart(
+					} = await userMailerV8Wrapper.content.sendMessageContentPart(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -1372,6 +1936,7 @@ describe('YlideMailerV8', function () {
 						2,
 						1,
 						content2,
+						BigNumber.from(0),
 					);
 
 					expect(receipt1, 'Receipt must be present').to.not.be.undefined;
@@ -1402,7 +1967,7 @@ describe('YlideMailerV8', function () {
 						tx: tx3,
 						receipt: receipt3,
 						logs: logs3,
-					} = await userMailerV8Wrapper.sendBroadcastHeader(
+					} = await userMailerV8Wrapper.broadcast.sendBroadcastHeader(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
@@ -1411,6 +1976,7 @@ describe('YlideMailerV8', function () {
 						currentBlock,
 						2,
 						100,
+						BigNumber.from(0),
 					);
 
 					expect(receipt3, 'Receipt must be present').to.not.be.undefined;

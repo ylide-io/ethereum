@@ -1,6 +1,6 @@
-import { Event, Transaction } from 'ethers';
+import { ethers, Event, Transaction } from 'ethers';
 import { BlockWithTransactions } from '@ethersproject/abstract-provider';
-import { Block } from '@ethersproject/providers';
+import { Block, Log } from '@ethersproject/providers';
 import { TypedEvent } from '@ylide/ethereum-contracts/lib/common';
 
 import { IEVMBlock, IEVMEvent, IEVMTransaction } from '../../misc';
@@ -52,5 +52,31 @@ function ethersEventToInternalEvent(event: Event, argsTransform?: (args: any) =>
 		parsed: argsTransform ? argsTransform(event.args || {}) : event.args || {},
 	};
 }
+
+export const ethersLogToInternalEvent = <T>(
+	log: {
+		log: Log;
+		logDescription: ethers.utils.LogDescription;
+	},
+	argsTransform?: (args: any) => any,
+): IEVMEvent<T> => {
+	return {
+		blockNumber: log.log.blockNumber,
+		blockHash: log.log.blockHash,
+
+		transactionHash: log.log.transactionHash,
+		transactionIndex: log.log.transactionIndex,
+
+		logIndex: log.log.logIndex,
+
+		eventName: log.logDescription.name,
+		topics: log.log.topics,
+		data: log.log.data,
+
+		parsed: (argsTransform
+			? argsTransform(log.logDescription.args || {})
+			: log.logDescription.args || {}) as unknown as T,
+	};
+};
 
 export { ethersEventToInternalEvent };

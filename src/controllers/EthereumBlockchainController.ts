@@ -41,7 +41,7 @@ import { EthereumRegistryV6Wrapper } from '../contract-wrappers/EthereumRegistry
 
 import { EthereumMailerV6Wrapper } from '../contract-wrappers/EthereumMailerV6Wrapper';
 import { EthereumMailerV7Wrapper } from '../contract-wrappers/EthereumMailerV7Wrapper';
-import { EthereumMailerV8Wrapper } from '../contract-wrappers/EthereumMailerV8Wrapper';
+import { EthereumMailerV8Wrapper } from '../contract-wrappers/v8/EthereumMailerV8Wrapper';
 
 import { EVMMailerV6Source } from '../messages-sources/EVMMailerV6Source';
 import { EVMMailerV7Source } from '../messages-sources/EVMMailerV7Source';
@@ -225,19 +225,28 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			if (!(mailer.wrapper instanceof EthereumMailerV8Wrapper)) {
 				throw new Error('Broadcasts are only supported by mailer V8 and higher');
 			}
-			return await mailer.wrapper.getBroadcastPushEvent(
+			return await mailer.wrapper.broadcast.getBroadcastPushEvent(
 				mailer.link,
 				parsed.blockNumber,
 				parsed.txIndex,
 				parsed.logIndex,
 			);
 		} else {
-			return await mailer.wrapper.getMailPushEvent(
-				mailer.link,
-				parsed.blockNumber,
-				parsed.txIndex,
-				parsed.logIndex,
-			);
+			if (!(mailer.wrapper instanceof EthereumMailerV8Wrapper)) {
+				return await mailer.wrapper.getMailPushEvent(
+					mailer.link,
+					parsed.blockNumber,
+					parsed.txIndex,
+					parsed.logIndex,
+				);
+			} else {
+				return await mailer.wrapper.mailing.getMailPushEvent(
+					mailer.link,
+					parsed.blockNumber,
+					parsed.txIndex,
+					parsed.logIndex,
+				);
+			}
 		}
 	}
 
@@ -327,7 +336,11 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		if (!mailer) {
 			throw new Error('This message does not belongs to this blockchain controller');
 		}
-		return mailer.wrapper.retrieveMessageContent(mailer.link, msg);
+		if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+			return await mailer.wrapper.content.retrieveMessageContent(mailer.link, msg);
+		} else {
+			return mailer.wrapper.retrieveMessageContent(mailer.link, msg);
+		}
 	}
 
 	async extractPublicKeyFromAddress(address: string): Promise<ExternalYlidePublicKey | null> {

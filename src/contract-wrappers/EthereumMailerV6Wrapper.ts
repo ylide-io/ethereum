@@ -187,13 +187,13 @@ export class EthereumMailerV6Wrapper {
 		return { tx, receipt };
 	}
 
-	async getBenificiary(mailer: IEVMMailerContractLink): Promise<string> {
+	async getBeneficiary(mailer: IEVMMailerContractLink): Promise<string> {
 		return await this.cache.contractOperation(mailer, async contract => {
 			return await contract.beneficiary();
 		});
 	}
 
-	async setBenificiary(
+	async setBeneficiary(
 		mailer: IEVMMailerContractLink,
 		signer: ethers.Signer,
 		from: string,

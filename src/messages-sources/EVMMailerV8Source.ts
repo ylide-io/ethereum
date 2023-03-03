@@ -1,5 +1,5 @@
 import { GenericMessagesSource } from '@ylide/sdk';
-import { EthereumMailerV8Wrapper } from '../contract-wrappers/EthereumMailerV8Wrapper';
+import { EthereumMailerV8Wrapper } from '../contract-wrappers/v8/EthereumMailerV8Wrapper';
 import { EthereumBlockchainController } from '../controllers';
 import { IEVMMailerContractLink, IHistorySource } from '../misc';
 
@@ -15,7 +15,7 @@ export class EVMMailerV8Source extends GenericMessagesSource {
 			controller.compareMessagesTime,
 			source.type === 'recipient'
 				? (fromMessage, toMessage, limit) =>
-						wrapper.retrieveMailHistoryDesc(
+						wrapper.mailing.retrieveMailHistoryDesc(
 							mailer,
 							source.feedId,
 							source.recipient,
@@ -26,7 +26,7 @@ export class EVMMailerV8Source extends GenericMessagesSource {
 							limit,
 						)
 				: (fromMessage, toMessage, limit) =>
-						wrapper.retrieveBroadcastHistoryDesc(
+						wrapper.broadcast.retrieveBroadcastHistoryDesc(
 							mailer,
 							source.feedId,
 							fromMessage,

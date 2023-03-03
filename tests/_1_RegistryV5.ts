@@ -95,7 +95,7 @@ describe('YlideRegistryV5', function () {
 
 					const ownerBeforeTxToSet = await ownerRegistryV5Wrapper.getOwner(registryDesc);
 
-					expect(ownerBeforeTxToSet, 'Benificiary before tx to set must be zero-address').to.equal(
+					expect(ownerBeforeTxToSet, 'Beneficiary before tx to set must be zero-address').to.equal(
 						await ownerSigner.getAddress(),
 					);
 

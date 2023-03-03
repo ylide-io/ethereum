@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers';
 import {
 	PublicKeyType,
@@ -24,7 +24,6 @@ import {
 import SmartBuffer from '@ylide/smart-buffer';
 
 import {
-	EVMMailerContractType,
 	EVMNetwork,
 	EVM_CHAINS,
 	EVM_CHAIN_ID_TO_NETWORK,
@@ -40,7 +39,7 @@ import { EthereumBlockchainReader } from './helpers/EthereumBlockchainReader';
 
 import { EthereumMailerV6Wrapper } from '../contract-wrappers/EthereumMailerV6Wrapper';
 import { EthereumMailerV7Wrapper } from '../contract-wrappers/EthereumMailerV7Wrapper';
-import { EthereumMailerV8Wrapper } from '../contract-wrappers/EthereumMailerV8Wrapper';
+import { EthereumMailerV8Wrapper } from '../contract-wrappers/v8/EthereumMailerV8Wrapper';
 
 import { EthereumRegistryV3Wrapper } from '../contract-wrappers/EthereumRegistryV3Wrapper';
 import { EthereumRegistryV4Wrapper } from '../contract-wrappers/EthereumRegistryV4Wrapper';
@@ -290,8 +289,8 @@ export class EthereumWalletController extends AbstractWalletController {
 		return res;
 	}
 
-	private async ensureNetworkOptions(reason: string, options?: any) {
-		if (!options || !EVM_CONTRACTS[options.network as EVMNetwork]) {
+	private async ensureNetworkOptions(reason: string, options?: { network?: EVMNetwork }) {
+		if (!options || typeof options.network === 'undefined' || !EVM_CONTRACTS[options.network]) {
 			throw new Error(`Please, pass network param in options in order to execute this request`);
 		}
 		const { network: expectedNetwork } = options;
@@ -371,7 +370,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		publicKey: Uint8Array,
 		keyVersion: YlidePublicKeyVersion = YlidePublicKeyVersion.KEY_V2,
 		registrar: number = ServiceCode.SDK,
-		options?: any,
+		options?: { network?: EVMNetwork; value?: BigNumber },
 	) {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Attach public key', options);
@@ -411,7 +410,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		feedId: Uint256,
 		contentData: Uint8Array,
 		recipients: { address: Uint256; messageKey: MessageKey }[],
-		options?: any,
+		options?: { network?: EVMNetwork; value?: BigNumber },
 	): Promise<SendMailResult> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Publish message', options);
@@ -424,7 +423,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		if (chunks.length === 1 && recipients.length === 1) {
 			if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
 				console.log(`Sending small mail, chunk length: ${chunks[0].length} bytes`);
-				const { messages } = await mailer.wrapper.sendSmallMail(
+				const { messages } = await mailer.wrapper.mailing.sendSmallMail(
 					mailer.link,
 					this.signer,
 					me.address,
@@ -433,6 +432,7 @@ export class EthereumWalletController extends AbstractWalletController {
 					recipients[0].address,
 					recipients[0].messageKey.toBytes(),
 					chunks[0],
+					options?.value || BigNumber.from(0),
 				);
 				return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 			} else {
@@ -454,7 +454,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		} else if (chunks.length === 1 && recipients.length < Math.ceil((15.5 * 1024 - chunks[0].byteLength) / 70)) {
 			if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
 				console.log(`Sending bulk mail, chunk length: ${chunks[0].length} bytes`);
-				const { messages } = await mailer.wrapper.sendBulkMail(
+				const { messages } = await mailer.wrapper.mailing.sendBulkMail(
 					mailer.link,
 					this.signer,
 					me.address,
@@ -463,6 +463,7 @@ export class EthereumWalletController extends AbstractWalletController {
 					recipients.map(r => r.address),
 					recipients.map(r => r.messageKey.toBytes()),
 					chunks[0],
+					options?.value || BigNumber.from(0),
 				);
 				return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 			} else {
@@ -488,7 +489,7 @@ export class EthereumWalletController extends AbstractWalletController {
 				// const msgId = await mailer.buildHash(me.address, uniqueId, firstBlockNumber);
 				for (let i = 0; i < chunks.length; i++) {
 					console.log(`Sending multi mail, current chunk length: ${chunks[i].length} bytes`);
-					const { tx, receipt, logs } = await mailer.wrapper.sendMessageContentPart(
+					const { tx, receipt, logs } = await mailer.wrapper.content.sendMessageContentPart(
 						mailer.link,
 						this.signer,
 						me.address,
@@ -498,12 +499,13 @@ export class EthereumWalletController extends AbstractWalletController {
 						chunks.length,
 						i,
 						chunks[i],
+						options?.value || BigNumber.from(0),
 					);
 				}
 				const msgs: IEVMMessage[] = [];
 				for (let i = 0; i < recipients.length; i += 210) {
 					const recs = recipients.slice(i, i + 210);
-					const { messages } = await mailer.wrapper.addMailRecipients(
+					const { messages } = await mailer.wrapper.mailing.addMailRecipients(
 						mailer.link,
 						this.signer,
 						me.address,
@@ -514,6 +516,7 @@ export class EthereumWalletController extends AbstractWalletController {
 						blockLock,
 						recs.map(r => r.address),
 						recs.map(r => r.messageKey.toBytes()),
+						options?.value || BigNumber.from(0),
 					);
 					msgs.push(...messages);
 				}
@@ -559,7 +562,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		me: IGenericAccount,
 		feedId: Uint256,
 		contentData: Uint8Array,
-		options?: any,
+		options?: { network?: EVMNetwork; value?: BigNumber },
 	): Promise<SendBroadcastResult> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Broadcast message', options);
@@ -573,13 +576,14 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 
 		if (chunks.length === 1) {
-			const { messages } = await mailer.wrapper.sendBroadcast(
+			const { messages } = await mailer.wrapper.broadcast.sendBroadcast(
 				mailer.link,
 				this.signer,
 				me.address,
 				feedId,
 				uniqueId,
 				chunks[0],
+				options?.value || BigNumber.from(0),
 			);
 
 			return { pushes: messages.map(msg => ({ push: msg })) };
@@ -587,7 +591,7 @@ export class EthereumWalletController extends AbstractWalletController {
 			const firstBlockNumber = await this.signer.provider.getBlockNumber();
 			const blockLock = 600;
 			for (let i = 0; i < chunks.length; i++) {
-				const { tx, receipt, logs } = await mailer.wrapper.sendMessageContentPart(
+				const { tx, receipt, logs } = await mailer.wrapper.content.sendMessageContentPart(
 					mailer.link,
 					this.signer,
 					me.address,
@@ -597,9 +601,10 @@ export class EthereumWalletController extends AbstractWalletController {
 					chunks.length,
 					i,
 					chunks[i],
+					options?.value || BigNumber.from(0),
 				);
 			}
-			const { messages } = await mailer.wrapper.sendBroadcastHeader(
+			const { messages } = await mailer.wrapper.broadcast.sendBroadcastHeader(
 				mailer.link,
 				this.signer,
 				me.address,
@@ -608,6 +613,7 @@ export class EthereumWalletController extends AbstractWalletController {
 				firstBlockNumber,
 				chunks.length,
 				blockLock,
+				options?.value || BigNumber.from(0),
 			);
 
 			return { pushes: messages.map(msg => ({ push: msg })) };
@@ -627,7 +633,7 @@ export class EthereumWalletController extends AbstractWalletController {
 	async deployRegistryV3(
 		me: IGenericAccount,
 		previousContractAddress = '0x0000000000000000000000000000000000000000',
-		options?: any,
+		options?: { network?: EVMNetwork; value?: BigNumber },
 	): Promise<string> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Deploy RegistryV3', options);
@@ -637,7 +643,7 @@ export class EthereumWalletController extends AbstractWalletController {
 	async deployRegistryV4(
 		me: IGenericAccount,
 		previousContractAddress = '0x0000000000000000000000000000000000000000',
-		options?: any,
+		options?: { network?: EVMNetwork; value?: BigNumber },
 	): Promise<string> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Deploy RegistryV4', options);
@@ -647,32 +653,35 @@ export class EthereumWalletController extends AbstractWalletController {
 	async deployRegistryV5(
 		me: IGenericAccount,
 		previousContractAddress = '0x0000000000000000000000000000000000000000',
-		options?: any,
+		options?: { network?: EVMNetwork; value?: BigNumber },
 	): Promise<string> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Deploy RegistryV5', options);
 		return await EthereumRegistryV5Wrapper.deploy(this.signer, me.address, previousContractAddress);
 	}
 
-	async deployRegistryV6(me: IGenericAccount, options?: any): Promise<string> {
+	async deployRegistryV6(
+		me: IGenericAccount,
+		options?: { network?: EVMNetwork; value?: BigNumber },
+	): Promise<string> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Deploy RegistryV6', options);
 		return await EthereumRegistryV6Wrapper.deploy(this.signer, me.address);
 	}
 
-	async deployMailerV6(me: IGenericAccount, options?: any): Promise<string> {
+	async deployMailerV6(me: IGenericAccount, options?: { network?: EVMNetwork; value?: BigNumber }): Promise<string> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Deploy MailerV6', options);
 		return await EthereumMailerV6Wrapper.deploy(this.signer, me.address);
 	}
 
-	async deployMailerV7(me: IGenericAccount, options?: any): Promise<string> {
+	async deployMailerV7(me: IGenericAccount, options?: { network?: EVMNetwork; value?: BigNumber }): Promise<string> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Deploy MailerV7', options);
 		return await EthereumMailerV7Wrapper.deploy(this.signer, me.address);
 	}
 
-	async deployMailerV8(me: IGenericAccount, options?: any): Promise<string> {
+	async deployMailerV8(me: IGenericAccount, options?: { network?: EVMNetwork; value?: BigNumber }): Promise<string> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Deploy MailerV8', options);
 		return await EthereumMailerV8Wrapper.deploy(this.signer, me.address);
@@ -680,7 +689,7 @@ export class EthereumWalletController extends AbstractWalletController {
 }
 
 // export const ethereumWalletFactory: WalletControllerFactory = {
-// 	create: async (options?: any) => new EthereumWalletController(options),
+// 	create: async (options?: { network?: EVMNetwork; value?: BigNumber }) => new EthereumWalletController(options),
 // 	// @ts-ignore
 // 	isWalletAvailable: async () => !!(window['ethereum'] || window['web3']), // tslint:disable-line
 // 	blockchainGroup: 'evm',
