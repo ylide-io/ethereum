@@ -13,7 +13,7 @@ import {
 	EVM_CONTRACT_TO_NETWORK,
 	IEVMEvent,
 } from '../../misc';
-import { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
+import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
 import { parseOutLogs } from './utils';
 
 export class EthereumMailerV8WrapperBroadcast {

@@ -4,7 +4,7 @@ import { IMessageContent, IMessageCorruptedContent, Uint256 } from '@ylide/sdk';
 import { ethers } from 'ethers';
 import { EthereumContentReader, ethersEventToInternalEvent, GenericMessageContentEventObject } from '../../controllers';
 import { IEVMMailerContractLink, IEVMMessage, decodeContentId } from '../../misc';
-import { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
+import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
 
 export class EthereumMailerV8WrapperContent {
 	constructor(public readonly wrapper: EthereumMailerV8Wrapper) {

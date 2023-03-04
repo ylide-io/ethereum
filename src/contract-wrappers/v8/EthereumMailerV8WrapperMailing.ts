@@ -1,11 +1,11 @@
 import { YlideMailerV8 } from '@ylide/ethereum-contracts';
-import {
+import type {
 	MailPushEventObject,
 	MailPushEvent,
 	MailingFeedJoinedEventObject,
 	MailingFeedJoinedEvent,
 } from '@ylide/ethereum-contracts/lib/YlideMailerV8';
-import { Uint256 } from '@ylide/sdk';
+import type { Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { ethers, BigNumber } from 'ethers';
 import { BlockNumberRingBufferIndex, ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers';
@@ -20,7 +20,7 @@ import {
 	IEVMEvent,
 	IEventPosition,
 } from '../../misc';
-import { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
+import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
 import { parseOutLogs } from './utils';
 
 export class EthereumMailerV8WrapperMailing {

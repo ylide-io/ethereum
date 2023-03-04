@@ -1,6 +1,6 @@
 import { BigNumber, ethers } from 'ethers';
-import { IEVMMailerContractLink } from '../../misc';
-import { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
+import type { IEVMMailerContractLink } from '../../misc';
+import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
 
 export class EthereumMailerV8WrapperGlobals {
 	constructor(public readonly wrapper: EthereumMailerV8Wrapper) {

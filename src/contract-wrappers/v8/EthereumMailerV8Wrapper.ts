@@ -1,10 +1,10 @@
 import { ethers } from 'ethers';
 import { YlideMailerV8, YlideMailerV8__factory } from '@ylide/ethereum-contracts';
-import { EthereumBlockchainReader } from '../../controllers/helpers/EthereumBlockchainReader';
+import type { EthereumBlockchainReader } from '../../controllers/helpers/EthereumBlockchainReader';
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
 import { bnToUint256, IEventPosition, IEVMEnrichedEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc';
 import { validateMessage } from '../../misc/evmMsgId';
-import { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
+import type { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
 import { ethersEventToInternalEvent, EventParsed } from '../../controllers/helpers/ethersHelper';
 import { ContractCache } from '../ContractCache';
 import { EthereumMailerV8WrapperBroadcast } from './EthereumMailerV8WrapperBroadcast';
