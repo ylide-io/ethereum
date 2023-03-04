@@ -18,7 +18,7 @@ specifiers:
   '@typescript-eslint/eslint-plugin': 5.54.0
   '@typescript-eslint/parser': 5.54.0
   '@ylide/ethereum-contracts': 0.8.0-beta.1
-  '@ylide/sdk': 0.8.0-beta.3
+  '@ylide/sdk': 0.8.0-beta.4
   '@ylide/smart-buffer': 0.0.11
   chai: 4.3.7
   eslint: 8.34.0
@@ -44,7 +44,7 @@ dependencies:
   '@ethersproject/abstract-provider': 5.7.0
   '@ethersproject/providers': 5.7.2
   '@ylide/ethereum-contracts': 0.8.0-beta.1
-  '@ylide/sdk': 0.8.0-beta.3
+  '@ylide/sdk': 0.8.0-beta.4
   '@ylide/smart-buffer': 0.0.11
   ethers: 5.7.2
   eventemitter3: 5.0.0
@@ -1237,8 +1237,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@ylide/sdk/0.8.0-beta.3:
-    resolution: {integrity: sha512-6BgjfbLWZrLcb/Q1V69mL/DTsX4sS7Gp7C3h0xjnuwNF2koR4maCTSRBbiONcHr6AeHjPwtAy34WXDhyk01Y0w==}
+  /@ylide/sdk/0.8.0-beta.4:
+    resolution: {integrity: sha512-8TqVKNJfrpixJxr8qwE0u/mAOG/g0YBi4CxMPRqcGpRa7jMcJwHZH2sTuTCIoQjzsCjpIrngcKE1o6KH9H/zaw==}
     dependencies:
       '@datastructures-js/binary-search-tree': 5.2.0
       '@datastructures-js/linked-list': 5.2.5
