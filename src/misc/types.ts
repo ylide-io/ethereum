@@ -1,4 +1,4 @@
-import { IMessage, Uint256 } from '@ylide/sdk';
+import type { IMessage, Uint256 } from '@ylide/sdk';
 
 export enum EVMNetwork {
 	LOCAL_HARDHAT, //  = 'LOCAL_HARDHAT',

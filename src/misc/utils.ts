@@ -1,5 +1,5 @@
-import { Uint256 } from '@ylide/sdk';
-import { BigNumber } from 'ethers';
+import type { Uint256 } from '@ylide/sdk';
+import type { BigNumber } from 'ethers';
 
 export interface IEventPosition {
 	blockNumber: number;

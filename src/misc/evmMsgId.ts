@@ -1,6 +1,6 @@
 import { BitPackReader, BitPackWriter } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
-import { IEVMMailerContractLink, IEVMMessage } from './types';
+import type { IEVMMailerContractLink, IEVMMessage } from './types';
 
 export const encodeEvmMsgId = (
 	isBroacast: boolean,

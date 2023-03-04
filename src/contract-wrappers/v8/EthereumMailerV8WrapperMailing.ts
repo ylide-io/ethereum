@@ -8,18 +8,12 @@ import type {
 import type { Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { ethers, BigNumber } from 'ethers';
-import { BlockNumberRingBufferIndex, ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers';
-import {
-	IEVMMailerContractLink,
-	IEVMEnrichedEvent,
-	IEVMMessage,
-	bnToUint256,
-	encodeEvmMsgId,
-	EVM_NAMES,
-	EVM_CONTRACT_TO_NETWORK,
-	IEVMEvent,
-	IEventPosition,
-} from '../../misc';
+import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers/helpers/ethersHelper';
+import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
+import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../../misc/constants';
+import { encodeEvmMsgId } from '../../misc/evmMsgId';
+import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
+import { bnToUint256, IEventPosition } from '../../misc/utils';
 import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
 import { parseOutLogs } from './utils';
 

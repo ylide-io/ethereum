@@ -1,8 +1,9 @@
-import { IMessage, IMessageContent, IMessageCorruptedContent, MessageContentFailure } from '@ylide/sdk';
+import type { IMessage, IMessageContent, IMessageCorruptedContent } from '@ylide/sdk';
+import { MessageContentFailure } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 
-import { IEVMEnrichedEvent } from '../../misc';
-import { EthereumBlockchainReader } from './EthereumBlockchainReader';
+import type { IEVMEnrichedEvent } from '../../misc/types';
+import type { EthereumBlockchainReader } from './EthereumBlockchainReader';
 
 export interface GenericMessageContentEventObject {
 	contentId: string;

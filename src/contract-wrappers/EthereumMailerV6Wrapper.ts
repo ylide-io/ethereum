@@ -1,30 +1,24 @@
 import { BigNumber, ethers } from 'ethers';
 import { YlideMailerV6, YlideMailerV6__factory } from '@ylide/ethereum-contracts';
-import { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
+import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
 import { IMessageContent, IMessageCorruptedContent, Uint256 } from '@ylide/sdk';
 import { BlockNumberRingBufferIndex } from '../controllers/misc/BlockNumberRingBufferIndex';
-import {
+import type {
 	MailContentEvent,
 	MailPushEvent,
 	MailPushEventObject,
 	MailContentEventObject,
 } from '@ylide/ethereum-contracts/lib/YlideMailerV6';
-import {
-	EVM_CONTRACT_TO_NETWORK,
-	EVM_NAMES,
-	IEventPosition,
-	IEVMEnrichedEvent,
-	IEVMEvent,
-	IEVMMailerContractLink,
-	IEVMMessage,
-} from '../misc';
+import type { LogDescription } from '@ethersproject/abi';
+import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../misc/types';
+import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../misc/constants';
+import type { IEventPosition } from '../misc/utils';
 import { decodeEvmMsgId, encodeEvmMsgId } from '../misc/evmMsgId';
 import SmartBuffer from '@ylide/smart-buffer';
 import { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
 import { ethersEventToInternalEvent, EventParsed } from '../controllers/helpers/ethersHelper';
 import { EthereumContentReader, GenericMessageContentEventObject } from '../controllers/helpers/EthereumContentReader';
 import { ContractCache } from './ContractCache';
-import { LogDescription } from '@ethersproject/abi';
 
 export class EthereumMailerV6Wrapper {
 	public readonly cache: ContractCache<YlideMailerV6>;

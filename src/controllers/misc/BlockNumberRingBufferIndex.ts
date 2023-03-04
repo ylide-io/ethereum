@@ -1,7 +1,7 @@
 /* eslint-disable no-bitwise */
-import { Uint256 } from '@ylide/sdk';
+import type { Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
-import { eventANewerThanB, eventAOlderThanB, eventCmprDesc } from '../../misc';
+import { eventANewerThanB, eventAOlderThanB, eventCmprDesc } from '../../misc/utils';
 
 export class BlockNumberRingBufferIndex {
 	static decodeIndexValue(hex: Uint256): number[] {

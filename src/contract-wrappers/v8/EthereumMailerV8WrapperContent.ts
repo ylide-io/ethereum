@@ -1,9 +1,12 @@
 import { LogDescription } from '@ethersproject/abi';
-import { MessageContentEvent, MessageContentEventObject } from '@ylide/ethereum-contracts/lib/YlideMailerV8';
-import { IMessageContent, IMessageCorruptedContent, Uint256 } from '@ylide/sdk';
+import type { MessageContentEvent, MessageContentEventObject } from '@ylide/ethereum-contracts/lib/YlideMailerV8';
+import type { IMessageContent, IMessageCorruptedContent } from '@ylide/sdk';
 import { ethers } from 'ethers';
-import { EthereumContentReader, ethersEventToInternalEvent, GenericMessageContentEventObject } from '../../controllers';
-import { IEVMMailerContractLink, IEVMMessage, decodeContentId } from '../../misc';
+import { EthereumContentReader } from '../../controllers/helpers/EthereumContentReader';
+import type { GenericMessageContentEventObject } from '../../controllers/helpers/EthereumContentReader';
+import { ethersEventToInternalEvent } from '../../controllers/helpers/ethersHelper';
+import { decodeContentId } from '../../misc/contentId';
+import type { IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
 import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
 
 export class EthereumMailerV8WrapperContent {

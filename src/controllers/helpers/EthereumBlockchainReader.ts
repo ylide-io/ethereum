@@ -1,9 +1,9 @@
-import { BlockWithTransactions } from '@ethersproject/abstract-provider';
-import { ethers, Event, Transaction } from 'ethers';
+import type { BlockWithTransactions } from '@ethersproject/abstract-provider';
+import { ethers, Transaction } from 'ethers';
 import Semaphore from 'semaphore-promise';
-import { IEVMEnrichedEvent, IEVMEvent } from '../../misc';
+import type { IEVMEnrichedEvent, IEVMEvent } from '../../misc/types';
 import { BetterWebSocketProvider } from './BetterWebSocketProvider';
-import { ethersBlockToInternalBlock, ethersTxToInternalTx, EventParsed } from './ethersHelper';
+import { ethersBlockToInternalBlock, ethersTxToInternalTx } from './ethersHelper';
 
 export interface IRPCDescriptor {
 	rpcUrlOrProvider: string | ethers.providers.Provider;

@@ -1,7 +1,7 @@
 import { WebSocketProvider } from '@ethersproject/providers';
 import { ethers } from 'ethers';
 import { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
-import { IEVMMailerContractLink, IEVMRegistryContractLink } from '../misc';
+import type { IEVMMailerContractLink, IEVMRegistryContractLink } from '../misc/types';
 
 export type SigningContext = ethers.providers.Provider | ethers.Signer;
 

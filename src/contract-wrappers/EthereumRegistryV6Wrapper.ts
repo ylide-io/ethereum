@@ -4,7 +4,8 @@ import { KeyAttachedEvent, KeyAttachedEventObject } from '@ylide/ethereum-contra
 import { ExternalYlidePublicKey, PublicKey, PublicKeyType, Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
-import { IEventPosition, IEVMEnrichedEvent, IEVMRegistryContractLink } from '../misc';
+import type { IEVMEnrichedEvent, IEVMRegistryContractLink } from '../misc/types';
+import type { IEventPosition } from '../misc/utils';
 import { ContractCache } from './ContractCache';
 import { BlockNumberRingBufferIndex } from '../controllers/misc/BlockNumberRingBufferIndex';
 import { ethersEventToInternalEvent } from '../controllers/helpers/ethersHelper';

@@ -23,17 +23,9 @@ import {
 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 
-import {
-	EVMNetwork,
-	EVM_CHAINS,
-	EVM_CHAIN_ID_TO_NETWORK,
-	EVM_CHUNK_SIZES,
-	EVM_CONTRACTS,
-	EVM_NAMES,
-	IEVMMailerContractLink,
-	IEVMMessage,
-	IEVMRegistryContractLink,
-} from '../misc';
+import { EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CHUNK_SIZES, EVM_CONTRACTS, EVM_NAMES } from '../misc/constants';
+import type { IEVMMailerContractLink, IEVMMessage, IEVMRegistryContractLink } from '../misc/types';
+import { EVMNetwork } from '../misc/types';
 import { EthereumBlockchainController } from './EthereumBlockchainController';
 import { EthereumBlockchainReader } from './helpers/EthereumBlockchainReader';
 

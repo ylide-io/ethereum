@@ -16,20 +16,10 @@ import {
 	MessageKey,
 	Uint256,
 } from '@ylide/sdk';
-import {
-	EVMMailerContractType,
-	EVMNetwork,
-	EVMRegistryContractType,
-	EVM_CHAINS,
-	EVM_CONTRACTS,
-	EVM_CONTRACT_TO_NETWORK,
-	EVM_NAMES,
-	EVM_RPCS,
-	IEVMMailerContractLink,
-	IEVMMessage,
-	IEVMRegistryContractLink,
-	decodeEvmMsgId,
-} from '../misc';
+import { EVMMailerContractType, EVMNetwork, EVMRegistryContractType } from '../misc/types';
+import { EVM_CHAINS, EVM_CONTRACTS, EVM_CONTRACT_TO_NETWORK, EVM_NAMES, EVM_RPCS } from '../misc/constants';
+import { decodeEvmMsgId } from '../misc/evmMsgId';
+import type { IEVMMailerContractLink, IEVMMessage, IEVMRegistryContractLink } from '../misc/types';
 
 import { EthereumBlockchainReader, IRPCDescriptor } from './helpers/EthereumBlockchainReader';
 import { EthereumContentReader } from './helpers/EthereumContentReader';

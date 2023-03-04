@@ -3,9 +3,9 @@ import { YlideRegistryV3, YlideRegistryV3__factory } from '@ylide/ethereum-contr
 import { ExternalYlidePublicKey, PublicKey, PublicKeyType } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
-import { IEVMEnrichedEvent, IEVMRegistryContractLink } from '../misc';
+import type { IEVMEnrichedEvent, IEVMRegistryContractLink } from '../misc/types';
 import { ContractCache } from './ContractCache';
-import { KeyAttachedEventObject } from '@ylide/ethereum-contracts/lib/YlideRegistryV3';
+import type { KeyAttachedEventObject } from '@ylide/ethereum-contracts/lib/YlideRegistryV3';
 
 export class EthereumRegistryV3Wrapper {
 	public readonly cache: ContractCache<YlideRegistryV3>;
