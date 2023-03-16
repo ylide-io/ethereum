@@ -1,7 +1,7 @@
 import { YlideMailerV8 } from '@ylide/ethereum-contracts';
 import { BroadcastPushEventObject, BroadcastPushEvent } from '@ylide/ethereum-contracts/lib/YlideMailerV8';
 import { Uint256 } from '@ylide/sdk';
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers/helpers/ethersHelper';
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
 import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../../misc/constants';
@@ -74,16 +74,19 @@ export class EthereumMailerV8WrapperBroadcast {
 		feedId: Uint256,
 	): Promise<{
 		owner: string;
+		beneficiary: string;
+		broadcastFee: BigNumber;
 		isPublic: boolean;
 		messagesIndex: number[];
 		messagesCount: number;
 	}> {
 		return await this.wrapper.cache.contractOperation(mailer, async contract => {
-			const [owner, isPublic, messagesIndex, messagesCount] = await contract.functions.broadcastFeeds(
-				`0x${feedId}`,
-			);
+			const [owner, beneficiary, broadcastFee, isPublic, messagesIndex, messagesCount] =
+				await contract.functions.broadcastFeeds(`0x${feedId}`);
 			return {
 				owner,
+				beneficiary,
+				broadcastFee,
 				isPublic,
 				messagesIndex: BlockNumberRingBufferIndex.decodeIndexValue(bnToUint256(messagesIndex)),
 				messagesCount: messagesCount.toNumber(),
@@ -113,6 +116,32 @@ export class EthereumMailerV8WrapperBroadcast {
 	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
 		const tx = await contract.transferBroadcastFeedOwnership(`0x${feedId}`, newOwner, { from });
+		const receipt = await tx.wait();
+		return { tx, receipt };
+	}
+
+	async setBroadcastFeedBeneficiary(
+		mailer: IEVMMailerContractLink,
+		signer: ethers.Signer,
+		from: string,
+		feedId: Uint256,
+		beneficiary: string,
+	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
+		const contract = this.wrapper.cache.getContract(mailer.address, signer);
+		const tx = await contract.setBroadcastFeedBeneficiary(`0x${feedId}`, beneficiary, { from });
+		const receipt = await tx.wait();
+		return { tx, receipt };
+	}
+
+	async setBroadcastFeedFees(
+		mailer: IEVMMailerContractLink,
+		signer: ethers.Signer,
+		from: string,
+		feedId: Uint256,
+		fees: { broadcastFee: BigNumber },
+	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
+		const contract = this.wrapper.cache.getContract(mailer.address, signer);
+		const tx = await contract.setBroadcastFeedFees(`0x${feedId}`, fees.broadcastFee, { from });
 		const receipt = await tx.wait();
 		return { tx, receipt };
 	}

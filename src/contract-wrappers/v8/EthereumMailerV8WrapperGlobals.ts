@@ -52,9 +52,9 @@ export class EthereumMailerV8WrapperGlobals {
 			const [broadcastFee] = await contract.functions.broadcastFee();
 
 			return {
-				contentPartFee: contentPartFee.div(BigNumber.from('1000000000000000000')),
-				recipientFee: recipientFee.div(BigNumber.from('1000000000000000000')),
-				broadcastFee: broadcastFee.div(BigNumber.from('1000000000000000000')),
+				contentPartFee: contentPartFee,
+				recipientFee: recipientFee,
+				broadcastFee: broadcastFee,
 			};
 		});
 	}
@@ -66,12 +66,7 @@ export class EthereumMailerV8WrapperGlobals {
 		fees: { contentPartFee: BigNumber; recipientFee: BigNumber; broadcastFee: BigNumber },
 	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.setFees(
-			fees.contentPartFee.mul(BigNumber.from('1000000000000000000')),
-			fees.recipientFee.mul(BigNumber.from('1000000000000000000')),
-			fees.broadcastFee.mul(BigNumber.from('1000000000000000000')),
-			{ from },
-		);
+		const tx = await contract.setFees(fees.contentPartFee, fees.recipientFee, fees.broadcastFee, { from });
 		const receipt = await tx.wait();
 		return { tx, receipt };
 	}

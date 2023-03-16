@@ -4,7 +4,7 @@
 /* eslint-disable prefer-arrow/prefer-arrow-functions */
 /* eslint-disable @typescript-eslint/prefer-for-of */
 import { expect } from 'chai';
-import { BigNumber, Signer } from 'ethers';
+import { BigNumber, ContractReceipt, ContractTransaction, Signer } from 'ethers';
 import hre from 'hardhat';
 import { describe, it, before } from 'mocha';
 import { mine } from '@nomicfoundation/hardhat-network-helpers';
@@ -12,8 +12,10 @@ import { YlideMailerV8, YlideMailerV8__factory } from '@ylide/ethereum-contracts
 import { EthereumBlockchainReader } from '../src/controllers/helpers/EthereumBlockchainReader';
 import { EthereumMailerV8Wrapper } from '../src/contract-wrappers/v8/EthereumMailerV8Wrapper';
 import { EVMMailerContractType, IEVMMailerContractLink, IEVMMessage } from '../src';
-import { Uint256, YLIDE_MAIN_FEED_ID } from '@ylide/sdk';
+import { randomBytes, Uint256, YLIDE_MAIN_FEED_ID } from '@ylide/sdk';
 import { decodeContentId } from '../src/misc/contentId';
+import SmartBuffer from '@ylide/smart-buffer';
+import { LogDescription } from '@ethersproject/abi';
 
 describe('YlideMailerV8', function () {
 	this.timeout('2000s');
@@ -395,6 +397,23 @@ describe('YlideMailerV8', function () {
 
 					expect(isUserWriterAfterRemove, 'User must not be writer').to.be.false;
 
+					await userMailerV8Wrapper.broadcast.setBroadcastFeedFees(
+						mailerDesc,
+						userSigner,
+						await userSigner.getAddress(),
+						feedId1!,
+						{
+							broadcastFee: BigNumber.from(100),
+						},
+					);
+
+					const feed1AfterFees = await userMailerV8Wrapper.broadcast.getBroadcastFeedParams(
+						mailerDesc,
+						feedId1!,
+					);
+
+					expect(feed1AfterFees.broadcastFee.toNumber(), 'Feed broadcastFee must be 100').to.equal(100);
+
 					await userMailerV8Wrapper.broadcast.setBroadcastFeedPublicity(
 						mailerDesc,
 						userSigner,
@@ -691,44 +710,80 @@ describe('YlideMailerV8', function () {
 				// sendBroadcast
 				// sendBroadcastHeader
 				// sendMessageContentPart
-				it('Send small mail', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
 
-					const uniqueId = 123;
-					const recipientHex = '1234567890123456789012345678901234567890123456789012345678901234' as Uint256;
-					const key = new Uint8Array([1, 2, 3, 4, 5, 6]);
-					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
+				const sendAndVerifySmallMail = async (
+					mailerV8Wrapper: EthereumMailerV8Wrapper,
+					senderSigner: Signer,
+					feedId: Uint256,
+					value: number,
+					shouldFail: boolean = false,
+				) => {
+					const a = Math.floor(Math.random() * 256);
+					const b = Math.floor(Math.random() * 256);
+					const c = Math.floor(Math.random() * 256);
+					const d = Math.floor(Math.random() * 256);
+					const e = Math.floor(Math.random() * 10);
+					const uniqueId = Math.floor(Math.random() * 1000);
+					const recipientHex =
+						`12${e}45678901234567890${e}234567890123456789012345${e}789012345678901234` as Uint256;
+					const key = new Uint8Array([a, b, a, b, a, b]);
+					const content = new Uint8Array([c, d, c, d, c, d]);
 
-					const { tx, receipt, logs } = await userMailerV8Wrapper.mailing.sendSmallMail(
-						mailerDesc,
-						userSigner,
-						await userSigner.getAddress(),
-						YLIDE_MAIN_FEED_ID,
-						uniqueId,
-						recipientHex,
-						key,
-						content,
-						BigNumber.from(0),
-					);
+					let tx: ContractTransaction;
+					let receipt: ContractReceipt;
+					let logs: LogDescription[];
+					let failed = false;
+					try {
+						const {
+							tx: tx2,
+							receipt: receipt2,
+							logs: logs2,
+						} = await mailerV8Wrapper.mailing.sendSmallMail(
+							mailerDesc,
+							senderSigner,
+							await senderSigner.getAddress(),
+							feedId,
+							uniqueId,
+							recipientHex,
+							key,
+							content,
+							BigNumber.from(value),
+						);
+						tx = tx2;
+						receipt = receipt2;
+						logs = logs2;
+					} catch (err) {
+						if (!shouldFail) {
+							throw err;
+						} else {
+							failed = true;
+							return;
+						}
+					}
+
+					if (shouldFail && !failed) {
+						throw new Error('Transaction should fail');
+					}
 
 					expect(receipt, 'Receipt must be present').to.not.be.undefined;
 
-					const mailPush = logs.find(log => log.name === 'MailPush');
-					const messageContent = logs.find(log => log.name === 'MessageContent');
+					const mailPush = logs!.find(log => log.name === 'MailPush');
+					const messageContent = logs!.find(log => log.name === 'MessageContent');
 
 					expect(mailPush, 'MailPush event must be present').to.not.be.undefined;
 					expect(mailPush!.args.sender, 'Sender must be user address').to.equal(
 						await userSigner.getAddress(),
 					);
-					expect(
-						mailPush!.args.recipient.toHexString(),
-						'Recipient must be 0x1234567890123456789012345678901234567890123456789012345678901234',
-					).to.equal('0x1234567890123456789012345678901234567890123456789012345678901234');
-					expect(mailPush!.args.key, 'Key must be 0x010203040506').to.equal('0x010203040506');
-					expect(
-						mailPush!.args.previousFeedEventsIndex.toNumber(),
-						'previousFeedEventsIndex must be 0',
-					).to.equal(0);
+					expect(mailPush!.args.recipient.toHexString(), `Recipient must be 0x${recipientHex}`).to.equal(
+						`0x${recipientHex}`,
+					);
+					expect(mailPush!.args.key, `Keys must be equal`).to.equal(
+						`0x${new SmartBuffer(key).toHexString()}`,
+					);
+					// expect(
+					// 	mailPush!.args.previousFeedEventsIndex.toNumber(),
+					// 	'previousFeedEventsIndex must be 0',
+					// ).to.equal(0);
 
 					const contentId = decodeContentId(mailPush!.args.contentId.toHexString());
 					expect(contentId.version, 'Version must be 8').to.equal(8);
@@ -736,12 +791,329 @@ describe('YlideMailerV8', function () {
 					expect(contentId.blockCountLock, 'Block count lock must be 0').to.equal(0);
 
 					expect(messageContent, 'MessageContent event must be present').to.not.be.undefined;
-					expect(messageContent!.args.content, 'Content must be 0x080708070807').to.equal('0x080708070807');
+					expect(messageContent!.args.content, 'Content must be correct').to.equal(
+						`0x${new SmartBuffer(content).toHexString()}`,
+					);
 					expect(messageContent!.args.sender, 'Sender must be user address').to.equal(
 						await userSigner.getAddress(),
 					);
 					expect(messageContent!.args.parts, 'Parts must be 1').to.equal(1);
 					expect(messageContent!.args.partIdx, 'partIdx must be 0').to.equal(0);
+
+					return {
+						mailPush,
+						messageContent,
+						tx,
+						receipt,
+						logs,
+					};
+				};
+
+				const sendAndVerifySmallBroadcast = async (
+					mailerV8Wrapper: EthereumMailerV8Wrapper,
+					senderSigner: Signer,
+					feedId: Uint256,
+					value: number,
+					shouldFail: boolean = false,
+				) => {
+					const c = Math.floor(Math.random() * 256);
+					const d = Math.floor(Math.random() * 256);
+					const uniqueId = Math.floor(Math.random() * 1000);
+					const content = new Uint8Array([c, d, c, d, c, d]);
+
+					let tx: ContractTransaction;
+					let receipt: ContractReceipt;
+					let logs: LogDescription[];
+					let failed = false;
+					try {
+						const {
+							tx: tx2,
+							receipt: receipt2,
+							logs: logs2,
+						} = await mailerV8Wrapper.broadcast.sendBroadcast(
+							mailerDesc,
+							senderSigner,
+							await senderSigner.getAddress(),
+							feedId,
+							uniqueId,
+							content,
+							BigNumber.from(value),
+						);
+						tx = tx2;
+						receipt = receipt2;
+						logs = logs2;
+					} catch (err) {
+						if (!shouldFail) {
+							throw err;
+						} else {
+							failed = true;
+							return;
+						}
+					}
+
+					if (shouldFail && !failed) {
+						throw new Error('Transaction should fail');
+					}
+
+					expect(receipt, 'Receipt must be present').to.not.be.undefined;
+
+					const broadcastPush = logs.find(log => log.name === 'BroadcastPush');
+					const messageContent = logs.find(log => log.name === 'MessageContent');
+
+					expect(broadcastPush, 'BroadcastPush event must be present').to.not.be.undefined;
+					expect(broadcastPush!.args.sender, 'Sender must be user address').to.equal(
+						await userSigner.getAddress(),
+					);
+					// expect(
+					// 	broadcastPush!.args.previousFeedEventsIndex.toNumber(),
+					// 	'previousFeedEventsIndex must be 0',
+					// ).to.equal(0);
+
+					const contentId = decodeContentId(broadcastPush!.args.contentId.toHexString());
+					expect(contentId.version, 'Version must be 8').to.equal(8);
+					expect(contentId.partsCount, 'Parts count must be 1').to.equal(1);
+					expect(contentId.blockCountLock, 'Block count lock must be 0').to.equal(0);
+
+					expect(messageContent, 'MessageContent event must be present').to.not.be.undefined;
+					expect(messageContent!.args.content, 'Content must be correct').to.equal(
+						`0x${new SmartBuffer(content).toHexString()}`,
+					);
+					expect(messageContent!.args.sender, 'Sender must be user address').to.equal(
+						await userSigner.getAddress(),
+					);
+					expect(messageContent!.args.parts, 'Parts must be 1').to.equal(1);
+					expect(messageContent!.args.partIdx, 'partIdx must be 0').to.equal(0);
+
+					return {
+						broadcastPush,
+						messageContent,
+						tx,
+						receipt,
+						logs,
+					};
+				};
+
+				it('Send small mail', async function () {
+					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+
+					const result = await sendAndVerifySmallMail(userMailerV8Wrapper, userSigner, YLIDE_MAIN_FEED_ID, 0);
+					if (!result) {
+						throw new Error('Result must be present');
+					}
+					const { mailPush } = result;
+					expect(
+						mailPush!.args.previousFeedEventsIndex.toNumber(),
+						'previousFeedEventsIndex must be 0',
+					).to.equal(0);
+				});
+				it('Send small mail with global fee, no feed fee', async function () {
+					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+
+					// just some test build-in feed
+					const feedId = '0000000000000000000000000000000000000000000000000000000000000003' as Uint256;
+
+					const randomGlobalBeneficiary = `0x100010001000100010001000100010001000${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}`;
+
+					const randomZoneBeneficiary = `0x100010001000100010001000100010001000${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}`;
+
+					await userMailerV8Wrapper.globals.setBeneficiary(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						randomGlobalBeneficiary,
+					);
+
+					await userMailerV8Wrapper.mailing.setMailingFeedBeneficiary(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						feedId,
+						randomZoneBeneficiary,
+					);
+
+					const globalBeneficiaryBalance = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance.e18, 'Global beneficiary balance must be 0').to.equal('0');
+
+					const zoneBeneficiaryBalance = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance.e18, 'Zone beneficiary balance must be 0').to.equal('0');
+
+					await sendAndVerifySmallMail(userMailerV8Wrapper, userSigner, feedId, 0);
+
+					await userMailerV8Wrapper.globals.setFees(mailerDesc, ownerSigner, await ownerSigner.getAddress(), {
+						contentPartFee: BigNumber.from(3),
+						recipientFee: BigNumber.from(7),
+						broadcastFee: BigNumber.from(11),
+					});
+
+					// should be ok
+					await sendAndVerifySmallMail(userMailerV8Wrapper, userSigner, feedId, 3 + 7);
+
+					const globalBeneficiaryBalance2 = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance2.e18, 'Global beneficiary balance must be 10').to.equal('10');
+
+					const zoneBeneficiaryBalance2 = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance2.e18, 'Zone beneficiary balance must be 0').to.equal('0');
+
+					// should fail
+					await sendAndVerifySmallMail(userMailerV8Wrapper, userSigner, feedId, 3 + 7 - 1, true);
+
+					const globalBeneficiaryBalance3 = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance3.e18, 'Global beneficiary balance must still be 10').to.equal('10');
+
+					const zoneBeneficiaryBalance3 = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance3.e18, 'Zone beneficiary balance must still be 0').to.equal('0');
+				});
+				it('Send small mail with no global fee, but with feed fee', async function () {
+					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+
+					// just some test build-in feed
+					const feedId = '0000000000000000000000000000000000000000000000000000000000000003' as Uint256;
+
+					const randomGlobalBeneficiary = `0x100010001000100010001000100010001000${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}`;
+
+					const randomZoneBeneficiary = `0x100010001000100010001000100010001000${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}`;
+
+					await userMailerV8Wrapper.globals.setBeneficiary(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						randomGlobalBeneficiary,
+					);
+
+					await userMailerV8Wrapper.mailing.setMailingFeedBeneficiary(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						feedId,
+						randomZoneBeneficiary,
+					);
+
+					const globalBeneficiaryBalance = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance.e18, 'Global beneficiary balance must be 0').to.equal('0');
+
+					const zoneBeneficiaryBalance = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance.e18, 'Zone beneficiary balance must be 0').to.equal('0');
+
+					await sendAndVerifySmallMail(userMailerV8Wrapper, userSigner, feedId, 0);
+
+					await userMailerV8Wrapper.mailing.setMailingFeedFees(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						feedId,
+						{
+							recipientFee: BigNumber.from(7),
+						},
+					);
+
+					// should be ok
+					await sendAndVerifySmallMail(userMailerV8Wrapper, userSigner, feedId, 7);
+
+					const globalBeneficiaryBalance2 = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance2.e18, 'Global beneficiary balance must be 0').to.equal('0');
+
+					const zoneBeneficiaryBalance2 = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance2.e18, 'Zone beneficiary balance must be 7').to.equal('7');
+
+					// should fail
+					await sendAndVerifySmallMail(userMailerV8Wrapper, userSigner, feedId, 7 - 1, true);
+
+					const globalBeneficiaryBalance3 = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance3.e18, 'Global beneficiary balance must be 0').to.equal('0');
+
+					const zoneBeneficiaryBalance3 = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance3.e18, 'Zone beneficiary balance must be 7').to.equal('7');
+				});
+				it('Send small mail with with global fee and with feed fee', async function () {
+					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+
+					// just some test build-in feed
+					const feedId = '0000000000000000000000000000000000000000000000000000000000000003' as Uint256;
+
+					const randomGlobalBeneficiary = `0x100010001000100010001000100010001000${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}`;
+
+					const randomZoneBeneficiary = `0x100010001000100010001000100010001000${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}`;
+
+					await userMailerV8Wrapper.globals.setBeneficiary(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						randomGlobalBeneficiary,
+					);
+
+					await userMailerV8Wrapper.mailing.setMailingFeedBeneficiary(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						feedId,
+						randomZoneBeneficiary,
+					);
+
+					const globalBeneficiaryBalance = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance.e18, 'Global beneficiary balance must be 0').to.equal('0');
+
+					const zoneBeneficiaryBalance = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance.e18, 'Zone beneficiary balance must be 0').to.equal('0');
+
+					await sendAndVerifySmallMail(userMailerV8Wrapper, userSigner, feedId, 0);
+
+					await userMailerV8Wrapper.globals.setFees(mailerDesc, ownerSigner, await ownerSigner.getAddress(), {
+						contentPartFee: BigNumber.from(3),
+						recipientFee: BigNumber.from(7),
+						broadcastFee: BigNumber.from(11),
+					});
+
+					await userMailerV8Wrapper.mailing.setMailingFeedFees(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						feedId,
+						{
+							recipientFee: BigNumber.from(17),
+						},
+					);
+
+					// should be ok
+					await sendAndVerifySmallMail(userMailerV8Wrapper, userSigner, feedId, 3 + 7 + 17);
+
+					const globalBeneficiaryBalance2 = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance2.e18, 'Global beneficiary balance must be 10').to.equal('10');
+
+					const zoneBeneficiaryBalance2 = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance2.e18, 'Zone beneficiary balance must be 17').to.equal('17');
+
+					// should fail
+					await sendAndVerifySmallMail(userMailerV8Wrapper, userSigner, feedId, 3 + 7 + 17 - 1, true);
+
+					const globalBeneficiaryBalance3 = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance3.e18, 'Global beneficiary balance must still be 10').to.equal('10');
+
+					const zoneBeneficiaryBalance3 = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance3.e18, 'Zone beneficiary balance must still be 17').to.equal('17');
 				});
 				it('Send bulk mail', async function () {
 					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
@@ -952,45 +1324,20 @@ describe('YlideMailerV8', function () {
 				it('Send broadcast', async function () {
 					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
 
-					const uniqueId = 123;
-					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
-
-					const { tx, receipt, logs } = await userMailerV8Wrapper.broadcast.sendBroadcast(
-						mailerDesc,
+					const result = await sendAndVerifySmallBroadcast(
+						userMailerV8Wrapper,
 						userSigner,
-						await userSigner.getAddress(),
 						'0000000000000000000000000000000000000000000000000000000000000002' as Uint256,
-						uniqueId,
-						content,
-						BigNumber.from(0),
+						0,
 					);
-
-					expect(receipt, 'Receipt must be present').to.not.be.undefined;
-
-					const broadcastPush = logs.find(log => log.name === 'BroadcastPush');
-					const messageContent = logs.find(log => log.name === 'MessageContent');
-
-					expect(broadcastPush, 'BroadcastPush event must be present').to.not.be.undefined;
-					expect(broadcastPush!.args.sender, 'Sender must be user address').to.equal(
-						await userSigner.getAddress(),
-					);
+					if (!result) {
+						throw new Error('Broadcast was not sent');
+					}
+					const { broadcastPush } = result;
 					expect(
 						broadcastPush!.args.previousFeedEventsIndex.toNumber(),
 						'previousFeedEventsIndex must be 0',
 					).to.equal(0);
-
-					const contentId = decodeContentId(broadcastPush!.args.contentId.toHexString());
-					expect(contentId.version, 'Version must be 8').to.equal(8);
-					expect(contentId.partsCount, 'Parts count must be 1').to.equal(1);
-					expect(contentId.blockCountLock, 'Block count lock must be 0').to.equal(0);
-
-					expect(messageContent, 'MessageContent event must be present').to.not.be.undefined;
-					expect(messageContent!.args.content, 'Content must be 0x080708070807').to.equal('0x080708070807');
-					expect(messageContent!.args.sender, 'Sender must be user address').to.equal(
-						await userSigner.getAddress(),
-					);
-					expect(messageContent!.args.parts, 'Parts must be 1').to.equal(1);
-					expect(messageContent!.args.partIdx, 'partIdx must be 0').to.equal(0);
 				});
 				it('Send multipart broadcast', async function () {
 					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
@@ -1092,6 +1439,215 @@ describe('YlideMailerV8', function () {
 					expect(contentId1.version, 'Version must be 8').to.equal(8);
 					expect(contentId1.partsCount, 'Parts count must be 2').to.equal(2);
 					expect(contentId1.blockCountLock, 'Block count lock must be 100').to.equal(100);
+				});
+				it('Send small broadcast with global fee, no feed fee', async function () {
+					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+
+					// just some test build-in feed
+					const feedId = '0000000000000000000000000000000000000000000000000000000000000002' as Uint256;
+
+					const randomGlobalBeneficiary = `0x100010001000100010001000100010001000${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}`;
+
+					const randomZoneBeneficiary = `0x100010001000100010001000100010001000${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}`;
+
+					await userMailerV8Wrapper.globals.setBeneficiary(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						randomGlobalBeneficiary,
+					);
+
+					await userMailerV8Wrapper.broadcast.setBroadcastFeedBeneficiary(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						feedId,
+						randomZoneBeneficiary,
+					);
+
+					const globalBeneficiaryBalance = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance.e18, 'Global beneficiary balance must be 0').to.equal('0');
+
+					const zoneBeneficiaryBalance = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance.e18, 'Zone beneficiary balance must be 0').to.equal('0');
+
+					await sendAndVerifySmallBroadcast(userMailerV8Wrapper, userSigner, feedId, 0);
+
+					await userMailerV8Wrapper.globals.setFees(mailerDesc, ownerSigner, await ownerSigner.getAddress(), {
+						contentPartFee: BigNumber.from(3),
+						recipientFee: BigNumber.from(7),
+						broadcastFee: BigNumber.from(11),
+					});
+
+					// should be ok
+					await sendAndVerifySmallBroadcast(userMailerV8Wrapper, userSigner, feedId, 3 + 11);
+
+					const globalBeneficiaryBalance2 = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance2.e18, 'Global beneficiary balance must be 14').to.equal('14');
+
+					const zoneBeneficiaryBalance2 = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance2.e18, 'Zone beneficiary balance must be 0').to.equal('0');
+
+					// should fail
+					await sendAndVerifySmallBroadcast(userMailerV8Wrapper, userSigner, feedId, 3 + 11 - 1, true);
+
+					const globalBeneficiaryBalance3 = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance3.e18, 'Global beneficiary balance must still be 14').to.equal('14');
+
+					const zoneBeneficiaryBalance3 = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance3.e18, 'Zone beneficiary balance must still be 0').to.equal('0');
+				});
+				it('Send small broadcast with no global fee, but with feed fee', async function () {
+					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+
+					// just some test build-in feed
+					const feedId = '0000000000000000000000000000000000000000000000000000000000000002' as Uint256;
+
+					const randomGlobalBeneficiary = `0x100010001000100010001000100010001000${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}`;
+
+					const randomZoneBeneficiary = `0x100010001000100010001000100010001000${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}`;
+
+					await userMailerV8Wrapper.globals.setBeneficiary(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						randomGlobalBeneficiary,
+					);
+
+					await userMailerV8Wrapper.broadcast.setBroadcastFeedBeneficiary(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						feedId,
+						randomZoneBeneficiary,
+					);
+
+					const globalBeneficiaryBalance = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance.e18, 'Global beneficiary balance must be 0').to.equal('0');
+
+					const zoneBeneficiaryBalance = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance.e18, 'Zone beneficiary balance must be 0').to.equal('0');
+
+					await sendAndVerifySmallBroadcast(userMailerV8Wrapper, userSigner, feedId, 0);
+
+					await userMailerV8Wrapper.broadcast.setBroadcastFeedFees(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						feedId,
+						{
+							broadcastFee: BigNumber.from(7),
+						},
+					);
+
+					// should be ok
+					await sendAndVerifySmallBroadcast(userMailerV8Wrapper, userSigner, feedId, 7);
+
+					const globalBeneficiaryBalance2 = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance2.e18, 'Global beneficiary balance must be 0').to.equal('0');
+
+					const zoneBeneficiaryBalance2 = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance2.e18, 'Zone beneficiary balance must be 7').to.equal('7');
+
+					// should fail
+					await sendAndVerifySmallBroadcast(userMailerV8Wrapper, userSigner, feedId, 7 - 1, true);
+
+					const globalBeneficiaryBalance3 = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance3.e18, 'Global beneficiary balance must be 0').to.equal('0');
+
+					const zoneBeneficiaryBalance3 = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance3.e18, 'Zone beneficiary balance must be 7').to.equal('7');
+				});
+				it('Send small broadcast with with global fee and with feed fee', async function () {
+					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+
+					// just some test build-in feed
+					const feedId = '0000000000000000000000000000000000000000000000000000000000000002' as Uint256;
+
+					const randomGlobalBeneficiary = `0x100010001000100010001000100010001000${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}`;
+
+					const randomZoneBeneficiary = `0x100010001000100010001000100010001000${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}${Math.floor(
+						Math.random() * 16,
+					).toString(16)}${Math.floor(Math.random() * 16).toString(16)}`;
+
+					await userMailerV8Wrapper.globals.setBeneficiary(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						randomGlobalBeneficiary,
+					);
+
+					await userMailerV8Wrapper.broadcast.setBroadcastFeedBeneficiary(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						feedId,
+						randomZoneBeneficiary,
+					);
+
+					const globalBeneficiaryBalance = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance.e18, 'Global beneficiary balance must be 0').to.equal('0');
+
+					const zoneBeneficiaryBalance = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance.e18, 'Zone beneficiary balance must be 0').to.equal('0');
+
+					await sendAndVerifySmallBroadcast(userMailerV8Wrapper, userSigner, feedId, 0);
+
+					await userMailerV8Wrapper.globals.setFees(mailerDesc, ownerSigner, await ownerSigner.getAddress(), {
+						contentPartFee: BigNumber.from(3),
+						recipientFee: BigNumber.from(7),
+						broadcastFee: BigNumber.from(11),
+					});
+
+					await userMailerV8Wrapper.broadcast.setBroadcastFeedFees(
+						mailerDesc,
+						ownerSigner,
+						await ownerSigner.getAddress(),
+						feedId,
+						{
+							broadcastFee: BigNumber.from(17),
+						},
+					);
+
+					// should be ok
+					await sendAndVerifySmallBroadcast(userMailerV8Wrapper, userSigner, feedId, 3 + 11 + 17);
+
+					const globalBeneficiaryBalance2 = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance2.e18, 'Global beneficiary balance must be 14').to.equal('14');
+
+					const zoneBeneficiaryBalance2 = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance2.e18, 'Zone beneficiary balance must be 17').to.equal('17');
+
+					// should fail
+					await sendAndVerifySmallBroadcast(userMailerV8Wrapper, userSigner, feedId, 3 + 11 + 17 - 1, true);
+
+					const globalBeneficiaryBalance3 = await readerForUser.getBalance(randomGlobalBeneficiary);
+					expect(globalBeneficiaryBalance3.e18, 'Global beneficiary balance must still be 14').to.equal('14');
+
+					const zoneBeneficiaryBalance3 = await readerForUser.getBalance(randomZoneBeneficiary);
+					expect(zoneBeneficiaryBalance3.e18, 'Zone beneficiary balance must still be 17').to.equal('17');
 				});
 			});
 			describe('Reading history', async () => {

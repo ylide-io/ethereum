@@ -80,7 +80,7 @@ export class EthereumMailerV8WrapperMailing {
 			return {
 				owner,
 				beneficiary,
-				recipientFee: recipientFee.div('1000000000000000000'),
+				recipientFee,
 			};
 		});
 	}
@@ -119,11 +119,7 @@ export class EthereumMailerV8WrapperMailing {
 		fees: { recipientFee: BigNumber },
 	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.setMailingFeedFees(
-			`0x${feedId}`,
-			fees.recipientFee.mul(BigNumber.from('1000000000000000000')),
-			{ from },
-		);
+		const tx = await contract.setMailingFeedFees(`0x${feedId}`, fees.recipientFee, { from });
 		const receipt = await tx.wait();
 		return { tx, receipt };
 	}

@@ -15,6 +15,7 @@ import { PublicKey, PublicKeyType, YlidePublicKeyVersion } from '@ylide/sdk';
 import { EVMRegistryContractType, IEVMRegistryContractLink } from '../src';
 import { expect } from 'chai';
 import { mine } from '@nomicfoundation/hardhat-network-helpers';
+import { constructFaucetMsg } from '../src/misc/constructFaucetMsg';
 
 describe('YlideRegistryV6', function () {
 	it('Should deploy', async function () {
@@ -372,8 +373,9 @@ describe('YlideRegistryV6', function () {
 					);
 
 					const publicKeyBytes = nacl.randomBytes(32);
-					const publicKeyHex = new SmartBuffer(publicKeyBytes).toHexString();
-					const signature = await newUserSigner.signMessage(publicKeyHex);
+					const timeLock = Math.floor(Date.now() / 1000) - 10;
+					const msg = constructFaucetMsg(publicKeyBytes, 17, 31337, timeLock);
+					const signature = await newUserSigner.signMessage(msg);
 
 					const r = signature.slice(0, 66);
 					const s = '0x' + signature.slice(66, 130);
@@ -388,6 +390,7 @@ describe('YlideRegistryV6', function () {
 						publicKeyBytes,
 						2,
 						17,
+						timeLock,
 						'0x0000000000000000000000000000000000000000',
 						false,
 						'0',
@@ -427,8 +430,9 @@ describe('YlideRegistryV6', function () {
 					);
 
 					const ref_publicKey = nacl.randomBytes(32);
-					const ref_publicKeyHex = new SmartBuffer(ref_publicKey).toHexString();
-					const ref_signature = await referrerSigner.signMessage(ref_publicKeyHex);
+					const timeLock2 = Math.floor(Date.now() / 1000) - 10;
+					const msg = constructFaucetMsg(ref_publicKey, 18, 31337, timeLock2);
+					const ref_signature = await referrerSigner.signMessage(msg);
 
 					const ref_r = ref_signature.slice(0, 66);
 					const ref_s = '0x' + ref_signature.slice(66, 130);
@@ -443,6 +447,7 @@ describe('YlideRegistryV6', function () {
 						ref_publicKey,
 						YlidePublicKeyVersion.KEY_V2,
 						18,
+						timeLock2,
 						'0x0000000000000000000000000000000000000000',
 						false,
 						'0',
@@ -462,8 +467,9 @@ describe('YlideRegistryV6', function () {
 					expect(ref_readKey!.registrar, 'RefRegistrar mismatch').to.equal(18);
 
 					const publicKeyBytes = nacl.randomBytes(32);
-					const publicKeyHex = new SmartBuffer(publicKeyBytes).toHexString();
-					const signature = await newUserSigner.signMessage(publicKeyHex);
+					const timeLock = Math.floor(Date.now() / 1000) - 10;
+					const msg2 = constructFaucetMsg(publicKeyBytes, 19, 31337, timeLock);
+					const signature = await newUserSigner.signMessage(msg2);
 
 					const r = signature.slice(0, 66);
 					const s = '0x' + signature.slice(66, 130);
@@ -482,6 +488,7 @@ describe('YlideRegistryV6', function () {
 						publicKeyBytes,
 						YlidePublicKeyVersion.KEY_V2,
 						19,
+						timeLock,
 						await referrerSigner.getAddress(),
 						true,
 						hre.ethers.utils.parseEther('300').toString(),
