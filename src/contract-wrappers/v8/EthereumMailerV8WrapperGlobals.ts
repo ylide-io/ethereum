@@ -52,9 +52,9 @@ export class EthereumMailerV8WrapperGlobals {
 			const [broadcastFee] = await contract.functions.broadcastFee();
 
 			return {
-				contentPartFee: contentPartFee,
-				recipientFee: recipientFee,
-				broadcastFee: broadcastFee,
+				contentPartFee,
+				recipientFee,
+				broadcastFee,
 			};
 		});
 	}
