@@ -9,6 +9,7 @@ import type { IEventPosition } from '../misc/utils';
 import { ContractCache } from './ContractCache';
 import { BlockNumberRingBufferIndex } from '../controllers/misc/BlockNumberRingBufferIndex';
 import { ethersEventToInternalEvent } from '../controllers/helpers/ethersHelper';
+import { TransactionRequest } from '@ethersproject/abstract-provider';
 
 export class EthereumRegistryV6Wrapper {
 	public readonly cache: ContractCache<YlideRegistryV6>;
@@ -220,6 +221,53 @@ export class EthereumRegistryV6Wrapper {
 		});
 	}
 
+	async attachPublicKeyByAdminCalldata(
+		registry: IEVMRegistryContractLink,
+		signer: ethers.Signer,
+		from: string,
+		txSignature: { v: number; r: string; s: string },
+		address: string,
+		publicKey: Uint8Array,
+		keyVersion: number,
+		registrar: number,
+		timestampLock: number,
+		referrer: string | null,
+		payBonus: boolean,
+		value: string,
+	): Promise<{ gas: ethers.BigNumber; data: string }> {
+		const contract = this.cache.getContract(registry.address, signer);
+		const gas = await contract.estimateGas.attachPublicKeyByAdmin(
+			txSignature.v,
+			txSignature.r,
+			txSignature.s,
+			address,
+			publicKey,
+			keyVersion,
+			registrar,
+			timestampLock,
+			referrer || '0x0000000000000000000000000000000000000000',
+			payBonus,
+			{ value, from },
+		);
+		const { data } = await contract.populateTransaction.attachPublicKeyByAdmin(
+			txSignature.v,
+			txSignature.r,
+			txSignature.s,
+			address,
+			publicKey,
+			keyVersion,
+			registrar,
+			timestampLock,
+			referrer || '0x0000000000000000000000000000000000000000',
+			payBonus,
+			{ value, from },
+		);
+		if (!data) {
+			throw new Error('No data');
+		}
+		return { gas, data };
+	}
+
 	async attachPublicKeyByAdmin(
 		registry: IEVMRegistryContractLink,
 		signer: ethers.Signer,
@@ -235,6 +283,7 @@ export class EthereumRegistryV6Wrapper {
 		value: string,
 	): Promise<ethers.ContractTransaction> {
 		const contract = this.cache.getContract(registry.address, signer);
+		// contract.estimateGas.attachPublicKeyByAdmin()
 		return await contract.attachPublicKeyByAdmin(
 			txSignature.v,
 			txSignature.r,

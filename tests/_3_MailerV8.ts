@@ -12,7 +12,7 @@ import { YlideMailerV8, YlideMailerV8__factory } from '@ylide/ethereum-contracts
 import { EthereumBlockchainReader } from '../src/controllers/helpers/EthereumBlockchainReader';
 import { EthereumMailerV8Wrapper } from '../src/contract-wrappers/v8/EthereumMailerV8Wrapper';
 import { EVMMailerContractType, IEVMMailerContractLink, IEVMMessage } from '../src';
-import { randomBytes, Uint256, YLIDE_MAIN_FEED_ID } from '@ylide/sdk';
+import { Uint256, YLIDE_MAIN_FEED_ID } from '@ylide/sdk';
 import { decodeContentId } from '../src/misc/contentId';
 import SmartBuffer from '@ylide/smart-buffer';
 import { LogDescription } from '@ethersproject/abi';
