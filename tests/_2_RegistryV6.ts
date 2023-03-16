@@ -14,7 +14,7 @@ import { EthereumRegistryV6Wrapper } from '../src/contract-wrappers/EthereumRegi
 import { PublicKey, PublicKeyType, YlidePublicKeyVersion } from '@ylide/sdk';
 import { EVMRegistryContractType, IEVMRegistryContractLink } from '../src';
 import { expect } from 'chai';
-import { mine } from '@nomicfoundation/hardhat-network-helpers';
+import { mine, time } from '@nomicfoundation/hardhat-network-helpers';
 import { constructFaucetMsg } from '../src/misc/constructFaucetMsg';
 
 describe('YlideRegistryV6', function () {
@@ -373,7 +373,9 @@ describe('YlideRegistryV6', function () {
 					);
 
 					const publicKeyBytes = nacl.randomBytes(32);
-					const timeLock = Math.floor(Date.now() / 1000) - 10;
+					const now = await time.latest();
+					const timeLock = now;
+					await mine(1);
 					const msg = constructFaucetMsg(publicKeyBytes, 17, 31337, timeLock);
 					const signature = await newUserSigner.signMessage(msg);
 
@@ -430,7 +432,9 @@ describe('YlideRegistryV6', function () {
 					);
 
 					const ref_publicKey = nacl.randomBytes(32);
-					const timeLock2 = Math.floor(Date.now() / 1000) - 10;
+					const now = await time.latest();
+					const timeLock2 = now;
+					await mine(1);
 					const msg = constructFaucetMsg(ref_publicKey, 18, 31337, timeLock2);
 					const ref_signature = await referrerSigner.signMessage(msg);
 
@@ -467,7 +471,9 @@ describe('YlideRegistryV6', function () {
 					expect(ref_readKey!.registrar, 'RefRegistrar mismatch').to.equal(18);
 
 					const publicKeyBytes = nacl.randomBytes(32);
-					const timeLock = Math.floor(Date.now() / 1000) - 10;
+					const now2 = await time.latest();
+					const timeLock = now2;
+					await mine(1);
 					const msg2 = constructFaucetMsg(publicKeyBytes, 19, 31337, timeLock);
 					const signature = await newUserSigner.signMessage(msg2);
 
