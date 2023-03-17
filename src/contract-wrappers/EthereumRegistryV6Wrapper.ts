@@ -9,7 +9,6 @@ import type { IEventPosition } from '../misc/utils';
 import { ContractCache } from './ContractCache';
 import { BlockNumberRingBufferIndex } from '../controllers/misc/BlockNumberRingBufferIndex';
 import { ethersEventToInternalEvent } from '../controllers/helpers/ethersHelper';
-import { TransactionRequest } from '@ethersproject/abstract-provider';
 
 export class EthereumRegistryV6Wrapper {
 	public readonly cache: ContractCache<YlideRegistryV6>;
