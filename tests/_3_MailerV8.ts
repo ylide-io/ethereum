@@ -16,6 +16,7 @@ import { Uint256, YLIDE_MAIN_FEED_ID } from '@ylide/sdk';
 import { decodeContentId } from '../src/misc/contentId';
 import SmartBuffer from '@ylide/smart-buffer';
 import { LogDescription } from '@ethersproject/abi';
+import { constructPersonalFeedId } from '../src/misc/constructPersonalFeedId';
 
 describe('YlideMailerV8', function () {
 	this.timeout('2000s');
@@ -469,6 +470,7 @@ describe('YlideMailerV8', function () {
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
+						false,
 						feedId1!,
 						uniqueId,
 						content,
@@ -554,6 +556,7 @@ describe('YlideMailerV8', function () {
 							mailerDesc,
 							ownerSigner,
 							await ownerSigner.getAddress(),
+							false,
 							feedId1!,
 							uniqueId + 1,
 							content,
@@ -585,6 +588,7 @@ describe('YlideMailerV8', function () {
 						mailerDesc,
 						ownerSigner,
 						await ownerSigner.getAddress(),
+						false,
 						feedId1!,
 						uniqueId + 1,
 						content,
@@ -593,6 +597,90 @@ describe('YlideMailerV8', function () {
 
 					expect(receipt3, 'Receipt must be present').to.not.be.undefined;
 					expect(receipt3.status, 'Receipt status must be 1').to.equal(1);
+				});
+				it('Send and receive personal broadcast', async function () {
+					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
+
+					const feedId1 = '0000000000000000000000000000000000000000000000000000000000001234' as Uint256;
+
+					const uniqueId = 123;
+					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
+
+					await mine(129);
+
+					const { tx, receipt, logs } = await userMailerV8Wrapper.broadcast.sendBroadcast(
+						mailerDesc,
+						userSigner,
+						await userSigner.getAddress(),
+						true,
+						feedId1!,
+						uniqueId,
+						content,
+						BigNumber.from(0),
+					);
+
+					expect(receipt, 'Receipt must be present').to.not.be.undefined;
+					expect(receipt.status, 'Receipt status must be 1').to.equal(1);
+
+					const broadcastPush = logs.find(log => log.name === 'BroadcastPush');
+					const messageContent = logs.find(log => log.name === 'MessageContent');
+
+					expect(broadcastPush, 'BroadcastPush event must be present').to.not.be.undefined;
+					expect(broadcastPush!.args.sender, 'Sender must be user address').to.equal(
+						await userSigner.getAddress(),
+					);
+					expect(
+						broadcastPush!.args.previousFeedEventsIndex.toNumber(),
+						'previousFeedEventsIndex must be 0',
+					).to.equal(0);
+
+					const contentId = decodeContentId(broadcastPush!.args.contentId.toHexString());
+					expect(contentId.version, 'Version must be 8').to.equal(8);
+					expect(contentId.partsCount, 'Parts count must be 1').to.equal(1);
+					expect(contentId.blockCountLock, 'Block count lock must be 0').to.equal(0);
+
+					expect(messageContent, 'MessageContent event must be present').to.not.be.undefined;
+					expect(messageContent!.args.content, 'Content must be 0x080708070807').to.equal('0x080708070807');
+					expect(messageContent!.args.sender, 'Sender must be user address').to.equal(
+						await userSigner.getAddress(),
+					);
+					expect(messageContent!.args.parts, 'Parts must be 1').to.equal(1);
+					expect(messageContent!.args.partIdx, 'partIdx must be 0').to.equal(0);
+
+					const composedFeedId = constructPersonalFeedId(await userSigner.getAddress(), feedId1);
+
+					const msgs = await userMailerV8Wrapper.broadcast.retrieveBroadcastHistoryDesc(
+						mailerDesc,
+						composedFeedId,
+						null,
+						false,
+						null,
+						false,
+						10,
+					);
+
+					expect(msgs.length, 'Messages count must be 1').to.equal(1);
+					expect(msgs[0].senderAddress, 'Sender must be user address').to.equal(
+						await userSigner.getAddress(),
+					);
+					expect(msgs[0].isBroadcast, 'isBroadcast must be true').to.be.true;
+
+					const retrievedContent = await userMailerV8Wrapper.content.retrieveMessageContent(
+						mailerDesc,
+						msgs[0],
+					);
+
+					expect(retrievedContent).not.to.be.null;
+					if (retrievedContent === null) {
+						return;
+					}
+					expect(retrievedContent.corrupted, 'Content must not be corrupted').to.be.false;
+					if (retrievedContent.corrupted) {
+						return;
+					}
+
+					expect(retrievedContent.content.join(','), 'Content must be 8,7,8,7,8,7').to.equal('8,7,8,7,8,7');
 				});
 				it('Create priced feeds', async function () {
 					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
@@ -834,6 +922,7 @@ describe('YlideMailerV8', function () {
 							mailerDesc,
 							senderSigner,
 							await senderSigner.getAddress(),
+							false,
 							feedId,
 							uniqueId,
 							content,
@@ -1414,6 +1503,7 @@ describe('YlideMailerV8', function () {
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
+						false,
 						'0000000000000000000000000000000000000000000000000000000000000002' as Uint256,
 						uniqueId,
 						currentBlock,
@@ -1702,7 +1792,7 @@ describe('YlideMailerV8', function () {
 
 				const generateSmallBroadcastEvents = async (d: IEVMMailerContractLink, s: Signer, count: number) => {
 					const events: {
-						args: [IEVMMailerContractLink, Signer, string, Uint256, number, Uint8Array, BigNumber];
+						args: [IEVMMailerContractLink, Signer, string, boolean, Uint256, number, Uint8Array, BigNumber];
 						uniqueId: number;
 						content: Uint8Array;
 					}[] = [];
@@ -1715,6 +1805,7 @@ describe('YlideMailerV8', function () {
 								d,
 								s,
 								a,
+								false,
 								'0000000000000000000000000000000000000000000000000000000000000002' as Uint256,
 								uniqueId,
 								content,
@@ -1835,7 +1926,7 @@ describe('YlideMailerV8', function () {
 					skipBetween: number,
 					skipAfter: number,
 					events: {
-						args: [IEVMMailerContractLink, Signer, string, Uint256, number, Uint8Array, BigNumber];
+						args: [IEVMMailerContractLink, Signer, string, boolean, Uint256, number, Uint8Array, BigNumber];
 						uniqueId: number;
 						content: Uint8Array;
 					}[],
@@ -2419,6 +2510,7 @@ describe('YlideMailerV8', function () {
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
+						false,
 						'0000000000000000000000000000000000000000000000000000000000000002' as Uint256,
 						uniqueId,
 						content,
@@ -2527,6 +2619,7 @@ describe('YlideMailerV8', function () {
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
+						false,
 						'0000000000000000000000000000000000000000000000000000000000000002' as Uint256,
 						uniqueId,
 						currentBlock,

@@ -554,7 +554,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		me: IGenericAccount,
 		feedId: Uint256,
 		contentData: Uint8Array,
-		options?: { network?: EVMNetwork; value?: BigNumber },
+		options?: { network?: EVMNetwork; value?: BigNumber; isPersonal?: boolean },
 	): Promise<SendBroadcastResult> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Broadcast message', options);
@@ -572,6 +572,7 @@ export class EthereumWalletController extends AbstractWalletController {
 				mailer.link,
 				this.signer,
 				me.address,
+				options?.isPersonal || false,
 				feedId,
 				uniqueId,
 				chunks[0],
@@ -600,6 +601,7 @@ export class EthereumWalletController extends AbstractWalletController {
 				mailer.link,
 				this.signer,
 				me.address,
+				options?.isPersonal || false,
 				feedId,
 				uniqueId,
 				firstBlockNumber,
