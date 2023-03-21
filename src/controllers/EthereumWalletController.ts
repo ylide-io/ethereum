@@ -23,7 +23,7 @@ import {
 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 
-import { EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CHUNK_SIZES, EVM_CONTRACTS, EVM_NAMES } from '../misc/constants';
+import { EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CHUNK_SIZES, EVM_NAMES } from '../misc/constants';
 import type { IEVMMailerContractLink, IEVMMessage, IEVMRegistryContractLink } from '../misc/types';
 import { EVMNetwork } from '../misc/types';
 import { EthereumBlockchainController } from './EthereumBlockchainController';
@@ -37,6 +37,7 @@ import { EthereumRegistryV3Wrapper } from '../contract-wrappers/EthereumRegistry
 import { EthereumRegistryV4Wrapper } from '../contract-wrappers/EthereumRegistryV4Wrapper';
 import { EthereumRegistryV5Wrapper } from '../contract-wrappers/EthereumRegistryV5Wrapper';
 import { EthereumRegistryV6Wrapper } from '../contract-wrappers/EthereumRegistryV6Wrapper';
+import { EVM_CONTRACTS } from '../misc/contractConstants';
 
 export type NetworkSwitchHandler = (
 	reason: string,

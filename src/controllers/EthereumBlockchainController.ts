@@ -17,7 +17,7 @@ import {
 	Uint256,
 } from '@ylide/sdk';
 import { EVMMailerContractType, EVMNetwork, EVMRegistryContractType } from '../misc/types';
-import { EVM_CHAINS, EVM_CONTRACTS, EVM_CONTRACT_TO_NETWORK, EVM_NAMES, EVM_RPCS } from '../misc/constants';
+import { EVM_CHAINS, EVM_CONTRACT_TO_NETWORK, EVM_NAMES, EVM_RPCS } from '../misc/constants';
 import { decodeEvmMsgId } from '../misc/evmMsgId';
 import type { IEVMMailerContractLink, IEVMMessage, IEVMRegistryContractLink } from '../misc/types';
 
@@ -36,6 +36,7 @@ import { EthereumMailerV8Wrapper } from '../contract-wrappers/v8/EthereumMailerV
 import { EVMMailerV6Source } from '../messages-sources/EVMMailerV6Source';
 import { EVMMailerV7Source } from '../messages-sources/EVMMailerV7Source';
 import { EVMMailerV8Source } from '../messages-sources/EVMMailerV8Source';
+import { EVM_CONTRACTS } from '../misc/contractConstants';
 
 export class EthereumBlockchainController extends AbstractBlockchainController {
 	readonly blockchainReader: EthereumBlockchainReader;
