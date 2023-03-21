@@ -17,7 +17,7 @@ specifiers:
   '@types/node': 18.15.3
   '@typescript-eslint/eslint-plugin': 5.55.0
   '@typescript-eslint/parser': 5.55.0
-  '@ylide/ethereum-contracts': 0.8.0-beta.10
+  '@ylide/ethereum-contracts': 0.8.0-beta.11
   '@ylide/sdk': 0.8.0-beta.4
   '@ylide/smart-buffer': 0.0.11
   chai: 4.3.7
@@ -43,7 +43,7 @@ dependencies:
   '@ethersproject/abi': 5.7.0
   '@ethersproject/abstract-provider': 5.7.0
   '@ethersproject/providers': 5.7.2
-  '@ylide/ethereum-contracts': 0.8.0-beta.10
+  '@ylide/ethereum-contracts': 0.8.0-beta.11
   '@ylide/sdk': 0.8.0-beta.4
   '@ylide/smart-buffer': 0.0.11
   ethers: 5.7.2
@@ -1246,8 +1246,8 @@ packages:
       eslint-visitor-keys: 3.3.0
     dev: true
 
-  /@ylide/ethereum-contracts/0.8.0-beta.10:
-    resolution: {integrity: sha512-urV41k5PR3SY9OyfhUejWAfcbLGM4sqpnTbZZ2RaRz5jnol33YIAswcy/kHRrGtOmxM0TJnZZzExetlVKRNmYw==}
+  /@ylide/ethereum-contracts/0.8.0-beta.11:
+    resolution: {integrity: sha512-+G/iqLbCQb5eZYKq7ELM6Unmdlyy1bd8tjn+6IDkN4NC06y8la5hwjHrgdTIk5Y+mBf/2vOtqpZ8m+28ZWgjvw==}
     dependencies:
       '@ethersproject/abi': 5.7.0
       '@ethersproject/providers': 5.7.2

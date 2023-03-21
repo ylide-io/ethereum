@@ -1,6 +1,6 @@
 export * from './constants';
 export * from './constructFaucetMsg';
-export * from './constructPersonalFeedId';
+export * from './constructFeedId';
 export * from './contentId';
 export * from './contractConstants';
 export * from './evmMsgId';

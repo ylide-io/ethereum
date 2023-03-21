@@ -16,7 +16,7 @@ import { Uint256, YLIDE_MAIN_FEED_ID } from '@ylide/sdk';
 import { decodeContentId } from '../src/misc/contentId';
 import SmartBuffer from '@ylide/smart-buffer';
 import { LogDescription } from '@ethersproject/abi';
-import { constructPersonalFeedId } from '../src/misc/constructPersonalFeedId';
+import { constructPersonalFeedId } from '../src/misc/constructFeedId';
 
 describe('YlideMailerV8', function () {
 	this.timeout('2000s');
@@ -204,6 +204,7 @@ describe('YlideMailerV8', function () {
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
+						'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 						BigNumber.from(0),
 					);
 
@@ -265,6 +266,7 @@ describe('YlideMailerV8', function () {
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
+						'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 						BigNumber.from(0),
 					);
 
@@ -343,6 +345,7 @@ describe('YlideMailerV8', function () {
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
+						'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 						true,
 						BigNumber.from(0),
 					);
@@ -455,6 +458,7 @@ describe('YlideMailerV8', function () {
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
+						'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 						true,
 						BigNumber.from(0),
 					);
@@ -702,6 +706,7 @@ describe('YlideMailerV8', function () {
 							mailerDesc,
 							ownerSigner,
 							await ownerSigner.getAddress(),
+							'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 							true,
 							BigNumber.from(0),
 						);
@@ -722,6 +727,7 @@ describe('YlideMailerV8', function () {
 							mailerDesc,
 							ownerSigner,
 							await ownerSigner.getAddress(),
+							'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 							true,
 							BigNumber.from(5),
 						);
@@ -739,6 +745,7 @@ describe('YlideMailerV8', function () {
 						mailerDesc,
 						ownerSigner,
 						await ownerSigner.getAddress(),
+						'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 						true,
 						BigNumber.from(10),
 					);
@@ -752,6 +759,7 @@ describe('YlideMailerV8', function () {
 							mailerDesc,
 							ownerSigner,
 							await ownerSigner.getAddress(),
+							'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 							BigNumber.from(0),
 						);
 					} catch (err: any) {
@@ -771,6 +779,7 @@ describe('YlideMailerV8', function () {
 							mailerDesc,
 							ownerSigner,
 							await ownerSigner.getAddress(),
+							'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 							BigNumber.from(15),
 						);
 					} catch (err: any) {
@@ -787,6 +796,7 @@ describe('YlideMailerV8', function () {
 						mailerDesc,
 						ownerSigner,
 						await ownerSigner.getAddress(),
+						'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 						BigNumber.from(20),
 					);
 				});

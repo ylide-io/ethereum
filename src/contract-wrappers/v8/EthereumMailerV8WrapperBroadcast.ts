@@ -49,6 +49,7 @@ export class EthereumMailerV8WrapperBroadcast {
 		mailer: IEVMMailerContractLink,
 		signer: ethers.Signer,
 		from: string,
+		uniqueId: Uint256,
 		isPublic: boolean,
 		value: ethers.BigNumber,
 	): Promise<{
@@ -58,7 +59,7 @@ export class EthereumMailerV8WrapperBroadcast {
 		feedId: Uint256 | null;
 	}> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.createBroadcastFeed(isPublic, { from, value });
+		const tx = await contract.createBroadcastFeed(`0x${uniqueId}`, isPublic, { from, value });
 		const receipt = await tx.wait();
 		const {
 			byName: { BroadcastFeedCreated: events },
