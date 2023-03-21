@@ -123,7 +123,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 			},
 		],
 		currentRegistryId: 46,
-		currentMailerId: 47,
+		currentMailerId: 8,
 	},
 	[EVMNetwork.AVALANCHE]: {
 		registryContracts: [
@@ -303,7 +303,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 			},
 		],
 		currentRegistryId: 44,
-		currentMailerId: 45,
+		currentMailerId: 18,
 	},
 	[EVMNetwork.KLAYTN]: {
 		registryContracts: [
@@ -368,7 +368,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 			},
 		],
 		currentRegistryId: 41,
-		currentMailerId: 42,
+		currentMailerId: 22,
 	},
 	[EVMNetwork.AURORA]: {
 		registryContracts: [
