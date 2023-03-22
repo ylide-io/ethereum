@@ -15,7 +15,7 @@ export class BetterWebSocketProvider extends WebSocketProviderClass() {
 		},
 	};
 
-	constructor(private providerUrl: string) {
+	constructor(private providerUrl: string, private __network: ethers.providers.Networkish) {
 		super();
 		this.create(0);
 
@@ -28,7 +28,7 @@ export class BetterWebSocketProvider extends WebSocketProviderClass() {
 			this.requests = { ...this.requests, ...this.provider._requests };
 		}
 
-		const provider = new ethers.providers.WebSocketProvider(this.providerUrl, this.provider?.network?.chainId);
+		const provider = new ethers.providers.WebSocketProvider(this.providerUrl, this.__network);
 
 		const on = provider._websocket.on
 			? provider._websocket.on.bind(provider._websocket)

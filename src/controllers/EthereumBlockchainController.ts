@@ -17,7 +17,7 @@ import {
 	Uint256,
 } from '@ylide/sdk';
 import { EVMMailerContractType, EVMNetwork, EVMRegistryContractType } from '../misc/types';
-import { EVM_CHAINS, EVM_CONTRACT_TO_NETWORK, EVM_NAMES, EVM_RPCS } from '../misc/constants';
+import { EVM_CHAINS, EVM_CONTRACT_TO_NETWORK, EVM_ENS, EVM_NAMES, EVM_RPCS } from '../misc/constants';
 import { decodeEvmMsgId } from '../misc/evmMsgId';
 import type { IEVMMailerContractLink, IEVMMessage, IEVMRegistryContractLink } from '../misc/types';
 
@@ -37,6 +37,7 @@ import { EVMMailerV6Source } from '../messages-sources/EVMMailerV6Source';
 import { EVMMailerV7Source } from '../messages-sources/EVMMailerV7Source';
 import { EVMMailerV8Source } from '../messages-sources/EVMMailerV8Source';
 import { EVM_CONTRACTS } from '../misc/contractConstants';
+import { EthereumNameService } from './EthereumNameService';
 
 export class EthereumBlockchainController extends AbstractBlockchainController {
 	readonly blockchainReader: EthereumBlockchainReader;
@@ -104,10 +105,12 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		this.blockchainReader = EthereumBlockchainReader.createEthereumBlockchainReader(
 			options.rpcs ||
 				EVM_RPCS[options.network].map(rpc => ({
+					chainId: EVM_CHAINS[options.network!],
 					rpcUrlOrProvider: rpc.rpc,
 					blockLimit: rpc.blockLimit || 1000,
 					latestNotSupported: rpc.lastestNotSupported,
 					batchNotSupported: rpc.batchNotSupported,
+					ensAddress: EVM_ENS[options.network!],
 				})),
 		);
 
@@ -161,13 +164,12 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		await this.blockchainReader.init();
 	}
 
-	// private tryGetNameService(): EthereumNameService | null {
-	// 	return EVM_ENS[this.network] ? new EthereumNameService(this, EVM_ENS[this.network]!) : null;
-	// }
+	private tryGetNameService(): EthereumNameService | null {
+		return EVM_ENS[this.network] ? new EthereumNameService(this, EVM_ENS[this.network]!) : null;
+	}
 
 	defaultNameService(): AbstractNameService | null {
-		// TODO
-		throw new Error('Method not implemented.');
+		return this.tryGetNameService();
 	}
 
 	isReadingBySenderAvailable(): boolean {

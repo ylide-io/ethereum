@@ -6,10 +6,12 @@ import { BetterWebSocketProvider } from './BetterWebSocketProvider';
 import { ethersBlockToInternalBlock, ethersTxToInternalTx } from './ethersHelper';
 
 export interface IRPCDescriptor {
+	chainId: number;
 	rpcUrlOrProvider: string | ethers.providers.Provider;
 	blockLimit: number;
 	latestNotSupported?: boolean;
 	batchNotSupported?: boolean;
+	ensAddress?: string | null;
 }
 
 export interface IInternalRPCDescriptor {
@@ -28,9 +30,17 @@ export class EthereumBlockchainReader {
 			let provider;
 			if (typeof rpc.rpcUrlOrProvider === 'string') {
 				if (rpc.rpcUrlOrProvider.startsWith('ws')) {
-					provider = new BetterWebSocketProvider(rpc.rpcUrlOrProvider);
+					provider = new BetterWebSocketProvider(rpc.rpcUrlOrProvider, {
+						name: 'YlideUnknownNetworkName',
+						chainId: rpc.chainId,
+						ensAddress: rpc.ensAddress || undefined,
+					});
 				} else if (rpc.rpcUrlOrProvider.startsWith('http')) {
-					provider = new ethers.providers.StaticJsonRpcProvider(rpc.rpcUrlOrProvider);
+					provider = new ethers.providers.StaticJsonRpcProvider(rpc.rpcUrlOrProvider, {
+						name: 'YlideUnknownNetworkName',
+						chainId: rpc.chainId,
+						ensAddress: rpc.ensAddress || undefined,
+					});
 				} else {
 					throw new Error('Invalid rpcUrlOrProvider: ' + rpc.rpcUrlOrProvider);
 				}

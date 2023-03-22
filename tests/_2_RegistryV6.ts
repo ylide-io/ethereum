@@ -51,36 +51,42 @@ describe('YlideRegistryV6', function () {
 
 			readerForOwner = EthereumBlockchainReader.createEthereumBlockchainReader([
 				{
+					chainId: 31337,
 					rpcUrlOrProvider: ownerSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
 			readerForUser = EthereumBlockchainReader.createEthereumBlockchainReader([
 				{
+					chainId: 31337,
 					rpcUrlOrProvider: userSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
 			readerForHistoryUser = EthereumBlockchainReader.createEthereumBlockchainReader([
 				{
+					chainId: 31337,
 					rpcUrlOrProvider: historyUserSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
 			readerForBonucer = EthereumBlockchainReader.createEthereumBlockchainReader([
 				{
+					chainId: 31337,
 					rpcUrlOrProvider: bonucerSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
 			readerForNewUser = EthereumBlockchainReader.createEthereumBlockchainReader([
 				{
+					chainId: 31337,
 					rpcUrlOrProvider: newUserSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
 			readerForReferrer = EthereumBlockchainReader.createEthereumBlockchainReader([
 				{
+					chainId: 31337,
 					rpcUrlOrProvider: referrerSigner.provider!,
 					blockLimit: 100,
 				},

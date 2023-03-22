@@ -1,4 +1,5 @@
 export * from './EthereumBlockchainController';
+export * from './EthereumNameService';
 export * from './EthereumWalletController';
 
 export * from './helpers/BetterWebSocketProvider';

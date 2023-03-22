@@ -4,7 +4,7 @@
 	"publishConfig": {
 		"access": "public"
 	},
-	"version": "0.8.0-beta.19",
+	"version": "0.8.0-beta.20",
 	"description": "Ylide Protocol SDK implementation for EVM-based blockchains",
 	"main": "lib/index.js",
 	"types": "lib/index.d.ts",
@@ -34,6 +34,7 @@
 	"author": "Danila Simonov",
 	"license": "ISC",
 	"dependencies": {
+		"@ensdomains/ensjs": "3.0.0-alpha.51",
 		"@ethersproject/abi": "5.7.0",
 		"@ethersproject/abstract-provider": "5.7.0",
 		"@ethersproject/providers": "5.7.2",

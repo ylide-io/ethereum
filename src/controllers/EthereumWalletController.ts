@@ -112,6 +112,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 		this.blockchainReader = EthereumBlockchainReader.createEthereumBlockchainReader([
 			{
+				chainId: 0, // not user when provider is provided
 				rpcUrlOrProvider: this.signer.provider,
 				blockLimit: 500,
 				latestNotSupported: true,

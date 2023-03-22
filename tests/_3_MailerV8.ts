@@ -42,18 +42,21 @@ describe('YlideMailerV8', function () {
 
 			readerForOwner = EthereumBlockchainReader.createEthereumBlockchainReader([
 				{
+					chainId: 31337,
 					rpcUrlOrProvider: ownerSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
 			readerForBeneficiary = EthereumBlockchainReader.createEthereumBlockchainReader([
 				{
+					chainId: 31337,
 					rpcUrlOrProvider: beneficiarySigner.provider!,
 					blockLimit: 100,
 				},
 			]);
 			readerForUser = EthereumBlockchainReader.createEthereumBlockchainReader([
 				{
+					chainId: 31337,
 					rpcUrlOrProvider: userSigner.provider!,
 					blockLimit: 100,
 				},
