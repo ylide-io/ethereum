@@ -34,7 +34,7 @@ export class EthereumRegistryV3Wrapper {
 				keyVersion: keyVersion.toNumber(),
 				publicKey: PublicKey.fromBytes(
 					PublicKeyType.YLIDE,
-					SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '')).bytes,
+					SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '').padStart(64, '0')).bytes,
 				),
 				timestamp: event.block.timestamp,
 				registrar: 0,
@@ -56,7 +56,7 @@ export class EthereumRegistryV3Wrapper {
 				keyVersion: keyVersion.toNumber(),
 				publicKey: PublicKey.fromBytes(
 					PublicKeyType.YLIDE,
-					SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '')).bytes,
+					SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '').padStart(64, '0')).bytes,
 				),
 				timestamp: timestamp.toNumber(),
 				registrar: 0,

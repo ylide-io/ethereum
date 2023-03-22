@@ -33,7 +33,7 @@ export class EthereumRegistryV6Wrapper {
 				keyVersion,
 				publicKey: PublicKey.fromBytes(
 					PublicKeyType.YLIDE,
-					SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '')).bytes,
+					SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '').padStart(64, '0')).bytes,
 				),
 				timestamp: event.block.timestamp,
 				registrar: event.event.parsed.registrar,
@@ -71,7 +71,7 @@ export class EthereumRegistryV6Wrapper {
 				keyVersion,
 				publicKey: PublicKey.fromBytes(
 					PublicKeyType.YLIDE,
-					SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '')).bytes,
+					SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '').padStart(64, '0')).bytes,
 				),
 				timestamp: timestamp.toNumber(),
 				registrar,
@@ -133,7 +133,8 @@ export class EthereumRegistryV6Wrapper {
 				keyVersion: e.event.parsed.keyVersion,
 				publicKey: PublicKey.fromBytes(
 					PublicKeyType.YLIDE,
-					SmartBuffer.ofHexString(e.event.parsed.publicKey.toHexString().replace('0x', '')).bytes,
+					SmartBuffer.ofHexString(e.event.parsed.publicKey.toHexString().replace('0x', '').padStart(64, '0'))
+						.bytes,
 				),
 				timestamp: e.block.timestamp,
 				registrar: e.event.parsed.registrar,
@@ -144,7 +145,7 @@ export class EthereumRegistryV6Wrapper {
 					keyVersion,
 					publicKey: PublicKey.fromBytes(
 						PublicKeyType.YLIDE,
-						SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '')).bytes,
+						SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '').padStart(64, '0')).bytes,
 					),
 					timestamp: timestamp.toNumber(),
 					registrar,
