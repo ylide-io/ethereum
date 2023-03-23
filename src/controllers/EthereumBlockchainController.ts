@@ -105,11 +105,13 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		this.blockchainReader = EthereumBlockchainReader.createEthereumBlockchainReader(
 			options.rpcs ||
 				EVM_RPCS[options.network].map(rpc => ({
+					// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 					chainId: EVM_CHAINS[options.network!],
 					rpcUrlOrProvider: rpc.rpc,
 					blockLimit: rpc.blockLimit || 1000,
 					latestNotSupported: rpc.lastestNotSupported,
 					batchNotSupported: rpc.batchNotSupported,
+					// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 					ensAddress: EVM_ENS[options.network!],
 				})),
 		);
@@ -165,7 +167,8 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	private tryGetNameService(): EthereumNameService | null {
-		return EVM_ENS[this.network] ? new EthereumNameService(this, EVM_ENS[this.network]!) : null;
+		const ens = EVM_ENS[this.network];
+		return ens ? new EthereumNameService(this, ens) : null;
 	}
 
 	defaultNameService(): AbstractNameService | null {
