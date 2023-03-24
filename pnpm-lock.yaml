@@ -19,7 +19,7 @@ specifiers:
   '@typescript-eslint/eslint-plugin': 5.56.0
   '@typescript-eslint/parser': 5.56.0
   '@ylide/ethereum-contracts': 0.8.0-beta.11
-  '@ylide/sdk': 0.8.0-beta.6
+  '@ylide/sdk': 0.8.0-beta.7
   '@ylide/smart-buffer': 0.0.11
   chai: 4.3.7
   eslint: 8.36.0
@@ -46,7 +46,7 @@ dependencies:
   '@ethersproject/abstract-provider': 5.7.0
   '@ethersproject/providers': 5.7.2
   '@ylide/ethereum-contracts': 0.8.0-beta.11
-  '@ylide/sdk': 0.8.0-beta.6
+  '@ylide/sdk': 0.8.0-beta.7
   '@ylide/smart-buffer': 0.0.11
   ethers: 5.7.2
   eventemitter3: 5.0.0
@@ -327,8 +327,8 @@ packages:
       jsdoc-type-pratt-parser: 3.1.0
     dev: true
 
-  /@eslint-community/eslint-utils/4.3.0_eslint@8.36.0:
-    resolution: {integrity: sha512-v3oplH6FYCULtFuCeqyuTd9D2WKO937Dxdq+GmHOLL72TTRriLxz2VLlNfkZRsvj6PKnOPAtuT6dwrs/pA5DvA==}
+  /@eslint-community/eslint-utils/4.4.0_eslint@8.36.0:
+    resolution: {integrity: sha512-1/sA4dwrzBAyeUoQ6oxahHKmrZvsnLCg4RfxW3ZFGGmQkSNQPFNLV9CUEFQP1x9EYXHTo5p6xdhZM1Ne9p/AfA==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     peerDependencies:
       eslint: ^6.0.0 || ^7.0.0 || >=8.0.0
@@ -337,8 +337,8 @@ packages:
       eslint-visitor-keys: 3.3.0
     dev: true
 
-  /@eslint-community/regexpp/4.4.0:
-    resolution: {integrity: sha512-A9983Q0LnDGdLPjxyXQ00sbV+K+O+ko2Dr+CZigbHWtX9pNfxlaBkMR8X1CztI73zuEyEBXTVjx7CE+/VSwDiQ==}
+  /@eslint-community/regexpp/4.4.1:
+    resolution: {integrity: sha512-BISJ6ZE4xQsuL/FmsyRaiffpq977bMlsKfGHTQrOGFErfByxIe6iZTxPf/00Zon9b9a7iUykfQwejN3s2ZW/Bw==}
     engines: {node: ^12.0.0 || ^14.0.0 || >=16.0.0}
     dev: true
 
@@ -1708,7 +1708,7 @@ packages:
       typescript:
         optional: true
     dependencies:
-      '@eslint-community/regexpp': 4.4.0
+      '@eslint-community/regexpp': 4.4.1
       '@typescript-eslint/parser': 5.56.0_j4766f7ecgqbon3u7zlxn5zszu
       '@typescript-eslint/scope-manager': 5.56.0
       '@typescript-eslint/type-utils': 5.56.0_j4766f7ecgqbon3u7zlxn5zszu
@@ -1805,7 +1805,7 @@ packages:
     peerDependencies:
       eslint: ^6.0.0 || ^7.0.0 || ^8.0.0
     dependencies:
-      '@eslint-community/eslint-utils': 4.3.0_eslint@8.36.0
+      '@eslint-community/eslint-utils': 4.4.0_eslint@8.36.0
       '@types/json-schema': 7.0.11
       '@types/semver': 7.3.13
       '@typescript-eslint/scope-manager': 5.56.0
@@ -1842,8 +1842,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@ylide/sdk/0.8.0-beta.6:
-    resolution: {integrity: sha512-wJcKieONDrvJAgGTqueTE/nYhvoULzCqLDqMdEwjSVpGI5Jpgx5nfNOIHTIX+VyckQfYudXEEX7yyc/wCd1MVg==}
+  /@ylide/sdk/0.8.0-beta.7:
+    resolution: {integrity: sha512-dVb8OmML7TRJRovY+jjP/d4ufgwnFyNp26P7LmoIB1RmIMCA9VK7+oyMCACxMxXDck3DhI+nKw9XObblQtgrsg==}
     dependencies:
       '@datastructures-js/binary-search-tree': 5.2.0
       '@datastructures-js/linked-list': 5.2.5
@@ -3055,7 +3055,7 @@ packages:
     hasBin: true
     dependencies:
       caniuse-lite: 1.0.30001469
-      electron-to-chromium: 1.4.336
+      electron-to-chromium: 1.4.339
     dev: false
 
   /bs58/4.0.1:
@@ -4207,8 +4207,8 @@ packages:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
     dev: false
 
-  /electron-to-chromium/1.4.336:
-    resolution: {integrity: sha512-yLaoSY/ngjgRpEGU4ueeW0vlj456idQBn74r6s1yutoOIadvd7rwt05TGenPj0PoetJ5pEHomVkmfTdIgqPfJw==}
+  /electron-to-chromium/1.4.339:
+    resolution: {integrity: sha512-MSXHBJGcbBydq/DQDlpBeUKnJ6C7aTiNCTRpfDV5Iz0sNr/Ng6RJFloq82AAicp/SrmDq4zF6XsKG0B8Xwn1UQ==}
     dev: false
 
   /elliptic/6.5.4:
@@ -4472,8 +4472,8 @@ packages:
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     hasBin: true
     dependencies:
-      '@eslint-community/eslint-utils': 4.3.0_eslint@8.36.0
-      '@eslint-community/regexpp': 4.4.0
+      '@eslint-community/eslint-utils': 4.4.0_eslint@8.36.0
+      '@eslint-community/regexpp': 4.4.1
       '@eslint/eslintrc': 2.0.1
       '@eslint/js': 8.36.0
       '@humanwhocodes/config-array': 0.11.8
