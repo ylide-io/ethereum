@@ -76,6 +76,9 @@ describe('YlideMailerV8', function () {
 					verified: false,
 					address: mailer.address,
 					creationBlock: 1,
+					ylidePayContract: '',
+					ylideStakeContract: '',
+					ylideStreamSablierContract: '',
 				};
 			});
 			describe('Misceallenous', function () {
@@ -621,7 +624,7 @@ describe('YlideMailerV8', function () {
 						userSigner,
 						await userSigner.getAddress(),
 						true,
-						feedId1!,
+						feedId1,
 						uniqueId,
 						content,
 						BigNumber.from(0),
@@ -817,7 +820,7 @@ describe('YlideMailerV8', function () {
 					senderSigner: Signer,
 					feedId: Uint256,
 					value: number,
-					shouldFail: boolean = false,
+					shouldFail = false,
 				) => {
 					const a = Math.floor(Math.random() * 256);
 					const b = Math.floor(Math.random() * 256);
@@ -915,7 +918,7 @@ describe('YlideMailerV8', function () {
 					senderSigner: Signer,
 					feedId: Uint256,
 					value: number,
-					shouldFail: boolean = false,
+					shouldFail = false,
 				) => {
 					const c = Math.floor(Math.random() * 256);
 					const d = Math.floor(Math.random() * 256);
