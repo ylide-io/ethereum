@@ -1,9 +1,9 @@
 import { ethers, Event, Transaction } from 'ethers';
 import type { BlockWithTransactions } from '@ethersproject/abstract-provider';
 import type { Block, Log } from '@ethersproject/providers';
-import type { TypedEvent } from '@ylide/ethereum-contracts/lib/common';
 
-import type { IEVMBlock, IEVMEvent, IEVMTransaction } from '../../misc/types';
+import type { IEVMBlock, IEVMEvent, IEVMTransaction, LogInternal } from '../../misc/types';
+import { TypedEvent } from '../../contract-wrappers/v9/mock/common';
 
 export type EventParsed<T> = T extends TypedEvent<infer Arr, infer Obj> ? Obj : never;
 
@@ -77,6 +77,31 @@ export const ethersLogToInternalEvent = <T>(
 			? argsTransform(log.logDescription.args || {})
 			: log.logDescription.args || {}) as unknown as T,
 	};
+};
+
+export const convertLogInternalToInternalEvent = <T>(logs: LogInternal[], logName: string) => {
+	return logs.filter(l => l.logDescription.name === logName).map(l => ethersLogToInternalEvent<T>(l));
+};
+
+export const parseReceiptToLogInternal = (contract: ethers.Contract, receipt: ethers.ContractReceipt) => {
+	return receipt.logs
+		.map(l => {
+			try {
+				return {
+					log: l,
+					logDescription: contract.interface.parseLog(l),
+				};
+			} catch (err) {
+				return {
+					log: l,
+					logDescription: null,
+				};
+			}
+		})
+		.filter(
+			(l): l is { log: ethers.providers.Log; logDescription: ethers.utils.LogDescription } =>
+				l.logDescription !== null,
+		);
 };
 
 export { ethersEventToInternalEvent };

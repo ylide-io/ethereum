@@ -2,3 +2,5 @@
 /.vscode
 .DS_Store
 /lib
+
+src/contract-wrappers/v9/mock

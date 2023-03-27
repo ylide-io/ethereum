@@ -1,7 +1,13 @@
 import { WebSocketProvider } from '@ethersproject/providers';
 import { ethers } from 'ethers';
 import { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
-import type { IEVMMailerContractLink, IEVMRegistryContractLink } from '../misc/types';
+import type {
+	IEVMMailerContractLink,
+	IEVMRegistryContractLink,
+	IEVMYlidePayContractType,
+	IEVMYlideStakeContractType,
+	IEVMYlideStreamSablierContractType,
+} from '../misc/types';
 
 export type SigningContext = ethers.providers.Provider | ethers.Signer;
 
@@ -34,7 +40,12 @@ export class ContractCache<Contract = any> {
 	}
 
 	async contractOperation<T>(
-		contractLink: IEVMMailerContractLink | IEVMRegistryContractLink,
+		contractLink:
+			| IEVMMailerContractLink
+			| IEVMRegistryContractLink
+			| IEVMYlidePayContractType
+			| IEVMYlideStakeContractType
+			| IEVMYlideStreamSablierContractType,
 		callback: (
 			contract: Contract,
 			provider: ethers.providers.Provider,

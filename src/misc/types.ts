@@ -1,4 +1,7 @@
 import type { IMessage, Uint256 } from '@ylide/sdk';
+import { ethers } from 'ethers';
+import { YlideStreamSablierV1 } from '../contract-wrappers/v9/mock';
+import { IYlidePayStake } from '../contract-wrappers/v9/mock/contracts/YlidePayV1';
 
 export enum EVMNetwork {
 	LOCAL_HARDHAT, //  = 'LOCAL_HARDHAT',
@@ -72,6 +75,7 @@ export enum EVMMailerContractType {
 	EVMMailerV6 = 'EVMMailerV6',
 	EVMMailerV7 = 'EVMMailerV7',
 	EVMMailerV8 = 'EVMMailerV8',
+	EVMMailerV9 = 'EVMMailerV9',
 }
 
 export enum EVMRegistryContractType {
@@ -79,6 +83,16 @@ export enum EVMRegistryContractType {
 	EVMRegistryV4 = 'EVMRegistryV4',
 	EVMRegistryV5 = 'EVMRegistryV5',
 	EVMRegistryV6 = 'EVMRegistryV6',
+}
+
+export enum EVMYlidePayContractType {
+	EVMYlidePayV1 = 'EVMYlidePayV1',
+}
+export enum EVMYlideStakeContractType {
+	EVMYlideStakeV1 = 'EVMYlideStakeV1',
+}
+export enum EVMYlideStreamSablierContractType {
+	EVMYlideStreamSablierV1 = 'EVMYlideStreamSablierV1',
 }
 
 export interface IEVMBaseContractLink {
@@ -91,15 +105,34 @@ export interface IEVMBaseContractLink {
 
 export interface IEVMMailerContractLink extends IEVMBaseContractLink {
 	type: EVMMailerContractType;
+	ylidePayContract: string;
+	ylideStakeContract: string;
+	ylideStreamSablierContract: string;
 }
 
 export interface IEVMRegistryContractLink extends IEVMBaseContractLink {
 	type: EVMRegistryContractType;
 }
 
+export interface IEVMYlidePayContractType extends IEVMBaseContractLink {
+	type: EVMYlidePayContractType;
+}
+
+export interface IEVMYlideStakeContractType extends IEVMBaseContractLink {
+	type: EVMYlideStakeContractType;
+}
+
+export interface IEVMYlideStreamSablierContractType extends IEVMBaseContractLink {
+	type: EVMYlideStreamSablierContractType;
+}
+
 export interface IEVMNetworkContracts {
 	mailerContracts: IEVMMailerContractLink[];
 	registryContracts: IEVMRegistryContractLink[];
+
+	ylidePayContracts: IEVMYlidePayContractType[];
+	ylideStakeContracts: IEVMYlideStakeContractType[];
+	ylideStreamSablierContracts: IEVMYlideStreamSablierContractType[];
 
 	currentRegistryId: number;
 	currentMailerId: number;
@@ -110,3 +143,19 @@ export type IEVMMessage = IMessage<IEVMMeta>;
 export type IHistorySource =
 	| { type: 'recipient'; feedId: Uint256; recipient: Uint256 }
 	| { type: 'broadcast'; feedId: Uint256 };
+
+export enum TokenAttachmentContractType {
+	Pay = 'Pay',
+	Stake = 'Stake',
+	StreamSablier = 'StreamSablier',
+}
+
+export type Payment = {
+	type: TokenAttachmentContractType;
+	args: IYlidePayStake.TransferInfoStruct[] | YlideStreamSablierV1.StreamInfoStruct[];
+};
+
+export type LogInternal = {
+	log: ethers.providers.Log;
+	logDescription: ethers.utils.LogDescription;
+};
