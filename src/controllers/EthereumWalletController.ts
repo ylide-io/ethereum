@@ -229,45 +229,6 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 	}
 
-	private getPaymentContractByNetwork(
-		network: EVMNetwork,
-		payments: Payment[],
-	): {
-		link: IEVMYlidePayContractType | IEVMYlideStakeContractType | IEVMYlideStreamSablierContractType;
-		wrapper: EthereumMailerV6Wrapper | EthereumMailerV7Wrapper | EthereumMailerV8Wrapper | EthereumMailerV9Wrapper;
-	} {
-		const paymentType = payments[0].type;
-		for (const p of payments) {
-			if (p.type !== paymentType) {
-				throw new Error('Payments must be of the same type');
-			}
-		}
-		if (paymentType === TokenAttachmentContractType.Pay) {
-			const id = EVM_CONTRACTS[network].currentPayId;
-		} else if (paymentType === TokenAttachmentContractType.Stake) {
-			const id = EVM_CONTRACTS[network].currentStakeId;
-		} else if (paymentType === TokenAttachmentContractType.StreamSablier) {
-			const id = EVM_CONTRACTS[network].currentStreamSablierId;
-		}
-		throw new Error('Unsupported payment type');
-		// const id = EVM_CONTRACTS[network].currentMailerId;
-		// const existing = this.mailers.find(r => r.link.id === id);
-		// if (existing) {
-		// 	return existing;
-		// } else {
-		// 	const link = EVM_CONTRACTS[network].mailerContracts.find(r => r.id === id);
-		// 	if (!link) {
-		// 		throw new Error(`Network ${network} has no current mailer`);
-		// 	}
-		// 	const wrapper = new EthereumBlockchainController.mailerWrappers[link.type](this.blockchainReader);
-		// 	this.mailers.push({
-		// 		link,
-		// 		wrapper,
-		// 	});
-		// 	return { link, wrapper };
-		// }
-	}
-
 	async setBonucer(network: EVMNetwork, from: string, newBonucer: string, val: boolean) {
 		const registry = this.getRegistryByNetwork(network);
 		if (
