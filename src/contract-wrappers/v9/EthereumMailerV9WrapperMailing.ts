@@ -15,6 +15,7 @@ import {
 	IEVMEvent,
 	IEVMMailerContractLink,
 	IEVMMessage,
+	LogInternal,
 	Payment,
 	TokenAttachmentContractType,
 } from '../../misc/types';
@@ -201,52 +202,18 @@ export class EthereumMailerV9WrapperMailing {
 		let tx: ethers.ContractTransaction = {} as ethers.ContractTransaction;
 		const paymentType = payments?.[0].type;
 		if (paymentType) {
-			if (paymentType === TokenAttachmentContractType.Pay) {
-				if (!mailer.ylidePayContract) {
-					throw new Error('Mailer has no ylidePayContract');
-				}
-				tx = await this.payWrapper.sendBulkMailWithToken({
-					contractAddress: mailer.ylidePayContract,
-					signer,
-					from,
-					feedId,
-					uniqueId,
-					recipients,
-					keys,
-					content,
-					payments,
-				});
-			} else if (paymentType === TokenAttachmentContractType.Stake) {
-				if (!mailer.ylideStakeContract) {
-					throw new Error('Mailer has no ylidePayContract');
-				}
-				tx = await this.stakeWrapper.sendBulkMailWithToken({
-					contractAddress: mailer.ylideStakeContract,
-					signer,
-					from,
-					feedId,
-					uniqueId,
-					recipients,
-					keys,
-					content,
-					payments,
-				});
-			} else if (paymentType === TokenAttachmentContractType.StreamSablier) {
-				if (!mailer.ylideStreamSablierContract) {
-					throw new Error('Mailer has no ylideStreamSablierContract');
-				}
-				tx = await this.streamSablierWrapper.sendBulkMailWithToken({
-					contractAddress: mailer.ylideStreamSablierContract,
-					signer,
-					from,
-					feedId,
-					uniqueId,
-					recipients,
-					keys,
-					content,
-					payments,
-				});
-			}
+			tx = await this.sendBulkMailWithToken({
+				paymentType,
+				mailer,
+				signer,
+				from,
+				feedId,
+				uniqueId,
+				recipients,
+				keys,
+				content,
+				payments,
+			});
 		} else {
 			tx = await contract['sendBulkMail(uint256,uint256,uint256[],bytes[],bytes)'](
 				`0x${feedId}`,
@@ -260,27 +227,11 @@ export class EthereumMailerV9WrapperMailing {
 		const receipt = await tx.wait();
 		const logs = parseReceiptToLogInternal(contract, receipt);
 		const mailPushEvents = convertLogInternalToInternalEvent<MailPushEventObject>(logs, 'MailPush');
-
-		let tokenAttachmentEvents:
-			| IEVMEvent<TokenAttachmentEventObject>[]
-			| IEVMEvent<TokenAttachmentEventObjectStream>[] = [];
-
-		if (paymentType) {
-			if (paymentType === TokenAttachmentContractType.StreamSablier) {
-				tokenAttachmentEvents = convertLogInternalToInternalEvent<TokenAttachmentEventObjectStream>(
-					logs,
-					'TokenAttachment',
-				);
-			} else {
-				tokenAttachmentEvents = convertLogInternalToInternalEvent<TokenAttachmentEventObject>(
-					logs,
-					'TokenAttachment',
-				);
-			}
-		}
-
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
+
+		const tokenAttachmentEvents = this.getTokenAttachmentEvents(paymentType, logs);
+
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages, tokenAttachmentEvents };
 	}
 
@@ -309,58 +260,20 @@ export class EthereumMailerV9WrapperMailing {
 		let tx: ethers.ContractTransaction = {} as ethers.ContractTransaction;
 		const paymentType = payments?.[0].type;
 		if (paymentType) {
-			if (paymentType === TokenAttachmentContractType.Pay) {
-				if (!mailer.ylidePayContract) {
-					throw new Error('Mailer has no ylidePayContract');
-				}
-				tx = await this.payWrapper.addMailRecipientsWithToken({
-					contractAddress: mailer.ylidePayContract,
-					signer,
-					from,
-					feedId,
-					uniqueId,
-					firstBlockNumber,
-					partsCount,
-					blockCountLock,
-					recipients,
-					keys,
-					payments,
-				});
-			} else if (paymentType === TokenAttachmentContractType.Stake) {
-				if (!mailer.ylideStakeContract) {
-					throw new Error('Mailer has no ylideStakeContract');
-				}
-				tx = await this.stakeWrapper.addMailRecipientsWithToken({
-					contractAddress: mailer.ylidePayContract,
-					signer,
-					from,
-					feedId,
-					uniqueId,
-					firstBlockNumber,
-					partsCount,
-					blockCountLock,
-					recipients,
-					keys,
-					payments,
-				});
-			} else if (paymentType === TokenAttachmentContractType.StreamSablier) {
-				if (!mailer.ylideStreamSablierContract) {
-					throw new Error('Mailer has no ylideStreamSablierContract');
-				}
-				tx = await this.streamSablierWrapper.addMailRecipientsWithToken({
-					contractAddress: mailer.ylideStreamSablierContract,
-					signer,
-					from,
-					feedId,
-					uniqueId,
-					firstBlockNumber,
-					partsCount,
-					blockCountLock,
-					recipients,
-					keys,
-					payments,
-				});
-			}
+			tx = await this.addMailRecipientsWithToken({
+				paymentType,
+				mailer,
+				signer,
+				from,
+				feedId,
+				uniqueId,
+				firstBlockNumber,
+				partsCount,
+				blockCountLock,
+				recipients,
+				keys,
+				payments,
+			});
 		} else {
 			tx = await contract['addMailRecipients(uint256,uint256,uint256,uint16,uint16,uint256[],bytes[])'](
 				`0x${feedId}`,
@@ -377,27 +290,11 @@ export class EthereumMailerV9WrapperMailing {
 		const receipt = await tx.wait();
 		const logs = parseReceiptToLogInternal(contract, receipt);
 		const mailPushEvents = convertLogInternalToInternalEvent<MailPushEventObject>(logs, 'MailPush');
-
-		let tokenAttachmentEvents:
-			| IEVMEvent<TokenAttachmentEventObject>[]
-			| IEVMEvent<TokenAttachmentEventObjectStream>[] = [];
-
-		if (paymentType) {
-			if (paymentType === TokenAttachmentContractType.StreamSablier) {
-				tokenAttachmentEvents = convertLogInternalToInternalEvent<TokenAttachmentEventObjectStream>(
-					logs,
-					'TokenAttachment',
-				);
-			} else {
-				tokenAttachmentEvents = convertLogInternalToInternalEvent<TokenAttachmentEventObject>(
-					logs,
-					'TokenAttachment',
-				);
-			}
-		}
-
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
+
+		const tokenAttachmentEvents = this.getTokenAttachmentEvents(paymentType, logs);
+
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages, tokenAttachmentEvents };
 	}
 
@@ -420,6 +317,125 @@ export class EthereumMailerV9WrapperMailing {
 			]);
 			return this.processMailPushEvent(mailer, enriched);
 		});
+	}
+
+	private async sendBulkMailWithToken({
+		paymentType,
+		mailer,
+		signer,
+		from,
+		feedId,
+		uniqueId,
+		recipients,
+		keys,
+		content,
+		payments,
+	}: {
+		paymentType: TokenAttachmentContractType;
+		mailer: IEVMMailerContractLink;
+		signer: ethers.Signer;
+		from: string;
+		feedId: Uint256;
+		uniqueId: number;
+		recipients: Uint256[];
+		keys: Uint8Array[];
+		content: Uint8Array;
+		payments: Payment[];
+	}) {
+		const { contract, contractAddress } = this.getTokenAttachmentContract(paymentType, mailer);
+		return contract.sendBulkMailWithToken({
+			contractAddress,
+			signer,
+			from,
+			feedId,
+			uniqueId,
+			recipients,
+			keys,
+			content,
+			payments,
+		});
+	}
+
+	private getTokenAttachmentContract(paymentType: TokenAttachmentContractType, mailer: IEVMMailerContractLink) {
+		let contract: EthereumPayV1Wrapper | EthereumStakeV1Wrapper | EthereumStreamSablierV1Wrapper | undefined;
+		let contractAddress = '';
+		if (paymentType === TokenAttachmentContractType.Pay) {
+			if (!mailer.ylidePayContract) {
+				throw new Error('Mailer has no ylidePayContract');
+			}
+			contractAddress = mailer.ylidePayContract;
+			contract = this.payWrapper;
+		} else if (paymentType === TokenAttachmentContractType.Stake) {
+			if (!mailer.ylideStakeContract) {
+				throw new Error('Mailer has no ylidePayContract');
+			}
+			contractAddress = mailer.ylideStakeContract;
+			contract = this.stakeWrapper;
+		} else if (paymentType === TokenAttachmentContractType.StreamSablier) {
+			if (!mailer.ylideStreamSablierContract) {
+				throw new Error('Mailer has no ylideStreamSablierContract');
+			}
+			contractAddress = mailer.ylideStreamSablierContract;
+			contract = this.streamSablierWrapper;
+		}
+		if (!contract) {
+			throw new Error('Contract not found');
+		}
+		return { contract, contractAddress };
+	}
+
+	private async addMailRecipientsWithToken({
+		paymentType,
+		mailer,
+		signer,
+		from,
+		feedId,
+		uniqueId,
+		firstBlockNumber,
+		partsCount,
+		blockCountLock,
+		recipients,
+		keys,
+		payments,
+	}: {
+		paymentType: TokenAttachmentContractType;
+		mailer: IEVMMailerContractLink;
+		signer: ethers.Signer;
+		from: string;
+		feedId: Uint256;
+		uniqueId: number;
+		firstBlockNumber: number;
+		partsCount: number;
+		blockCountLock: number;
+		recipients: Uint256[];
+		keys: Uint8Array[];
+		payments: Payment[];
+	}) {
+		const { contract, contractAddress } = this.getTokenAttachmentContract(paymentType, mailer);
+		return contract.addMailRecipientsWithToken({
+			contractAddress,
+			signer,
+			from,
+			feedId,
+			uniqueId,
+			firstBlockNumber,
+			partsCount,
+			blockCountLock,
+			recipients,
+			keys,
+			payments,
+		});
+	}
+
+	private getTokenAttachmentEvents(paymentType: TokenAttachmentContractType | undefined, logs: LogInternal[]) {
+		if (!paymentType) {
+			return [];
+		}
+		if (paymentType === TokenAttachmentContractType.StreamSablier) {
+			return convertLogInternalToInternalEvent<TokenAttachmentEventObjectStream>(logs, 'TokenAttachment');
+		} else {
+			return convertLogInternalToInternalEvent<TokenAttachmentEventObject>(logs, 'TokenAttachment');
+		}
 	}
 
 	async retrieveMailHistoryDesc(
