@@ -1,3 +1,24 @@
+import {
+	IYlidePayStake__factory,
+	IYlideTokenAttachment,
+	IYlideTokenAttachment__factory,
+	YlideStreamSablierV1__factory,
+} from '@mock/ethereum-contracts/typechain-types';
+import {
+	IYlidePayStake,
+	TokenAttachmentEventObject,
+} from '@mock/ethereum-contracts/typechain-types/contracts/interfaces/IYlidePayStake';
+import {
+	MailingFeedJoinedEvent,
+	MailingFeedJoinedEventObject,
+	MailPushEvent,
+	MailPushEventObject,
+	YlideMailerV9,
+} from '@mock/ethereum-contracts/typechain-types/contracts/YlideMailerV9';
+import {
+	TokenAttachmentEventObject as TokenAttachmentEventObjectStream,
+	YlideStreamSablierV1,
+} from '@mock/ethereum-contracts/typechain-types/contracts/YlideStreamSablierV1';
 import type { Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { BigNumber, ethers } from 'ethers';
@@ -6,6 +27,8 @@ import {
 	convertLogInternalToInternalEvent,
 	ethersEventToInternalEvent,
 	parseReceiptToLogInternal,
+	parseTokenAttachmentEvent,
+	parseTokenAttachmentEventStream,
 } from '../../controllers/helpers/ethersHelper';
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
 import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../../misc/constants';
@@ -18,21 +41,13 @@ import {
 	LogInternal,
 	Payment,
 	TokenAttachmentContractType,
+	TokenAttachmentEventParsed,
 } from '../../misc/types';
 import { bnToUint256, IEventPosition } from '../../misc/utils';
 import { EthereumPayV1Wrapper } from '../EthereumPayV1Wrapper';
 import { EthereumStakeV1Wrapper } from '../EthereumStakeV1Wrapper';
 import { EthereumStreamSablierV1Wrapper } from '../EthereumStreamSablierWrapper';
 import type { EthereumMailerV9Wrapper } from './EthereumMailerV9Wrapper';
-import { TokenAttachmentEventObject } from '@mock/ethereum-contracts/typechain-types/contracts/interfaces/IYlidePayStake';
-import {
-	MailingFeedJoinedEvent,
-	MailingFeedJoinedEventObject,
-	MailPushEvent,
-	MailPushEventObject,
-	YlideMailerV9,
-} from '@mock/ethereum-contracts/typechain-types/contracts/YlideMailerV9';
-import { TokenAttachmentEventObject as TokenAttachmentEventObjectStream } from '@mock/ethereum-contracts/typechain-types/contracts/YlideStreamSablierV1';
 import { parseOutLogs } from './utils';
 
 export class EthereumMailerV9WrapperMailing {
@@ -49,7 +64,49 @@ export class EthereumMailerV9WrapperMailing {
 		this.streamSablierWrapper = new EthereumStreamSablierV1Wrapper(blockchainReader);
 	}
 
-	processMailPushEvent(mailer: IEVMMailerContractLink, event: IEVMEnrichedEvent<MailPushEventObject>): IEVMMessage {
+	async processMailPushEvent(
+		mailer: IEVMMailerContractLink,
+		event: IEVMEnrichedEvent<MailPushEventObject>,
+	): Promise<IEVMMessage> {
+		let tokenAttachmentType: number | undefined;
+		let tokenAttachmentEvent: TokenAttachmentEventParsed | undefined;
+
+		const contentId = event.event.parsed.contentId;
+
+		const tokenAttachmentAddress = event.event.parsed.tokenAttachment;
+
+		if (tokenAttachmentAddress !== ethers.constants.AddressZero) {
+			const tokenAttachmentContract = new ethers.Contract(
+				tokenAttachmentAddress,
+				IYlideTokenAttachment__factory.createInterface(),
+			) as IYlideTokenAttachment;
+
+			tokenAttachmentType = await tokenAttachmentContract.contractType();
+			switch (tokenAttachmentType) {
+				case TokenAttachmentContractType.Pay:
+				case TokenAttachmentContractType.Stake:
+					const payStake = new ethers.Contract(
+						tokenAttachmentAddress,
+						IYlidePayStake__factory.createInterface(),
+					) as IYlidePayStake;
+					tokenAttachmentEvent = await payStake
+						.queryFilter(payStake.filters.TokenAttachment(contentId))
+						.then(events => parseTokenAttachmentEvent(events[0]));
+					break;
+				case TokenAttachmentContractType.StreamSablier:
+					const streamSablier = new ethers.Contract(
+						tokenAttachmentAddress,
+						YlideStreamSablierV1__factory.createInterface(),
+					) as YlideStreamSablierV1;
+					tokenAttachmentEvent = await streamSablier
+						.queryFilter(streamSablier.filters.TokenAttachment(contentId))
+						.then(events => parseTokenAttachmentEventStream(events[0]));
+					break;
+				default:
+					throw new Error('Unknown token attachment contract type');
+			}
+		}
+
 		return {
 			isBroadcast: false,
 			feedId: bnToUint256(event.event.parsed.feedId),
@@ -66,10 +123,12 @@ export class EthereumMailerV9WrapperMailing {
 			blockchain: EVM_NAMES[EVM_CONTRACT_TO_NETWORK[mailer.id]],
 			key: SmartBuffer.ofHexString(event.event.parsed.key.replace('0x', '')).bytes,
 			$$meta: {
-				contentId: bnToUint256(event.event.parsed.contentId),
+				contentId: bnToUint256(contentId),
 				index: BlockNumberRingBufferIndex.decodeIndexValue(
 					bnToUint256(event.event.parsed.previousFeedEventsIndex),
 				),
+				tokenAttachmentType,
+				tokenAttachmentEvent,
 				...event,
 			},
 		};
@@ -232,7 +291,7 @@ export class EthereumMailerV9WrapperMailing {
 		const logs = parseReceiptToLogInternal(contract, receipt);
 		const mailPushEvents = convertLogInternalToInternalEvent<MailPushEventObject>(logs, 'MailPush');
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
-		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
+		const messages = await Promise.all(enriched.map(e => this.processMailPushEvent(mailer, e)));
 
 		const tokenAttachmentEvents = this.getTokenAttachmentEvents(paymentType, logs);
 
@@ -295,32 +354,11 @@ export class EthereumMailerV9WrapperMailing {
 		const logs = parseReceiptToLogInternal(contract, receipt);
 		const mailPushEvents = convertLogInternalToInternalEvent<MailPushEventObject>(logs, 'MailPush');
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
-		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
+		const messages = await Promise.all(enriched.map(e => this.processMailPushEvent(mailer, e)));
 
 		const tokenAttachmentEvents = this.getTokenAttachmentEvents(paymentType, logs);
 
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages, tokenAttachmentEvents };
-	}
-
-	async getMailPushEvent(
-		mailer: IEVMMailerContractLink,
-		blockNumber: number,
-		txIndex: number,
-		logIndex: number,
-	): Promise<IEVMMessage | null> {
-		return await this.wrapper.cache.contractOperation(mailer, async (contract, provider) => {
-			const events = await contract.queryFilter(contract.filters.MailPush(), blockNumber, blockNumber);
-			const event = events.find(
-				e => e.blockNumber === blockNumber && e.transactionIndex === txIndex && e.logIndex === logIndex,
-			);
-			if (!event) {
-				return null;
-			}
-			const [enriched] = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>([
-				ethersEventToInternalEvent(event),
-			]);
-			return this.processMailPushEvent(mailer, enriched);
-		});
 	}
 
 	private async sendBulkMailWithToken({
@@ -442,7 +480,28 @@ export class EthereumMailerV9WrapperMailing {
 		}
 	}
 
-	async retrieveMailHistoryDesc(
+	async getMailPushEvent(
+		mailer: IEVMMailerContractLink,
+		blockNumber: number,
+		txIndex: number,
+		logIndex: number,
+	): Promise<IEVMMessage | null> {
+		return await this.wrapper.cache.contractOperation(mailer, async (contract, provider) => {
+			const events = await contract.queryFilter(contract.filters.MailPush(), blockNumber, blockNumber);
+			const event = events.find(
+				e => e.blockNumber === blockNumber && e.transactionIndex === txIndex && e.logIndex === logIndex,
+			);
+			if (!event) {
+				return null;
+			}
+			const [enriched] = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>([
+				ethersEventToInternalEvent(event),
+			]);
+			return this.processMailPushEvent(mailer, enriched);
+		});
+	}
+
+	retrieveMailHistoryDesc(
 		mailer: IEVMMailerContractLink,
 		feedId: Uint256,
 		recipient: Uint256,
@@ -457,7 +516,7 @@ export class EthereumMailerV9WrapperMailing {
 		const getFilter = (contract: YlideMailerV9) => contract.filters.MailPush(`0x${recipient}`, `0x${feedId}`);
 		const processEvent = (event: IEVMEnrichedEvent<MailPushEventObject>) =>
 			this.processMailPushEvent(mailer, event);
-		return await this.wrapper.retrieveHistoryDesc<MailPushEvent>(
+		return this.wrapper.retrieveHistoryDesc<MailPushEvent>(
 			mailer,
 			getBaseIndex,
 			getFilter,

@@ -2,6 +2,8 @@ import type { IMessage, Uint256 } from '@ylide/sdk';
 import { ethers } from 'ethers';
 import { YlideStreamSablierV1 } from '@mock/ethereum-contracts/typechain-types';
 import { IYlidePayStake } from '@mock/ethereum-contracts/typechain-types/contracts/YlidePayV1';
+import { TokenAttachmentEventObject } from '@mock/ethereum-contracts/typechain-types/contracts/interfaces/IYlidePayStake';
+import { TokenAttachmentEventObject as TokenAttachmentEventObjectStream } from '@mock/ethereum-contracts/typechain-types/contracts/YlideStreamSablierV1';
 
 export enum EVMNetwork {
 	LOCAL_HARDHAT, //  = 'LOCAL_HARDHAT',
@@ -66,9 +68,16 @@ export interface IEVMEnrichedEvent<ParsedEvent = object> {
 	block: IEVMBlock;
 }
 
+export type TokenAttachmentEventParsed =
+	| Omit<TokenAttachmentEventObject, 'contentId'>
+	| Omit<TokenAttachmentEventObjectStream, 'contentId'>;
+// export type TokenAttachmentEvent = TokenAttachmentEventObject | TokenAttachmentEventObjectStream;
+
 export interface IEVMMeta extends IEVMEnrichedEvent {
 	contentId: Uint256;
 	index: number[];
+	tokenAttachmentType?: TokenAttachmentContractType;
+	tokenAttachmentEvent?: TokenAttachmentEventParsed;
 }
 
 export enum EVMMailerContractType {
@@ -145,9 +154,9 @@ export type IHistorySource =
 	| { type: 'broadcast'; feedId: Uint256 };
 
 export enum TokenAttachmentContractType {
-	Pay = 'Pay',
-	Stake = 'Stake',
-	StreamSablier = 'StreamSablier',
+	Pay,
+	Stake,
+	StreamSablier,
 }
 
 export type Payment = {

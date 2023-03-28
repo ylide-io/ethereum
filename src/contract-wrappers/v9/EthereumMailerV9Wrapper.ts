@@ -39,7 +39,7 @@ export class EthereumMailerV9Wrapper {
 		mailer: IEVMMailerContractLink,
 		getBaseIndex: () => Promise<number[]>,
 		getFilter: (contract: YlideMailerV9) => TypedEventFilter<T>,
-		processEvent: (event: IEVMEnrichedEvent<EventParsed<T>>) => IEVMMessage,
+		processEvent: (event: IEVMEnrichedEvent<EventParsed<T>>) => Promise<IEVMMessage>,
 		fromMessage: IEVMMessage | null,
 		includeFromMessage: boolean,
 		toMessage: IEVMMessage | null,
@@ -81,7 +81,7 @@ export class EthereumMailerV9Wrapper {
 			const enrichedEvents = await this.blockchainReader.enrichEvents<EventParsed<T>>(
 				preparedEvents.map(g => ethersEventToInternalEvent(g)),
 			);
-			const messages = enrichedEvents.map(e => processEvent(e));
+			const messages = await Promise.all(enrichedEvents.map(e => processEvent(e)));
 			return messages;
 		});
 	}

@@ -1,9 +1,12 @@
-import { ethers, Event, Transaction } from 'ethers';
 import type { BlockWithTransactions } from '@ethersproject/abstract-provider';
 import type { Block, Log } from '@ethersproject/providers';
+import { ethers, Event, Transaction } from 'ethers';
 
-import type { IEVMBlock, IEVMEvent, IEVMTransaction, LogInternal } from '../../misc/types';
 import { TypedEvent } from '@mock/ethereum-contracts/typechain-types/common';
+import type { IEVMBlock, IEVMEvent, IEVMTransaction, LogInternal } from '../../misc/types';
+
+import { TokenAttachmentEvent } from '@mock/ethereum-contracts/typechain-types/contracts/interfaces/IYlidePayStake';
+import { TokenAttachmentEvent as TokenAttachmentEventStream } from '@mock/ethereum-contracts/typechain-types/contracts/YlideStreamSablierV1';
 
 export type EventParsed<T> = T extends TypedEvent<infer Arr, infer Obj> ? Obj : never;
 
@@ -31,15 +34,13 @@ export const ethersTxToInternalTx = (tx: Transaction): IEVMTransaction => {
 	};
 };
 
-// (args: EventParsed<T>) => D = args => args as unknown as D
-
-function ethersEventToInternalEvent<T extends Event>(event: T): IEVMEvent<EventParsed<T>>;
-function ethersEventToInternalEvent<T extends Event, D>(
+export function ethersEventToInternalEvent<T extends Event>(event: T): IEVMEvent<EventParsed<T>>;
+export function ethersEventToInternalEvent<T extends Event, D>(
 	event: T,
 	argsTransform: (args: EventParsed<T>) => D,
 ): IEVMEvent<D>;
 // eslint-disable-next-line prefer-arrow/prefer-arrow-functions
-function ethersEventToInternalEvent(event: Event, argsTransform?: (args: any) => any): IEVMEvent<any> {
+export function ethersEventToInternalEvent(event: Event, argsTransform?: (args: any) => any): IEVMEvent<any> {
 	return {
 		blockNumber: event.blockNumber,
 		blockHash: event.blockHash,
@@ -104,4 +105,23 @@ export const parseReceiptToLogInternal = (contract: ethers.Contract, receipt: et
 		);
 };
 
-export { ethersEventToInternalEvent };
+export const parseTokenAttachmentEvent = (event: TokenAttachmentEvent) => {
+	return {
+		amountOrTokenId: event.args.amountOrTokenId,
+		recipient: event.args.recipient,
+		sender: event.args.sender,
+		token: event.args.token,
+		tokenType: event.args.tokenType,
+	};
+};
+export const parseTokenAttachmentEventStream = (event: TokenAttachmentEventStream) => {
+	return {
+		streamId: event.args.streamId,
+		deposit: event.args.deposit,
+		startTime: event.args.startTime,
+		stopTime: event.args.stopTime,
+		recipient: event.args.recipient,
+		sender: event.args.sender,
+		tokenAddress: event.args.tokenAddress,
+	};
+};
