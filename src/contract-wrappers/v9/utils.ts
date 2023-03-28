@@ -1,6 +1,6 @@
 import { LogDescription } from '@ethersproject/abi';
 import { ethers } from 'ethers';
-import { YlideMailerV9 } from './mock';
+import { YlideMailerV9 } from '@mock/ethereum-contracts/typechain-types';
 
 export const parseOutLogs = (contract: YlideMailerV9, rawLogs: ethers.providers.Log[]) => {
 	const logs = rawLogs

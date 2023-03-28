@@ -1,11 +1,11 @@
 import { ethers } from 'ethers';
 import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
 import { ContractCache } from './ContractCache';
-import { YlideStakeV1, YlideStakeV1__factory } from './v9/mock';
+import { YlideStakeV1, YlideStakeV1__factory } from '@mock/ethereum-contracts/typechain-types';
 import { upgrades } from 'hardhat';
 import { IEVMYlideStakeContractType, Payment, TokenAttachmentContractType } from '../misc';
 import { Uint256 } from '@ylide/sdk';
-import { IYlidePayStake } from './v9/mock/contracts/YlideStakeV1';
+import { IYlidePayStake } from '@mock/ethereum-contracts/typechain-types/contracts/YlideStakeV1';
 
 export class EthereumStakeV1Wrapper {
 	public readonly cache: ContractCache<YlideStakeV1>;

@@ -10,8 +10,8 @@ import { EthereumMailerV9WrapperBroadcast } from './EthereumMailerV9WrapperBroad
 import { EthereumMailerV9WrapperContent } from './EthereumMailerV9WrapperContent';
 import { EthereumMailerV9WrapperGlobals } from './EthereumMailerV9WrapperGlobals';
 import { EthereumMailerV9WrapperMailing } from './EthereumMailerV9WrapperMailing';
-import { YlideMailerV9, YlideMailerV9__factory } from './mock';
-import { TypedEvent, TypedEventFilter } from './mock/common';
+import { YlideMailerV9, YlideMailerV9__factory } from '@mock/ethereum-contracts/typechain-types';
+import { TypedEvent, TypedEventFilter } from '@mock/ethereum-contracts/typechain-types/common';
 
 export class EthereumMailerV9Wrapper {
 	public readonly cache: ContractCache<YlideMailerV9>;
@@ -25,7 +25,7 @@ export class EthereumMailerV9Wrapper {
 		this.cache = new ContractCache(YlideMailerV9__factory, blockchainReader);
 
 		this.globals = new EthereumMailerV9WrapperGlobals(this);
-		this.mailing = new EthereumMailerV9WrapperMailing(this);
+		this.mailing = new EthereumMailerV9WrapperMailing(this, blockchainReader);
 		this.broadcast = new EthereumMailerV9WrapperBroadcast(this);
 		this.content = new EthereumMailerV9WrapperContent(this);
 	}

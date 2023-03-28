@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
 import { IEVMYlideStreamSablierContractType, Payment, TokenAttachmentContractType } from '../misc';
 import { ContractCache } from './ContractCache';
-import { YlideStreamSablierV1, YlideStreamSablierV1__factory } from './v9/mock';
+import { YlideStreamSablierV1, YlideStreamSablierV1__factory } from '@mock/ethereum-contracts/typechain-types';
 
 export class EthereumStreamSablierV1Wrapper {
 	public readonly cache: ContractCache<YlideStreamSablierV1>;

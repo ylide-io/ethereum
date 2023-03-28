@@ -1,7 +1,7 @@
 import type { IMessage, Uint256 } from '@ylide/sdk';
 import { ethers } from 'ethers';
-import { YlideStreamSablierV1 } from '../contract-wrappers/v9/mock';
-import { IYlidePayStake } from '../contract-wrappers/v9/mock/contracts/YlidePayV1';
+import { YlideStreamSablierV1 } from '@mock/ethereum-contracts/typechain-types';
+import { IYlidePayStake } from '@mock/ethereum-contracts/typechain-types/contracts/YlidePayV1';
 
 export enum EVMNetwork {
 	LOCAL_HARDHAT, //  = 'LOCAL_HARDHAT',

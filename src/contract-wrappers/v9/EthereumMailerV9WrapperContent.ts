@@ -7,7 +7,10 @@ import { ethersEventToInternalEvent } from '../../controllers/helpers/ethersHelp
 import { decodeContentId } from '../../misc/contentId';
 import type { IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
 import type { EthereumMailerV9Wrapper } from './EthereumMailerV9Wrapper';
-import { MessageContentEvent, MessageContentEventObject } from './mock/contracts/YlideMailerV9';
+import {
+	MessageContentEvent,
+	MessageContentEventObject,
+} from '@mock/ethereum-contracts/typechain-types/contracts/YlideMailerV9';
 
 export class EthereumMailerV9WrapperContent {
 	constructor(public readonly wrapper: EthereumMailerV9Wrapper) {

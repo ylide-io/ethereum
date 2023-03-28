@@ -3,8 +3,8 @@ import { ethers } from 'ethers';
 import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
 import { IEVMYlidePayContractType, Payment, TokenAttachmentContractType } from '../misc';
 import { ContractCache } from './ContractCache';
-import { YlidePayV1, YlidePayV1__factory } from './v9/mock';
-import { IYlidePayStake } from './v9/mock/contracts/YlidePayV1';
+import { YlidePayV1, YlidePayV1__factory } from '@mock/ethereum-contracts/typechain-types';
+import { IYlidePayStake } from '@mock/ethereum-contracts/typechain-types/contracts/YlidePayV1';
 
 export class EthereumPayV1Wrapper {
 	public readonly cache: ContractCache<YlidePayV1>;

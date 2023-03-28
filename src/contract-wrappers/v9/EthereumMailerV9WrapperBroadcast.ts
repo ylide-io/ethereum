@@ -7,9 +7,12 @@ import { encodeEvmMsgId } from '../../misc/evmMsgId';
 import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
 import { bnToUint256 } from '../../misc/utils';
 import type { EthereumMailerV9Wrapper } from './EthereumMailerV9Wrapper';
-import { YlideMailerV9 } from './mock';
-import { BroadcastPushEvent, BroadcastPushEventObject } from './mock/contracts/YlideMailerV9';
+import { YlideMailerV9 } from '@mock/ethereum-contracts/typechain-types';
 import { parseOutLogs } from './utils';
+import {
+	BroadcastPushEvent,
+	BroadcastPushEventObject,
+} from '@mock/ethereum-contracts/typechain-types/contracts/YlideMailerV9';
 
 export class EthereumMailerV9WrapperBroadcast {
 	constructor(public readonly wrapper: EthereumMailerV9Wrapper) {

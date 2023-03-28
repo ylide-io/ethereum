@@ -3,7 +3,7 @@ import type { BlockWithTransactions } from '@ethersproject/abstract-provider';
 import type { Block, Log } from '@ethersproject/providers';
 
 import type { IEVMBlock, IEVMEvent, IEVMTransaction, LogInternal } from '../../misc/types';
-import { TypedEvent } from '../../contract-wrappers/v9/mock/common';
+import { TypedEvent } from '@mock/ethereum-contracts/typechain-types/common';
 
 export type EventParsed<T> = T extends TypedEvent<infer Arr, infer Obj> ? Obj : never;
 

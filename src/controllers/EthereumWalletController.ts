@@ -24,17 +24,7 @@ import SmartBuffer from '@ylide/smart-buffer';
 import { BigNumber, ethers } from 'ethers';
 
 import { EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CHUNK_SIZES, EVM_NAMES } from '../misc/constants';
-import {
-	IEVMMailerContractLink,
-	IEVMMessage,
-	IEVMRegistryContractLink,
-	IEVMYlidePayContractType,
-	IEVMYlideStakeContractType,
-	IEVMYlideStreamSablierContractType,
-	Payment,
-	TokenAttachmentContractType,
-} from '../misc/types';
-import { EVMNetwork } from '../misc/types';
+import { EVMNetwork, IEVMMailerContractLink, IEVMMessage, IEVMRegistryContractLink, Payment } from '../misc/types';
 import { EthereumBlockchainController } from './EthereumBlockchainController';
 import { EthereumBlockchainReader } from './helpers/EthereumBlockchainReader';
 

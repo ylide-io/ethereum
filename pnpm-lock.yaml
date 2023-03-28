@@ -6,6 +6,7 @@ specifiers:
   '@ethersproject/abstract-provider': 5.7.0
   '@ethersproject/bytes': 5.7.0
   '@ethersproject/providers': 5.7.2
+  '@mock/ethereum-contracts': file:../ethereum-contracts
   '@nomicfoundation/hardhat-chai-matchers': 1.0.5
   '@nomicfoundation/hardhat-network-helpers': 1.0.7
   '@nomicfoundation/hardhat-toolbox': 2.0.1
@@ -46,6 +47,7 @@ dependencies:
   '@ethersproject/abi': 5.7.0
   '@ethersproject/abstract-provider': 5.7.0
   '@ethersproject/providers': 5.7.2
+  '@mock/ethereum-contracts': file:../ethereum-contracts
   '@openzeppelin/hardhat-upgrades': 1.22.1_ubk26vrg2seiqgioexuemu2rau
   '@ylide/ethereum-contracts': 0.8.0-beta.11
   '@ylide/sdk': 0.8.0-beta.7
@@ -12034,6 +12036,19 @@ packages:
   /yocto-queue/0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
+
+  file:../ethereum-contracts:
+    resolution: {directory: ../ethereum-contracts, type: directory}
+    name: '@ylide/ethereum-contracts'
+    version: 0.8.0-beta.11
+    dependencies:
+      '@ethersproject/abi': 5.7.0
+      '@ethersproject/providers': 5.7.2
+      ethers: 5.7.2
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+    dev: false
 
   github.com/ethereumjs/ethereumjs-abi/ee3994657fa7a427238e6ba92a84d0b529bbcde0:
     resolution: {tarball: https://codeload.github.com/ethereumjs/ethereumjs-abi/tar.gz/ee3994657fa7a427238e6ba92a84d0b529bbcde0}

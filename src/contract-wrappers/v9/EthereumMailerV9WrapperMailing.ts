@@ -1,10 +1,10 @@
 import type { Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { BigNumber, ethers } from 'ethers';
+import { EthereumBlockchainReader } from '../../controllers';
 import {
 	convertLogInternalToInternalEvent,
 	ethersEventToInternalEvent,
-	ethersLogToInternalEvent,
 	parseReceiptToLogInternal,
 } from '../../controllers/helpers/ethersHelper';
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
@@ -24,25 +24,29 @@ import { EthereumPayV1Wrapper } from '../EthereumPayV1Wrapper';
 import { EthereumStakeV1Wrapper } from '../EthereumStakeV1Wrapper';
 import { EthereumStreamSablierV1Wrapper } from '../EthereumStreamSablierWrapper';
 import type { EthereumMailerV9Wrapper } from './EthereumMailerV9Wrapper';
+import { TokenAttachmentEventObject } from '@mock/ethereum-contracts/typechain-types/contracts/interfaces/IYlidePayStake';
 import {
 	MailingFeedJoinedEvent,
 	MailingFeedJoinedEventObject,
 	MailPushEvent,
 	MailPushEventObject,
 	YlideMailerV9,
-} from './mock/contracts/YlideMailerV9';
-import { TokenAttachmentEventObject } from './mock/contracts/interfaces/IYlidePayStake';
-import { TokenAttachmentEventObject as TokenAttachmentEventObjectStream } from './mock/contracts/YlideStreamSablierV1';
+} from '@mock/ethereum-contracts/typechain-types/contracts/YlideMailerV9';
+import { TokenAttachmentEventObject as TokenAttachmentEventObjectStream } from '@mock/ethereum-contracts/typechain-types/contracts/YlideStreamSablierV1';
 import { parseOutLogs } from './utils';
 
 export class EthereumMailerV9WrapperMailing {
+	public readonly payWrapper: EthereumPayV1Wrapper;
+	public readonly stakeWrapper: EthereumStakeV1Wrapper;
+	public readonly streamSablierWrapper: EthereumStreamSablierV1Wrapper;
+
 	constructor(
 		public readonly wrapper: EthereumMailerV9Wrapper,
-		public readonly payWrapper: EthereumPayV1Wrapper,
-		public readonly stakeWrapper: EthereumStakeV1Wrapper,
-		public readonly streamSablierWrapper: EthereumStreamSablierV1Wrapper,
+		public readonly blockchainReader: EthereumBlockchainReader,
 	) {
-		//
+		this.payWrapper = new EthereumPayV1Wrapper(blockchainReader);
+		this.stakeWrapper = new EthereumStakeV1Wrapper(blockchainReader);
+		this.streamSablierWrapper = new EthereumStreamSablierV1Wrapper(blockchainReader);
 	}
 
 	processMailPushEvent(mailer: IEVMMailerContractLink, event: IEVMEnrichedEvent<MailPushEventObject>): IEVMMessage {

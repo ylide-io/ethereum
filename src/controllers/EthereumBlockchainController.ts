@@ -413,6 +413,27 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			return a.createdAt - b.createdAt;
 		}
 	};
+
+	getPaymentCapabilities(network: EVMNetwork): {
+		mailerAddress: string;
+		ylidePayAddress: string;
+		ylideStakeAddress: string;
+		ylideStreamSablierAddress: string;
+	} {
+		const id = EVM_CONTRACTS[network].currentMailerId;
+		const mailer = this.mailers.find(r => r.link.id === id);
+
+		if (!mailer) {
+			throw new Error('No mailer found');
+		}
+
+		return {
+			mailerAddress: mailer.link.address,
+			ylidePayAddress: mailer.link.ylidePayContract,
+			ylideStakeAddress: mailer.link.ylideStakeContract,
+			ylideStreamSablierAddress: mailer.link.ylideStreamSablierContract,
+		};
+	}
 }
 
 const getBlockchainFactory = (network: EVMNetwork): BlockchainControllerFactory => {

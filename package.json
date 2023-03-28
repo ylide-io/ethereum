@@ -40,6 +40,7 @@
 		"@ethersproject/providers": "5.7.2",
 		"@openzeppelin/hardhat-upgrades": "1.22.1",
 		"@ylide/ethereum-contracts": "0.8.0-beta.11",
+		"@mock/ethereum-contracts": "file:../ethereum-contracts",
 		"@ylide/sdk": "0.8.0-beta.7",
 		"@ylide/smart-buffer": "0.0.11",
 		"ethers": "5.7.2",
