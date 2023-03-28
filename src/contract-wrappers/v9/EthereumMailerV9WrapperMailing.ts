@@ -90,7 +90,7 @@ export class EthereumMailerV9WrapperMailing {
 						IYlidePayStake__factory.createInterface(),
 					) as IYlidePayStake;
 					tokenAttachmentEvent = await payStake
-						.queryFilter(payStake.filters.TokenAttachment(contentId))
+						.queryFilter(payStake.filters.TokenAttachment(contentId), event.block.hash)
 						.then(events => parseTokenAttachmentEvent(events[0]));
 					break;
 				case TokenAttachmentContractType.StreamSablier:
@@ -99,7 +99,7 @@ export class EthereumMailerV9WrapperMailing {
 						YlideStreamSablierV1__factory.createInterface(),
 					) as YlideStreamSablierV1;
 					tokenAttachmentEvent = await streamSablier
-						.queryFilter(streamSablier.filters.TokenAttachment(contentId))
+						.queryFilter(streamSablier.filters.TokenAttachment(contentId), event.block.hash)
 						.then(events => parseTokenAttachmentEventStream(events[0]));
 					break;
 				default:
