@@ -759,6 +759,12 @@ export const evmWalletFactories: Record<string, WalletControllerFactory> = {
 		async () => new Web3Provider((window as any).trustwallet, 'any').getSigner(),
 		async () => (window as any).trustwallet,
 	),
+	generic: getWalletFactory(
+		'generic',
+		async () => !!(window as any).ethereum,
+		async () => new Web3Provider((window as any).ethereum, 'any').getSigner(),
+		async () => (window as any).ethereum,
+	),
 	metamask: getWalletFactory(
 		'metamask',
 		async () =>
