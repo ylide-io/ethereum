@@ -17,8 +17,8 @@ dependencies:
     specifier: 0.8.0-beta.11
     version: 0.8.0-beta.11
   '@ylide/sdk':
-    specifier: 0.8.0-beta.8
-    version: 0.8.0-beta.8
+    specifier: 0.8.0-beta.9
+    version: 0.8.0-beta.9
   '@ylide/smart-buffer':
     specifier: 0.0.11
     version: 0.0.11
@@ -1401,8 +1401,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@ylide/sdk@0.8.0-beta.8:
-    resolution: {integrity: sha512-stXESqjYH4Rs9HQy0DSMJtTyrO1881vkqY18M2d+lx9uRR3eDi52qzWqsjlMP8ifO/ZvWXxIstdQMC6e7GAbbA==}
+  /@ylide/sdk@0.8.0-beta.9:
+    resolution: {integrity: sha512-s4hge5yMued5UMrDSrYvlYadJxAax+wFmshSn1xVWz4bKIS+8zbChWZlFTcxmFGnKwE6NR+yp7NKMl7b+pyQCw==}
     dependencies:
       '@datastructures-js/binary-search-tree': 5.2.0
       '@datastructures-js/linked-list': 5.2.5
