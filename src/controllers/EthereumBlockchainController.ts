@@ -15,6 +15,7 @@ import {
 	LowLevelMessagesSource,
 	MessageKey,
 	Uint256,
+	YlideCore,
 } from '@ylide/sdk';
 import { EVMMailerContractType, EVMNetwork, EVMRegistryContractType } from '../misc/types';
 import { EVM_CHAINS, EVM_CONTRACT_TO_NETWORK, EVM_ENS, EVM_NAMES, EVM_RPCS } from '../misc/constants';
@@ -364,6 +365,27 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 	getSupportedExtraEncryptionStrategies(): string[] {
 		return [];
+	}
+
+	async getMessageRecipients(msg: IEVMMessage, filterOutSent: true) {
+		const decodedMsgId = decodeEvmMsgId(msg.msgId);
+		const mailer = this.mailers.find(m => m.link.id === decodedMsgId.contractId);
+		if (!mailer) {
+			throw new Error('This message does not belongs to this blockchain controller');
+		}
+		if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+			const result = await mailer.wrapper.mailing.getMessageRecipients(mailer.link, msg);
+			if (filterOutSent) {
+				return {
+					...result,
+					recipients: result.recipients.filter(
+						r => r !== YlideCore.getSentAddress(this.addressToUint256(result.sender)),
+					),
+				};
+			}
+			return result;
+		}
+		throw new Error('Method not implemented.');
 	}
 
 	prepareExtraEncryptionStrategyBulk(
