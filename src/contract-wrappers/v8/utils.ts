@@ -44,6 +44,7 @@ export const getMultipleEvents = async <T extends TypedEvent>(
 	filter: ethers.EventFilter,
 	blockLimit: number,
 	contentId: Uint256,
+	isContent = false,
 ) => {
 	const events: T[] = [];
 	const decodedContentId = decodeContentId(contentId);
@@ -58,7 +59,7 @@ export const getMultipleEvents = async <T extends TypedEvent>(
 			Math.min(i + blockLimit, decodedContentId.blockNumber + decodedContentId.blockCountLock),
 		)) as unknown as T[];
 		events.push(...newEvents);
-		if (events.length >= decodedContentId.partsCount) {
+		if (isContent && events.length >= decodedContentId.partsCount) {
 			break;
 		}
 	}

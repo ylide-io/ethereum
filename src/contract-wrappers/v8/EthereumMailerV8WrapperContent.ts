@@ -75,6 +75,7 @@ export class EthereumMailerV8WrapperContent {
 				contract.filters.MessageContent('0x' + message.$$meta.contentId),
 				blockLimit,
 				message.$$meta.contentId,
+				true,
 			);
 			events.sort((a, b) => a.args.partIdx - b.args.partIdx);
 			const enrichedEvents = await this.wrapper.blockchainReader.enrichEvents(
