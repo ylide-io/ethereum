@@ -1,13 +1,14 @@
 import { YlideMailerV8 } from '@ylide/ethereum-contracts';
 import type {
-	MailPushEventObject,
-	MailPushEvent,
-	MailingFeedJoinedEventObject,
+	ContentRecipientsEvent,
 	MailingFeedJoinedEvent,
+	MailingFeedJoinedEventObject,
+	MailPushEvent,
+	MailPushEventObject,
 } from '@ylide/ethereum-contracts/lib/YlideMailerV8';
 import type { Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
-import { ethers, BigNumber } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers/helpers/ethersHelper';
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
 import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../../misc/constants';
@@ -15,7 +16,7 @@ import { encodeEvmMsgId } from '../../misc/evmMsgId';
 import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
 import { bnToUint256, IEventPosition } from '../../misc/utils';
 import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
-import { parseOutLogs } from './utils';
+import { getMultipleEvents, parseOutLogs } from './utils';
 
 export class EthereumMailerV8WrapperMailing {
 	constructor(public readonly wrapper: EthereumMailerV8Wrapper) {
@@ -254,16 +255,17 @@ export class EthereumMailerV8WrapperMailing {
 	}
 
 	getMessageRecipients(mailer: IEVMMailerContractLink, message: IEVMMessage) {
-		return this.wrapper.cache.contractOperation(mailer, async contract => {
-			const [event] = await contract.queryFilter(
-				contract.filters.ContentRecipients(message.$$meta.contentId),
-				message.$$meta.block.number,
-				message.$$meta.block.number,
+		return this.wrapper.cache.contractOperation(mailer, async (contract, _, blockLimit) => {
+			const events = await getMultipleEvents<ContentRecipientsEvent>(
+				contract,
+				contract.filters.ContentRecipients('0x' + message.$$meta.contentId),
+				blockLimit,
+				message.$$meta.contentId,
 			);
 			return {
-				contentId: bnToUint256(event?.args.contentId),
-				sender: event?.args.sender || ethers.constants.AddressZero,
-				recipients: event?.args.recipients.map(bnToUint256),
+				contentId: bnToUint256(events[0]?.args.contentId),
+				sender: events[0]?.args.sender || ethers.constants.AddressZero,
+				recipients: events.flatMap(e => e.args.recipients.map(bnToUint256)),
 			};
 		});
 	}

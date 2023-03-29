@@ -2,12 +2,13 @@ import { LogDescription } from '@ethersproject/abi';
 import type { MessageContentEvent, MessageContentEventObject } from '@ylide/ethereum-contracts/lib/YlideMailerV8';
 import type { IMessageContent, IMessageCorruptedContent } from '@ylide/sdk';
 import { ethers } from 'ethers';
-import { EthereumContentReader } from '../../controllers/helpers/EthereumContentReader';
 import type { GenericMessageContentEventObject } from '../../controllers/helpers/EthereumContentReader';
+import { EthereumContentReader } from '../../controllers/helpers/EthereumContentReader';
 import { ethersEventToInternalEvent } from '../../controllers/helpers/ethersHelper';
 import { decodeContentId } from '../../misc/contentId';
 import type { IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
 import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
+import { getMultipleEvents } from './utils';
 
 export class EthereumMailerV8WrapperContent {
 	constructor(public readonly wrapper: EthereumMailerV8Wrapper) {
@@ -69,22 +70,12 @@ export class EthereumMailerV8WrapperContent {
 	): Promise<IMessageContent | IMessageCorruptedContent | null> {
 		return await this.wrapper.cache.contractOperation(mailer, async (contract, provider, blockLimit) => {
 			const decodedContentId = decodeContentId(message.$$meta.contentId);
-			const events: MessageContentEvent[] = [];
-			for (
-				let i = decodedContentId.blockNumber;
-				i <= decodedContentId.blockNumber + decodedContentId.blockCountLock;
-				i += blockLimit
-			) {
-				const newEvents = await contract.queryFilter(
-					contract.filters.MessageContent('0x' + message.$$meta.contentId),
-					i,
-					Math.min(i + blockLimit, decodedContentId.blockNumber + decodedContentId.blockCountLock),
-				);
-				events.push(...newEvents);
-				if (events.length >= decodedContentId.partsCount) {
-					break;
-				}
-			}
+			const events = await getMultipleEvents<MessageContentEvent>(
+				contract,
+				contract.filters.MessageContent('0x' + message.$$meta.contentId),
+				blockLimit,
+				message.$$meta.contentId,
+			);
 			events.sort((a, b) => a.args.partIdx - b.args.partIdx);
 			const enrichedEvents = await this.wrapper.blockchainReader.enrichEvents(
 				events.map(e => ethersEventToInternalEvent(e, this.processMessageContentEvent.bind(this))),

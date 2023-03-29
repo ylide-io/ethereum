@@ -1,6 +1,9 @@
 import { LogDescription } from '@ethersproject/abi';
 import { YlideMailerV8 } from '@ylide/ethereum-contracts';
+import { TypedEvent } from '@ylide/ethereum-contracts/lib/common';
+import { Uint256 } from '@ylide/sdk';
 import { ethers } from 'ethers';
+import { decodeContentId } from '../../misc';
 
 export const parseOutLogs = (contract: YlideMailerV8, rawLogs: ethers.providers.Log[]) => {
 	const logs = rawLogs
@@ -34,4 +37,30 @@ export const parseOutLogs = (contract: YlideMailerV8, rawLogs: ethers.providers.
 		logs,
 		byName,
 	};
+};
+
+export const getMultipleEvents = async <T extends TypedEvent>(
+	contract: ethers.Contract,
+	filter: ethers.EventFilter,
+	blockLimit: number,
+	contentId: Uint256,
+) => {
+	const events: T[] = [];
+	const decodedContentId = decodeContentId(contentId);
+	for (
+		let i = decodedContentId.blockNumber;
+		i <= decodedContentId.blockNumber + decodedContentId.blockCountLock;
+		i += blockLimit
+	) {
+		const newEvents = (await contract.queryFilter(
+			filter,
+			i,
+			Math.min(i + blockLimit, decodedContentId.blockNumber + decodedContentId.blockCountLock),
+		)) as unknown as T[];
+		events.push(...newEvents);
+		if (events.length >= decodedContentId.partsCount) {
+			break;
+		}
+	}
+	return events;
 };
