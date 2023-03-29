@@ -1,5 +1,5 @@
 import type { Uint256 } from '@ylide/sdk';
-import type { BigNumber } from 'ethers';
+import { BigNumber } from 'ethers';
 
 export interface IEventPosition {
 	blockNumber: number;
@@ -27,6 +27,6 @@ export const eventANewerThanB = (a: IEventPosition, b: IEventPosition, orEqual =
 	return orEqual ? eventCmprDesc(a, b) <= 0 : eventCmprDesc(a, b) < 0;
 };
 
-export const bnToUint256 = (bn: BigNumber) => {
+export const bnToUint256 = (bn: BigNumber = BigNumber.from(0)) => {
 	return bn.toHexString().replace('0x', '').padStart(64, '0') as Uint256;
 };
