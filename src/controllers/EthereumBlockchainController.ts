@@ -376,11 +376,10 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
 			const result = await mailer.wrapper.mailing.getMessageRecipients(mailer.link, msg);
 			if (filterOutSent) {
+				const sender = YlideCore.getSentAddress(this.addressToUint256(result.sender));
 				return {
 					...result,
-					recipients: result.recipients.filter(
-						r => r !== YlideCore.getSentAddress(this.addressToUint256(result.sender)),
-					),
+					recipients: result.recipients.filter(r => r !== sender),
 				};
 			}
 			return result;
