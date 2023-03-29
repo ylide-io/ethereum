@@ -185,12 +185,13 @@ export class EthereumMailerV8WrapperMailing {
 		);
 		const receipt = await tx.wait();
 		const {
+			logs,
 			byName: { MailPush },
 		} = parseOutLogs(contract, receipt.logs);
 		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
-		return { tx, receipt, logs: MailPush.map(l => l.logDescription), mailPushEvents, messages };
+		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
 	async addMailRecipients(
@@ -225,12 +226,13 @@ export class EthereumMailerV8WrapperMailing {
 		);
 		const receipt = await tx.wait();
 		const {
+			logs,
 			byName: { MailPush },
 		} = parseOutLogs(contract, receipt.logs);
 		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
-		return { tx, receipt, logs: MailPush.map(l => l.logDescription), mailPushEvents, messages };
+		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
 	async getMailPushEvent(
@@ -265,7 +267,7 @@ export class EthereumMailerV8WrapperMailing {
 			return {
 				contentId: bnToUint256(events[0]?.args.contentId),
 				sender: events[0]?.args.sender || ethers.constants.AddressZero,
-				recipients: events.flatMap(e => e.args.recipients.map(bnToUint256)),
+				recipients: [...new Set(events.flatMap(e => e.args.recipients.map(bnToUint256)))],
 			};
 		});
 	}
