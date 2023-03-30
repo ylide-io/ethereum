@@ -46,6 +46,7 @@ export const getMultipleEvents = async <T extends TypedEvent>(
 	contentId: Uint256,
 	isContent = false,
 ) => {
+	const currentBlockNumber = await contract.provider?.getBlockNumber();
 	const events: T[] = [];
 	const decodedContentId = decodeContentId(contentId);
 	for (
@@ -60,6 +61,9 @@ export const getMultipleEvents = async <T extends TypedEvent>(
 		)) as unknown as T[];
 		events.push(...newEvents);
 		if (isContent && events.length >= decodedContentId.partsCount) {
+			break;
+		}
+		if (currentBlockNumber && i + blockLimit > currentBlockNumber) {
 			break;
 		}
 	}

@@ -267,7 +267,7 @@ export class EthereumMailerV8WrapperMailing {
 			return {
 				contentId: bnToUint256(events[0]?.args.contentId),
 				sender: events[0]?.args.sender || ethers.constants.AddressZero,
-				recipients: [...new Set(events.flatMap(e => e.args.recipients.map(bnToUint256)))],
+				recipients: events.flatMap(e => e.args.recipients.map(bnToUint256)),
 			};
 		});
 	}
