@@ -414,37 +414,21 @@ export class EthereumWalletController extends AbstractWalletController {
 		const chunkSize = EVM_CHUNK_SIZES[network];
 		const chunks = MessageChunks.splitMessageChunks(contentData, chunkSize);
 
-		if (chunks.length === 1 && recipients.length === 1) {
-			if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
-				console.log(`Sending small mail, chunk length: ${chunks[0].length} bytes`);
-				const { messages } = await mailer.wrapper.mailing.sendSmallMail(
-					mailer.link,
-					this.signer,
-					me.address,
-					feedId,
-					uniqueId,
-					recipients[0].address,
-					recipients[0].messageKey.toBytes(),
-					chunks[0],
-					options?.value || BigNumber.from(0),
-				);
-				return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
-			} else {
-				if (feedId !== YLIDE_MAIN_FEED_ID) {
-					throw new Error('FeedId is not supported');
-				}
-				console.log(`Sending small mail, chunk length: ${chunks[0].length} bytes`);
-				const { messages } = await mailer.wrapper.sendSmallMail(
-					mailer.link,
-					this.signer,
-					me.address,
-					uniqueId,
-					recipients[0].address,
-					recipients[0].messageKey.toBytes(),
-					chunks[0],
-				);
-				return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
+		if (chunks.length === 1 && recipients.length === 1 && !(mailer.wrapper instanceof EthereumMailerV8Wrapper)) {
+			if (feedId !== YLIDE_MAIN_FEED_ID) {
+				throw new Error('FeedId is not supported');
 			}
+			console.log(`Sending small mail, chunk length: ${chunks[0].length} bytes`);
+			const { messages } = await mailer.wrapper.sendSmallMail(
+				mailer.link,
+				this.signer,
+				me.address,
+				uniqueId,
+				recipients[0].address,
+				recipients[0].messageKey.toBytes(),
+				chunks[0],
+			);
+			return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 		} else if (chunks.length === 1 && recipients.length < Math.ceil((15.5 * 1024 - chunks[0].byteLength) / 70)) {
 			if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
 				console.log(`Sending bulk mail, chunk length: ${chunks[0].length} bytes`);

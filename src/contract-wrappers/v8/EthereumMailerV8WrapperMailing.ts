@@ -1,13 +1,14 @@
 import { YlideMailerV8 } from '@ylide/ethereum-contracts';
 import type {
-	MailPushEventObject,
-	MailPushEvent,
-	MailingFeedJoinedEventObject,
+	ContentRecipientsEvent,
 	MailingFeedJoinedEvent,
+	MailingFeedJoinedEventObject,
+	MailPushEvent,
+	MailPushEventObject,
 } from '@ylide/ethereum-contracts/lib/YlideMailerV8';
 import type { Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
-import { ethers, BigNumber } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers/helpers/ethersHelper';
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
 import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../../misc/constants';
@@ -15,7 +16,7 @@ import { encodeEvmMsgId } from '../../misc/evmMsgId';
 import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
 import { bnToUint256, IEventPosition } from '../../misc/utils';
 import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
-import { parseOutLogs } from './utils';
+import { getMultipleEvents, parseOutLogs } from './utils';
 
 export class EthereumMailerV8WrapperMailing {
 	constructor(public readonly wrapper: EthereumMailerV8Wrapper) {
@@ -156,60 +157,6 @@ export class EthereumMailerV8WrapperMailing {
 		});
 	}
 
-	async sendSmallMail(
-		mailer: IEVMMailerContractLink,
-		signer: ethers.Signer,
-		from: string,
-		feedId: Uint256,
-		uniqueId: number,
-		recipient: Uint256,
-		key: Uint8Array,
-		content: Uint8Array,
-		value: ethers.BigNumber,
-	): Promise<{
-		tx: ethers.ContractTransaction;
-		receipt: ethers.ContractReceipt;
-		logs: ethers.utils.LogDescription[];
-		mailPushEvents: IEVMEvent<MailPushEventObject>[];
-		messages: IEVMMessage[];
-	}> {
-		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.sendSmallMail(`0x${feedId}`, uniqueId, `0x${recipient}`, key, content, {
-			from,
-			value,
-		});
-		const receipt = await tx.wait();
-		const logs = receipt.logs
-			.map(l => {
-				try {
-					return {
-						log: l,
-						logDescription: contract.interface.parseLog(l),
-					};
-				} catch (err) {
-					return {
-						log: l,
-						logDescription: null,
-					};
-				}
-			})
-			.filter(
-				(l): l is { log: ethers.providers.Log; logDescription: ethers.utils.LogDescription } =>
-					l.logDescription !== null,
-			);
-		const mailPushEvents = logs
-			.filter(l => l.logDescription.name === 'MailPush')
-			.map(l =>
-				ethersLogToInternalEvent<MailPushEventObject>({
-					log: l.log,
-					logDescription: l.logDescription,
-				}),
-			);
-		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
-		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
-	}
-
 	async sendBulkMail(
 		mailer: IEVMMailerContractLink,
 		signer: ethers.Signer,
@@ -237,32 +184,11 @@ export class EthereumMailerV8WrapperMailing {
 			{ from, value },
 		);
 		const receipt = await tx.wait();
-		const logs = receipt.logs
-			.map(l => {
-				try {
-					return {
-						log: l,
-						logDescription: contract.interface.parseLog(l),
-					};
-				} catch (err) {
-					return {
-						log: l,
-						logDescription: null,
-					};
-				}
-			})
-			.filter(
-				(l): l is { log: ethers.providers.Log; logDescription: ethers.utils.LogDescription } =>
-					l.logDescription !== null,
-			);
-		const mailPushEvents = logs
-			.filter(l => l.logDescription.name === 'MailPush')
-			.map(l =>
-				ethersLogToInternalEvent<MailPushEventObject>({
-					log: l.log,
-					logDescription: l.logDescription,
-				}),
-			);
+		const {
+			logs,
+			byName: { MailPush },
+		} = parseOutLogs(contract, receipt.logs);
+		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
@@ -299,32 +225,11 @@ export class EthereumMailerV8WrapperMailing {
 			{ from, value },
 		);
 		const receipt = await tx.wait();
-		const logs = receipt.logs
-			.map(l => {
-				try {
-					return {
-						log: l,
-						logDescription: contract.interface.parseLog(l),
-					};
-				} catch (err) {
-					return {
-						log: l,
-						logDescription: null,
-					};
-				}
-			})
-			.filter(
-				(l): l is { log: ethers.providers.Log; logDescription: ethers.utils.LogDescription } =>
-					l.logDescription !== null,
-			);
-		const mailPushEvents = logs
-			.filter(l => l.logDescription.name === 'MailPush')
-			.map(l =>
-				ethersLogToInternalEvent<MailPushEventObject>({
-					log: l.log,
-					logDescription: l.logDescription,
-				}),
-			);
+		const {
+			logs,
+			byName: { MailPush },
+		} = parseOutLogs(contract, receipt.logs);
+		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
@@ -348,6 +253,22 @@ export class EthereumMailerV8WrapperMailing {
 				ethersEventToInternalEvent(event),
 			]);
 			return this.processMailPushEvent(mailer, enriched);
+		});
+	}
+
+	getMessageRecipients(mailer: IEVMMailerContractLink, message: IEVMMessage) {
+		return this.wrapper.cache.contractOperation(mailer, async (contract, _, blockLimit) => {
+			const events = await getMultipleEvents<ContentRecipientsEvent>(
+				contract,
+				contract.filters.ContentRecipients('0x' + message.$$meta.contentId),
+				blockLimit,
+				message.$$meta.contentId,
+			);
+			return {
+				contentId: bnToUint256(events[0]?.args.contentId),
+				sender: events[0]?.args.sender || ethers.constants.AddressZero,
+				recipients: events.flatMap(e => e.args.recipients.map(bnToUint256)),
+			};
 		});
 	}
 

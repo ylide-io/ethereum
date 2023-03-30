@@ -3,20 +3,20 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable prefer-arrow/prefer-arrow-functions */
 /* eslint-disable @typescript-eslint/prefer-for-of */
+import { LogDescription } from '@ethersproject/abi';
+import { mine } from '@nomicfoundation/hardhat-network-helpers';
+import { YlideMailerV8, YlideMailerV8__factory } from '@ylide/ethereum-contracts';
+import { bigIntToUint256, Uint256, YLIDE_MAIN_FEED_ID } from '@ylide/sdk';
+import SmartBuffer from '@ylide/smart-buffer';
 import { expect } from 'chai';
 import { BigNumber, ContractReceipt, ContractTransaction, Signer } from 'ethers';
 import hre from 'hardhat';
-import { describe, it, before } from 'mocha';
-import { mine } from '@nomicfoundation/hardhat-network-helpers';
-import { YlideMailerV8, YlideMailerV8__factory } from '@ylide/ethereum-contracts';
-import { EthereumBlockchainReader } from '../src/controllers/helpers/EthereumBlockchainReader';
-import { EthereumMailerV8Wrapper } from '../src/contract-wrappers/v8/EthereumMailerV8Wrapper';
+import { before, describe, it } from 'mocha';
 import { EVMMailerContractType, IEVMMailerContractLink, IEVMMessage } from '../src';
-import { Uint256, YLIDE_MAIN_FEED_ID } from '@ylide/sdk';
-import { decodeContentId } from '../src/misc/contentId';
-import SmartBuffer from '@ylide/smart-buffer';
-import { LogDescription } from '@ethersproject/abi';
+import { EthereumMailerV8Wrapper } from '../src/contract-wrappers/v8/EthereumMailerV8Wrapper';
+import { EthereumBlockchainReader } from '../src/controllers/helpers/EthereumBlockchainReader';
 import { constructPersonalFeedId } from '../src/misc/constructFeedId';
+import { decodeContentId } from '../src/misc/contentId';
 
 describe('YlideMailerV8', function () {
 	this.timeout('2000s');
@@ -280,14 +280,14 @@ describe('YlideMailerV8', function () {
 
 					await mine(129);
 
-					const { tx, receipt, logs } = await userMailerV8Wrapper.mailing.sendSmallMail(
+					const { tx, receipt, logs } = await userMailerV8Wrapper.mailing.sendBulkMail(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
 						feedId!,
 						uniqueId,
-						recipientHex,
-						key,
+						[recipientHex],
+						[key],
 						content,
 						BigNumber.from(0),
 					);
@@ -298,31 +298,31 @@ describe('YlideMailerV8', function () {
 					const messageContent = logs.find(log => log.name === 'MessageContent');
 
 					expect(mailPush, 'MailPush event must be present').to.not.be.undefined;
-					expect(mailPush!.args.sender, 'Sender must be user address').to.equal(
+					expect(mailPush?.args.sender, 'Sender must be user address').to.equal(
 						await userSigner.getAddress(),
 					);
 					expect(
-						mailPush!.args.recipient.toHexString(),
+						mailPush?.args.recipient.toHexString(),
 						'Recipient must be 0x1234567890123456789012345678901234567890123456789012345678901234',
 					).to.equal('0x1234567890123456789012345678901234567890123456789012345678901234');
-					expect(mailPush!.args.key, 'Key must be 0x010203040506').to.equal('0x010203040506');
+					expect(mailPush?.args.key, 'Key must be 0x010203040506').to.equal('0x010203040506');
 					expect(
-						mailPush!.args.previousFeedEventsIndex.toNumber(),
+						mailPush?.args.previousFeedEventsIndex.toNumber(),
 						'previousFeedEventsIndex must be 0',
 					).to.equal(0);
 
-					const contentId = decodeContentId(mailPush!.args.contentId.toHexString());
+					const contentId = decodeContentId(mailPush?.args.contentId.toHexString());
 					expect(contentId.version, 'Version must be 8').to.equal(8);
 					expect(contentId.partsCount, 'Parts count must be 1').to.equal(1);
 					expect(contentId.blockCountLock, 'Block count lock must be 0').to.equal(0);
 
 					expect(messageContent, 'MessageContent event must be present').to.not.be.undefined;
-					expect(messageContent!.args.content, 'Content must be 0x080708070807').to.equal('0x080708070807');
-					expect(messageContent!.args.sender, 'Sender must be user address').to.equal(
+					expect(messageContent?.args.content, 'Content must be 0x080708070807').to.equal('0x080708070807');
+					expect(messageContent?.args.sender, 'Sender must be user address').to.equal(
 						await userSigner.getAddress(),
 					);
-					expect(messageContent!.args.parts, 'Parts must be 1').to.equal(1);
-					expect(messageContent!.args.partIdx, 'partIdx must be 0').to.equal(0);
+					expect(messageContent?.args.parts, 'Parts must be 1').to.equal(1);
+					expect(messageContent?.args.partIdx, 'partIdx must be 0').to.equal(0);
 
 					// retrieve:
 
@@ -621,7 +621,7 @@ describe('YlideMailerV8', function () {
 						userSigner,
 						await userSigner.getAddress(),
 						true,
-						feedId1!,
+						feedId1,
 						uniqueId,
 						content,
 						BigNumber.from(0),
@@ -805,7 +805,6 @@ describe('YlideMailerV8', function () {
 				});
 			});
 			describe('Sending messages', function () {
-				// sendSmallMail
 				// sendBulkMail
 				// addMailRecipients
 				// sendBroadcast
@@ -817,7 +816,7 @@ describe('YlideMailerV8', function () {
 					senderSigner: Signer,
 					feedId: Uint256,
 					value: number,
-					shouldFail: boolean = false,
+					shouldFail = false,
 				) => {
 					const a = Math.floor(Math.random() * 256);
 					const b = Math.floor(Math.random() * 256);
@@ -839,14 +838,14 @@ describe('YlideMailerV8', function () {
 							tx: tx2,
 							receipt: receipt2,
 							logs: logs2,
-						} = await mailerV8Wrapper.mailing.sendSmallMail(
+						} = await mailerV8Wrapper.mailing.sendBulkMail(
 							mailerDesc,
 							senderSigner,
 							await senderSigner.getAddress(),
 							feedId,
 							uniqueId,
-							recipientHex,
-							key,
+							[recipientHex],
+							[key],
 							content,
 							BigNumber.from(value),
 						);
@@ -915,7 +914,7 @@ describe('YlideMailerV8', function () {
 					senderSigner: Signer,
 					feedId: Uint256,
 					value: number,
-					shouldFail: boolean = false,
+					shouldFail = false,
 				) => {
 					const c = Math.floor(Math.random() * 256);
 					const d = Math.floor(Math.random() * 256);
@@ -1366,6 +1365,7 @@ describe('YlideMailerV8', function () {
 						tx: tx3,
 						receipt: receipt3,
 						logs: logs3,
+						messages,
 					} = await userMailerV8Wrapper.mailing.addMailRecipients(
 						mailerDesc,
 						userSigner,
@@ -1384,6 +1384,18 @@ describe('YlideMailerV8', function () {
 
 					const mailPush1 = logs3.find(log => log.name === 'MailPush');
 					const mailPush2 = logs3.find(log => log.name === 'MailPush' && log !== mailPush1);
+
+					const { sender, recipients, contentId } = await userMailerV8Wrapper.mailing.getMessageRecipients(
+						mailerDesc,
+						messages[0],
+					);
+
+					expect(recipients.length, 'There should be two recipients').to.equal(2);
+					expect([recipient1Hex, recipient2Hex], 'Recipients should be equal').deep.equal(recipients);
+					expect(sender, "Sender's address must be user address").to.equal(await userSigner.getAddress());
+					expect(contentId, 'ContentId must be equal contentId form MailPush').to.equal(
+						bigIntToUint256(mailPush1?.args.contentId),
+					);
 
 					expect(mailPush1, 'MailPush event must be present').to.not.be.undefined;
 					expect(mailPush1!.args.sender, 'Sender must be user address').to.equal(
@@ -1767,8 +1779,8 @@ describe('YlideMailerV8', function () {
 							string,
 							Uint256,
 							number,
-							Uint256,
-							Uint8Array,
+							[Uint256],
+							[Uint8Array],
 							Uint8Array,
 							BigNumber,
 						];
@@ -1789,8 +1801,8 @@ describe('YlideMailerV8', function () {
 								a,
 								YLIDE_MAIN_FEED_ID,
 								uniqueId,
-								recipientHex,
-								key,
+								[recipientHex],
+								[key],
 								content,
 								BigNumber.from(0),
 							],
@@ -1908,8 +1920,8 @@ describe('YlideMailerV8', function () {
 							string,
 							Uint256,
 							number,
-							Uint256,
-							Uint8Array,
+							[Uint256],
+							[Uint8Array],
 							Uint8Array,
 							BigNumber,
 						];
@@ -1923,7 +1935,7 @@ describe('YlideMailerV8', function () {
 						await mine(skipBefore);
 					}
 					for (const event of events) {
-						await m.mailing.sendSmallMail(...event.args);
+						await m.mailing.sendBulkMail(...event.args);
 						if (skipBetween) {
 							await mine(skipBetween);
 						}
@@ -2275,14 +2287,14 @@ describe('YlideMailerV8', function () {
 					const key = new Uint8Array([1, 2, 3, 4, 5, 6]);
 					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
 
-					const { tx, receipt, logs } = await userMailerV8Wrapper.mailing.sendSmallMail(
+					const { tx, receipt, logs } = await userMailerV8Wrapper.mailing.sendBulkMail(
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
 						YLIDE_MAIN_FEED_ID,
 						uniqueId,
-						recipientHex,
-						key,
+						[recipientHex],
+						[key],
 						content,
 						BigNumber.from(0),
 					);
@@ -2300,12 +2312,12 @@ describe('YlideMailerV8', function () {
 					expect(contentId.blockCountLock, 'Block count lock must be 0').to.equal(0);
 
 					expect(messageContent, 'MessageContent event must be present').to.not.be.undefined;
-					expect(messageContent!.args.content, 'Content must be 0x080708070807').to.equal('0x080708070807');
-					expect(messageContent!.args.sender, 'Sender must be user address').to.equal(
+					expect(messageContent?.args.content, 'Content must be 0x080708070807').to.equal('0x080708070807');
+					expect(messageContent?.args.sender, 'Sender must be user address').to.equal(
 						await userSigner.getAddress(),
 					);
-					expect(messageContent!.args.parts, 'Parts must be 1').to.equal(1);
-					expect(messageContent!.args.partIdx, 'partIdx must be 0').to.equal(0);
+					expect(messageContent?.args.parts, 'Parts must be 1').to.equal(1);
+					expect(messageContent?.args.partIdx, 'partIdx must be 0').to.equal(0);
 				});
 				it('Send bulk mail', async function () {
 					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
@@ -2456,6 +2468,7 @@ describe('YlideMailerV8', function () {
 						tx: tx3,
 						receipt: receipt3,
 						logs: logs3,
+						messages,
 					} = await userMailerV8Wrapper.mailing.addMailRecipients(
 						mailerDesc,
 						userSigner,
@@ -2474,6 +2487,18 @@ describe('YlideMailerV8', function () {
 
 					const mailPush1 = logs3.find(log => log.name === 'MailPush');
 					const mailPush2 = logs3.find(log => log.name === 'MailPush' && log !== mailPush1);
+
+					const { sender, recipients, contentId } = await userMailerV8Wrapper.mailing.getMessageRecipients(
+						mailerDesc,
+						messages[0],
+					);
+
+					expect(recipients.length, 'There should be two recipients').to.equal(2);
+					expect([recipient1Hex, recipient2Hex], 'Recipients should be equal').deep.equal(recipients);
+					expect(sender, "Sender's address must be user address").to.equal(await userSigner.getAddress());
+					expect(contentId, 'ContentId must be equal contentId form MailPush').to.equal(
+						bigIntToUint256(mailPush1?.args.contentId),
+					);
 
 					expect(mailPush1, 'MailPush event must be present').to.not.be.undefined;
 					expect(mailPush1!.args.sender, 'Sender must be user address').to.equal(
