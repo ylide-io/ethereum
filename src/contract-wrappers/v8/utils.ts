@@ -46,7 +46,7 @@ export const getMultipleEvents = async <T extends TypedEvent>(
 	contentId: Uint256,
 	isContent = false,
 ) => {
-	const currentBlockNumber = await contract.provider?.getBlockNumber();
+	const currentBlockNumber = await contract.provider.getBlockNumber();
 	const events: T[] = [];
 	const decodedContentId = decodeContentId(contentId);
 	for (
