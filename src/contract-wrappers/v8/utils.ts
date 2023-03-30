@@ -51,7 +51,7 @@ export const getMultipleEvents = async <T extends TypedEvent>(
 	const decodedContentId = decodeContentId(contentId);
 	for (
 		let i = decodedContentId.blockNumber;
-		i <= decodedContentId.blockNumber + decodedContentId.blockCountLock;
+		i <= Math.min(currentBlockNumber, decodedContentId.blockNumber + decodedContentId.blockCountLock);
 		i += blockLimit
 	) {
 		const newEvents = (await contract.queryFilter(
@@ -61,9 +61,6 @@ export const getMultipleEvents = async <T extends TypedEvent>(
 		)) as unknown as T[];
 		events.push(...newEvents);
 		if (isContent && events.length >= decodedContentId.partsCount) {
-			break;
-		}
-		if (currentBlockNumber && i + blockLimit > currentBlockNumber) {
 			break;
 		}
 	}
