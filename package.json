@@ -46,6 +46,7 @@
 		"semaphore-promise": "1.4.1"
 	},
 	"devDependencies": {
+		"@mock/ethereum-contracts": "file:../ethereum-contracts",
 		"@ethersproject/bytes": "5.7.0",
 		"@nomicfoundation/hardhat-chai-matchers": "1.0.5",
 		"@nomicfoundation/hardhat-network-helpers": "1.0.8",

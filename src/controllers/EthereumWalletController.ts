@@ -38,6 +38,7 @@ import { EthereumRegistryV4Wrapper } from '../contract-wrappers/EthereumRegistry
 import { EthereumRegistryV5Wrapper } from '../contract-wrappers/EthereumRegistryV5Wrapper';
 import { EthereumRegistryV6Wrapper } from '../contract-wrappers/EthereumRegistryV6Wrapper';
 import { EVM_CONTRACTS } from '../misc/contractConstants';
+import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9';
 
 export type NetworkSwitchHandler = (
 	reason: string,
@@ -56,7 +57,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	readonly mailers: {
 		link: IEVMMailerContractLink;
-		wrapper: EthereumMailerV6Wrapper | EthereumMailerV7Wrapper | EthereumMailerV8Wrapper;
+		wrapper: EthereumMailerV6Wrapper | EthereumMailerV7Wrapper | EthereumMailerV8Wrapper | EthereumMailerV9Wrapper;
 	}[] = [];
 	readonly registries: {
 		link: IEVMRegistryContractLink;
@@ -199,7 +200,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	private getMailerByNetwork(network: EVMNetwork): {
 		link: IEVMMailerContractLink;
-		wrapper: EthereumMailerV6Wrapper | EthereumMailerV7Wrapper | EthereumMailerV8Wrapper;
+		wrapper: EthereumMailerV6Wrapper | EthereumMailerV7Wrapper | EthereumMailerV8Wrapper | EthereumMailerV9Wrapper;
 	} {
 		const id = EVM_CONTRACTS[network].currentMailerId;
 		const existing = this.mailers.find(r => r.link.id === id);
@@ -414,7 +415,12 @@ export class EthereumWalletController extends AbstractWalletController {
 		const chunkSize = EVM_CHUNK_SIZES[network];
 		const chunks = MessageChunks.splitMessageChunks(contentData, chunkSize);
 
-		if (chunks.length === 1 && recipients.length === 1 && !(mailer.wrapper instanceof EthereumMailerV8Wrapper)) {
+		if (
+			chunks.length === 1 &&
+			recipients.length === 1 &&
+			!(mailer.wrapper instanceof EthereumMailerV8Wrapper) &&
+			!(mailer.wrapper instanceof EthereumMailerV9Wrapper)
+		) {
 			if (feedId !== YLIDE_MAIN_FEED_ID) {
 				throw new Error('FeedId is not supported');
 			}
@@ -430,7 +436,10 @@ export class EthereumWalletController extends AbstractWalletController {
 			);
 			return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 		} else if (chunks.length === 1 && recipients.length < Math.ceil((15.5 * 1024 - chunks[0].byteLength) / 70)) {
-			if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+			if (
+				mailer.wrapper instanceof EthereumMailerV8Wrapper ||
+				mailer.wrapper instanceof EthereumMailerV9Wrapper
+			) {
 				console.log(`Sending bulk mail, chunk length: ${chunks[0].length} bytes`);
 				const { messages } = await mailer.wrapper.mailing.sendBulkMail(
 					mailer.link,
@@ -461,7 +470,10 @@ export class EthereumWalletController extends AbstractWalletController {
 				return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 			}
 		} else {
-			if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+			if (
+				mailer.wrapper instanceof EthereumMailerV8Wrapper ||
+				mailer.wrapper instanceof EthereumMailerV9Wrapper
+			) {
 				const firstBlockNumber = await this.signer.provider.getBlockNumber();
 				const blockLock = 600;
 				// const msgId = await mailer.buildHash(me.address, uniqueId, firstBlockNumber);

@@ -39,6 +39,8 @@ import { EVMMailerV7Source } from '../messages-sources/EVMMailerV7Source';
 import { EVMMailerV8Source } from '../messages-sources/EVMMailerV8Source';
 import { EVM_CONTRACTS } from '../misc/contractConstants';
 import { EthereumNameService } from './EthereumNameService';
+import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9';
+import { EVMMailerV9Source } from '../messages-sources/EVMMailerV9Source';
 
 export class EthereumBlockchainController extends AbstractBlockchainController {
 	readonly blockchainReader: EthereumBlockchainReader;
@@ -49,11 +51,15 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 	static readonly mailerWrappers: Record<
 		EVMMailerContractType,
-		typeof EthereumMailerV8Wrapper | typeof EthereumMailerV7Wrapper | typeof EthereumMailerV6Wrapper
+		| typeof EthereumMailerV8Wrapper
+		| typeof EthereumMailerV7Wrapper
+		| typeof EthereumMailerV6Wrapper
+		| typeof EthereumMailerV9Wrapper
 	> = {
 		[EVMMailerContractType.EVMMailerV6]: EthereumMailerV6Wrapper,
 		[EVMMailerContractType.EVMMailerV7]: EthereumMailerV7Wrapper,
 		[EVMMailerContractType.EVMMailerV8]: EthereumMailerV8Wrapper,
+		[EVMMailerContractType.EVMMailerV9]: EthereumMailerV9Wrapper,
 	};
 
 	static readonly registryWrappers: Record<
@@ -71,7 +77,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 	readonly mailers: {
 		link: IEVMMailerContractLink;
-		wrapper: EthereumMailerV8Wrapper | EthereumMailerV7Wrapper | EthereumMailerV6Wrapper;
+		wrapper: EthereumMailerV8Wrapper | EthereumMailerV7Wrapper | EthereumMailerV6Wrapper | EthereumMailerV9Wrapper;
 	}[] = [];
 	readonly registries: {
 		link: IEVMRegistryContractLink;
@@ -229,7 +235,10 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				parsed.logIndex,
 			);
 		} else {
-			if (!(mailer.wrapper instanceof EthereumMailerV8Wrapper)) {
+			if (
+				!(mailer.wrapper instanceof EthereumMailerV8Wrapper) &&
+				!(mailer.wrapper instanceof EthereumMailerV9Wrapper)
+			) {
 				return await mailer.wrapper.getMailPushEvent(
 					mailer.link,
 					parsed.blockNumber,
@@ -276,7 +285,23 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			throw new Error('Sender is not supported for direct messages request in EVM');
 		}
 
-		if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+		if (mailer.wrapper instanceof EthereumMailerV9Wrapper) {
+			return new EVMMailerV9Source(
+				this,
+				mailer.link,
+				mailer.wrapper,
+				subject.type === BlockchainSourceType.BROADCAST
+					? {
+							type: 'broadcast',
+							feedId: subject.feedId,
+					  }
+					: {
+							type: 'recipient',
+							feedId: subject.feedId,
+							recipient: subject.recipient,
+					  },
+			);
+		} else if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
 			return new EVMMailerV8Source(
 				this,
 				mailer.link,
@@ -333,7 +358,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		if (!mailer) {
 			throw new Error('This message does not belongs to this blockchain controller');
 		}
-		if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+		if (mailer.wrapper instanceof EthereumMailerV8Wrapper || mailer.wrapper instanceof EthereumMailerV9Wrapper) {
 			return await mailer.wrapper.content.retrieveMessageContent(mailer.link, msg);
 		} else {
 			return mailer.wrapper.retrieveMessageContent(mailer.link, msg);

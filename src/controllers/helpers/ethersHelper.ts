@@ -1,9 +1,9 @@
 import { ethers, Event, Transaction } from 'ethers';
 import type { BlockWithTransactions } from '@ethersproject/abstract-provider';
 import type { Block, Log } from '@ethersproject/providers';
-import type { TypedEvent } from '@ylide/ethereum-contracts/lib/common';
+import type { TypedEvent } from '@mock/ethereum-contracts/typechain-types/common';
 
-import type { IEVMBlock, IEVMEvent, IEVMTransaction } from '../../misc/types';
+import type { IEVMBlock, IEVMEvent, IEVMTransaction, LogInternal } from '../../misc/types';
 
 export type EventParsed<T> = T extends TypedEvent<infer Arr, infer Obj> ? Obj : never;
 
@@ -53,13 +53,7 @@ function ethersEventToInternalEvent(event: Event, argsTransform?: (args: any) =>
 	};
 }
 
-export const ethersLogToInternalEvent = <T>(
-	log: {
-		log: Log;
-		logDescription: ethers.utils.LogDescription;
-	},
-	argsTransform?: (args: any) => any,
-): IEVMEvent<T> => {
+export const ethersLogToInternalEvent = <T>(log: LogInternal, argsTransform?: (args: any) => any): IEVMEvent<T> => {
 	return {
 		blockNumber: log.log.blockNumber,
 		blockHash: log.log.blockHash,

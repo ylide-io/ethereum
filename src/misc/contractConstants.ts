@@ -1,4 +1,10 @@
-import { EVMNetwork, IEVMNetworkContracts, EVMRegistryContractType, EVMMailerContractType } from './types';
+import {
+	EVMNetwork,
+	IEVMNetworkContracts,
+	EVMRegistryContractType,
+	EVMMailerContractType,
+	EVMYlidePayContractType,
+} from './types';
 
 // last contract id: 71, next id is 72
 export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
