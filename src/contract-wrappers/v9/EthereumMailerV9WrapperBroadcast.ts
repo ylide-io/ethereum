@@ -16,10 +16,10 @@ export class EthereumMailerV9WrapperBroadcast {
 		//
 	}
 
-	processBroadcastPushEvent(
+	async processBroadcastPushEvent(
 		mailer: IEVMMailerContractLink,
 		event: IEVMEnrichedEvent<BroadcastPushEventObject>,
-	): IEVMMessage {
+	): Promise<IEVMMessage> {
 		return {
 			isBroadcast: true,
 			feedId: bnToUint256(event.event.parsed.feedId),
@@ -191,7 +191,7 @@ export class EthereumMailerV9WrapperBroadcast {
 		const getBaseIndex: () => Promise<number[]> = async () =>
 			(await this.getBroadcastFeedParams(mailer, feedId)).messagesIndex;
 		const getFilter = (contract: YlideMailerV9) => contract.filters.BroadcastPush(null, `0x${feedId}`);
-		const processEvent = (event: IEVMEnrichedEvent<BroadcastPushEventObject>) =>
+		const processEvent = async (event: IEVMEnrichedEvent<BroadcastPushEventObject>) =>
 			this.processBroadcastPushEvent(mailer, event);
 		return await this.wrapper.retrieveHistoryDesc<BroadcastPushEvent>(
 			mailer,
@@ -258,7 +258,7 @@ export class EthereumMailerV9WrapperBroadcast {
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<BroadcastPushEventObject>(
 			broadcastPushEvents,
 		);
-		const messages = enriched.map(e => this.processBroadcastPushEvent(mailer, e));
+		const messages = await Promise.all(enriched.map(e => this.processBroadcastPushEvent(mailer, e)));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
 	}
 
@@ -299,7 +299,7 @@ export class EthereumMailerV9WrapperBroadcast {
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<BroadcastPushEventObject>(
 			broadcastPushEvents,
 		);
-		const messages = enriched.map(e => this.processBroadcastPushEvent(mailer, e));
+		const messages = await Promise.all(enriched.map(e => this.processBroadcastPushEvent(mailer, e)));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
 	}
 }
