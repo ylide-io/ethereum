@@ -11,5 +11,11 @@
 		"skipLibCheck": true
 	},
 	"include": ["./src"],
-	"files": ["./hardhat.config.ts", "tests/_1_RegistryV5.ts", "tests/_2_RegistryV6.ts", "tests/_3_MailerV8.ts"]
+	"files": [
+		"./hardhat.config.ts",
+		"tests/_1_RegistryV5.ts",
+		"tests/_2_RegistryV6.ts",
+		"tests/_3_MailerV8.ts",
+		"tests/_4_MailerV9.ts"
+	]
 }

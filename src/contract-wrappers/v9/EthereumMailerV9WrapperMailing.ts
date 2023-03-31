@@ -206,7 +206,6 @@ export class EthereumMailerV9WrapperMailing {
 		receipt: ethers.ContractReceipt;
 		logs: ethers.utils.LogDescription[];
 		mailPushEvents: IEVMEvent<MailPushEventObject>[];
-		tokenAttachmentEvents: IEVMEvent<TokenAttachmentEventObject>[];
 		messages: IEVMMessage[];
 	}> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
@@ -239,8 +238,7 @@ export class EthereumMailerV9WrapperMailing {
 		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = await Promise.all(enriched.map(e => this.processMailPushEvent(mailer, e)));
-		const tokenAttachmentEvents = TokenAttachment.map(l => ethersLogToInternalEvent<TokenAttachmentEventObject>(l));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, tokenAttachmentEvents, messages };
+		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
 	async addMailRecipients(
@@ -262,7 +260,6 @@ export class EthereumMailerV9WrapperMailing {
 		receipt: ethers.ContractReceipt;
 		logs: ethers.utils.LogDescription[];
 		mailPushEvents: IEVMEvent<MailPushEventObject>[];
-		tokenAttachmentEvents: IEVMEvent<TokenAttachmentEventObject>[];
 		messages: IEVMMessage[];
 	}> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
@@ -300,13 +297,12 @@ export class EthereumMailerV9WrapperMailing {
 		const receipt = await tx.wait();
 		const {
 			logs,
-			byName: { MailPush, TokenAttachment },
+			byName: { MailPush },
 		} = parseOutLogs(contract, receipt.logs);
 		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = await Promise.all(enriched.map(e => this.processMailPushEvent(mailer, e)));
-		const tokenAttachmentEvents = TokenAttachment.map(l => ethersLogToInternalEvent<TokenAttachmentEventObject>(l));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, tokenAttachmentEvents, messages };
+		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
 	async getMailPushEvent(
