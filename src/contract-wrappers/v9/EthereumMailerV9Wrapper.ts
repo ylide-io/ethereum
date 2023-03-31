@@ -1,13 +1,12 @@
-import { YlideMailerV9 } from '@mock/ethereum-contracts/typechain-types/YlideMailerV9';
-import { YlideMailerV9__factory } from '@mock/ethereum-contracts/typechain-types/factories/YlideMailerV9__factory';
-import type { TypedEvent, TypedEventFilter } from '@mock/ethereum-contracts/typechain-types/common';
+import { YlideMailerV9, YlideMailerV9__factory } from '@ylide/ethereum-contracts';
+import { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
 import { ethers } from 'ethers';
 import type { EthereumBlockchainReader } from '../../controllers/helpers/EthereumBlockchainReader';
-import { ethersEventToInternalEvent, EventParsed } from '../../controllers/helpers/ethersHelper';
+import { EventParsed, ethersEventToInternalEvent } from '../../controllers/helpers/ethersHelper';
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
 import { validateMessage } from '../../misc/evmMsgId';
 import type { IEVMEnrichedEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
-import { bnToUint256, IEventPosition } from '../../misc/utils';
+import { IEventPosition, bnToUint256 } from '../../misc/utils';
 import { ContractCache } from '../ContractCache';
 import { EthereumMailerV9WrapperBroadcast } from './EthereumMailerV9WrapperBroadcast';
 import { EthereumMailerV9WrapperContent } from './EthereumMailerV9WrapperContent';
@@ -40,7 +39,7 @@ export class EthereumMailerV9Wrapper {
 		mailer: IEVMMailerContractLink,
 		getBaseIndex: () => Promise<number[]>,
 		getFilter: (contract: YlideMailerV9) => TypedEventFilter<T>,
-		processEvent: (event: IEVMEnrichedEvent<EventParsed<T>>) => IEVMMessage,
+		processEvent: (event: IEVMEnrichedEvent<EventParsed<T>>) => Promise<IEVMMessage>,
 		fromMessage: IEVMMessage | null,
 		includeFromMessage: boolean,
 		toMessage: IEVMMessage | null,
@@ -82,7 +81,7 @@ export class EthereumMailerV9Wrapper {
 			const enrichedEvents = await this.blockchainReader.enrichEvents<EventParsed<T>>(
 				preparedEvents.map(g => ethersEventToInternalEvent(g)),
 			);
-			const messages = enrichedEvents.map(e => processEvent(e));
+			const messages = await Promise.all(enrichedEvents.map(e => processEvent(e)));
 			return messages;
 		});
 	}

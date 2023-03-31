@@ -1,10 +1,7 @@
-import { YlidePayV1 } from '@mock/ethereum-contracts/typechain-types/contracts/YlidePayV1';
-import { YlidePayV1__factory } from '@mock/ethereum-contracts/typechain-types/factories/contracts/YlidePayV1__factory';
-import { IYlideMailer } from '@mock/ethereum-contracts/typechain-types/YlideMailerV9';
-import { Uint256 } from '@ylide/sdk';
+import { IYlideMailer, YlidePayV1, YlidePayV1__factory } from '@ylide/ethereum-contracts';
 import { ethers } from 'ethers';
 import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
-import { IEVMYlidePayContractLink, Payment } from '../misc';
+import { IEVMYlidePayContractLink } from '../misc';
 import { ContractCache } from './ContractCache';
 
 export class EthereumPayV1Wrapper {

@@ -8,7 +8,7 @@ import type {
 	MailPushEvent,
 	MailPushEventObject,
 	MailContentEventObject,
-} from '@ylide/ethereum-contracts/lib/YlideMailerV6';
+} from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV6';
 import type { LogDescription } from '@ethersproject/abi';
 import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../misc/types';
 import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../misc/constants';

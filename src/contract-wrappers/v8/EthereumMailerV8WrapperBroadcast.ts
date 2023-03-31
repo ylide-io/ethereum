@@ -1,5 +1,5 @@
 import { YlideMailerV8 } from '@ylide/ethereum-contracts';
-import { BroadcastPushEventObject, BroadcastPushEvent } from '@ylide/ethereum-contracts/lib/YlideMailerV8';
+import { BroadcastPushEventObject, BroadcastPushEvent } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV8';
 import { Uint256 } from '@ylide/sdk';
 import { BigNumber, ethers } from 'ethers';
 import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers/helpers/ethersHelper';

@@ -206,6 +206,22 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 	}
 
+	async getUserNonceMailer(mailerAddress: string) {
+		const mailer = this.mailers.find(m => m.link.id === EVM_CONTRACTS[this.network].currentMailerId);
+		if (!mailer) {
+			throw new Error(
+				`Unknown contract ${EVM_CONTRACTS[this.network].currentMailerId} for network ${this.network}`,
+			);
+		}
+		if (
+			mailer.link.type === EVMMailerContractType.EVMMailerV9 &&
+			mailer.wrapper instanceof EthereumMailerV9Wrapper
+		) {
+			return mailer.wrapper.mailing.getNonce(mailer.link, mailerAddress);
+		}
+		throw new Error('Unsupported mailer version');
+	}
+
 	async getMessageByMsgId(msgId: string): Promise<IEVMMessage | null> {
 		const parsed = decodeEvmMsgId(msgId);
 		const network = EVM_CONTRACT_TO_NETWORK[parsed.contractId];

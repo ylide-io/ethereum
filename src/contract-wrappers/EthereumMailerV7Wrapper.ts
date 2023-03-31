@@ -9,7 +9,7 @@ import {
 	MailPushEvent,
 	MailPushEventObject,
 	MailContentEventObject,
-} from '@ylide/ethereum-contracts/lib/YlideMailerV7';
+} from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV7';
 import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../misc/types';
 import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../misc/constants';
 import type { IEventPosition } from '../misc/utils';

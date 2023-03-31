@@ -5,7 +5,7 @@ import type {
 	MailingFeedJoinedEventObject,
 	MailPushEvent,
 	MailPushEventObject,
-} from '@ylide/ethereum-contracts/lib/YlideMailerV8';
+} from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV8';
 import type { Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { BigNumber, ethers } from 'ethers';

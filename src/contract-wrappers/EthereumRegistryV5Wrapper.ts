@@ -5,7 +5,7 @@ import SmartBuffer from '@ylide/smart-buffer';
 import { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
 import type { IEVMEnrichedEvent, IEVMRegistryContractLink } from '../misc/types';
 import { ContractCache } from './ContractCache';
-import type { KeyAttachedEventObject } from '@ylide/ethereum-contracts/lib/YlideRegistryV5';
+import type { KeyAttachedEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideRegistryV5';
 
 export class EthereumRegistryV5Wrapper {
 	public readonly cache: ContractCache<YlideRegistryV5>;

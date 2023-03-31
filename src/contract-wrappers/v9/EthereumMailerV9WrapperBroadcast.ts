@@ -1,5 +1,5 @@
-import { YlideMailerV9 } from '@mock/ethereum-contracts/typechain-types';
-import { BroadcastPushEventObject, BroadcastPushEvent } from '@mock/ethereum-contracts/typechain-types/YlideMailerV9';
+import { YlideMailerV9 } from '@ylide/ethereum-contracts';
+import { BroadcastPushEvent, BroadcastPushEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
 import { Uint256 } from '@ylide/sdk';
 import { BigNumber, ethers } from 'ethers';
 import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers/helpers/ethersHelper';

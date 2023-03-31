@@ -1,8 +1,5 @@
 import { LogDescription } from '@ethersproject/abi';
-import type {
-	MessageContentEvent,
-	MessageContentEventObject,
-} from '@mock/ethereum-contracts/typechain-types/YlideMailerV9';
+import { MessageContentEvent, MessageContentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
 import type { IMessageContent, IMessageCorruptedContent } from '@ylide/sdk';
 import { ethers } from 'ethers';
 import type { GenericMessageContentEventObject } from '../../controllers/helpers/EthereumContentReader';
@@ -72,7 +69,6 @@ export class EthereumMailerV9WrapperContent {
 		message: IEVMMessage,
 	): Promise<IMessageContent | IMessageCorruptedContent | null> {
 		return await this.wrapper.cache.contractOperation(mailer, async (contract, provider, blockLimit) => {
-			const decodedContentId = decodeContentId(message.$$meta.contentId);
 			const events = await getMultipleEvents<MessageContentEvent>(
 				contract,
 				contract.filters.MessageContent('0x' + message.$$meta.contentId),

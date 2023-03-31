@@ -1,5 +1,6 @@
+import { YlidePayV1 } from '@ylide/ethereum-contracts';
+import { TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
 import type { IMessage, Uint256 } from '@ylide/sdk';
-import { YlidePayV1 } from '@mock/ethereum-contracts/typechain-types';
 import { ethers } from 'ethers';
 
 export enum EVMNetwork {
@@ -68,6 +69,7 @@ export interface IEVMEnrichedEvent<ParsedEvent = object> {
 export interface IEVMMeta extends IEVMEnrichedEvent {
 	contentId: Uint256;
 	index: number[];
+	tokenAttachment?: TokenAttachmentEventParsed;
 }
 
 export enum EVMMailerContractType {
@@ -137,3 +139,5 @@ export type LogInternal = {
 	log: ethers.providers.Log;
 	logDescription: ethers.utils.LogDescription;
 };
+
+export type TokenAttachmentEventParsed = Omit<TokenAttachmentEventObject, 'contentId'>;

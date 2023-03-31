@@ -1,6 +1,5 @@
-import { LogDescription } from '@ethersproject/abi';
-import { YlideMailerV9 } from '@mock/ethereum-contracts/typechain-types';
-import { TypedEvent } from '@mock/ethereum-contracts/typechain-types/common';
+import { YlideMailerV9 } from '@ylide/ethereum-contracts';
+import { TypedEvent } from '@ylide/ethereum-contracts/lib/common';
 import { Uint256 } from '@ylide/sdk';
 import { ethers } from 'ethers';
 import { decodeContentId, LogInternal } from '../../misc';
