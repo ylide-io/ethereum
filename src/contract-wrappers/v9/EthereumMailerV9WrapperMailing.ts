@@ -397,10 +397,8 @@ export class EthereumMailerV9WrapperMailing {
 		const getBaseIndex: () => Promise<number[]> = async () =>
 			this.getRecipientToMailIndex(mailer, feedId, recipient);
 		const getFilter = (contract: YlideMailerV9) => contract.filters.MailPush(`0x${recipient}`, `0x${feedId}`);
-		const processEvent = (
-			event: IEVMEnrichedEvent<MailPushEventObject>,
-			tokenAttachmentEvents: TokenAttachmentEventObject[] = [],
-		) => this.processMailPushEvent(mailer, event, tokenAttachmentEvents);
+		const processEvent = (event: IEVMEnrichedEvent<MailPushEventObject>) =>
+			this.processMailPushEvent(mailer, event);
 		return await this.wrapper.retrieveHistoryDesc<MailPushEvent>(
 			mailer,
 			getBaseIndex,
@@ -411,7 +409,6 @@ export class EthereumMailerV9WrapperMailing {
 			toMessage,
 			includeToMessage,
 			limit,
-			this.getTokenAttachmentEvents.bind(this),
 		);
 	}
 

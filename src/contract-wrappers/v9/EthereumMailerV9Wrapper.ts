@@ -49,10 +49,6 @@ export class EthereumMailerV9Wrapper {
 		toMessage: IEVMMessage | null,
 		includeToMessage: boolean,
 		limit: number | null,
-		getTokenAttachmentEvents?: (
-			event: T,
-			provider: ethers.providers.Provider,
-		) => Promise<TokenAttachmentEventObject[]>,
 	): Promise<IEVMMessage[]> {
 		validateMessage(mailer, fromMessage);
 		validateMessage(mailer, toMessage);
@@ -89,10 +85,7 @@ export class EthereumMailerV9Wrapper {
 			const enrichedEvents = await this.blockchainReader.enrichEvents<EventParsed<T>>(
 				preparedEvents.map(g => ethersEventToInternalEvent(g)),
 			);
-			const tokenAttachmentEvents = getTokenAttachmentEvents
-				? await Promise.all(preparedEvents.map(e => getTokenAttachmentEvents?.(e, provider)))
-				: [];
-			const messages = enrichedEvents.map((e, i) => processEvent(e, tokenAttachmentEvents[i]));
+			const messages = enrichedEvents.map(e => processEvent(e));
 			return messages;
 		});
 	}
