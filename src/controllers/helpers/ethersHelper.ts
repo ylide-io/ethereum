@@ -3,8 +3,8 @@ import type { Block } from '@ethersproject/providers';
 import { Event, Transaction } from 'ethers';
 
 import { TypedEvent } from '@ylide/ethereum-contracts/lib/common';
-import { TokenAttachmentEvent } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
-import type { IEVMBlock, IEVMEvent, IEVMTransaction, LogInternal, TokenAttachmentEventParsed } from '../../misc/types';
+import { TokenAttachmentEvent, TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
+import type { IEVMBlock, IEVMEvent, IEVMTransaction, LogInternal } from '../../misc/types';
 
 export type EventParsed<T> = T extends TypedEvent<infer Arr, infer Obj> ? Obj : never;
 
@@ -74,12 +74,13 @@ export const ethersLogToInternalEvent = <T>(log: LogInternal, argsTransform?: (a
 	};
 };
 
-export const parseTokenAttachmentEvent = (event: TokenAttachmentEvent): TokenAttachmentEventParsed => {
+export const parseTokenAttachmentEvent = (event: TokenAttachmentEvent): TokenAttachmentEventObject => {
 	return {
 		amountOrTokenId: event.args.amountOrTokenId,
 		recipient: event.args.recipient,
 		sender: event.args.sender,
 		token: event.args.token,
 		tokenType: event.args.tokenType,
+		contentId: event.args.contentId,
 	};
 };

@@ -69,7 +69,7 @@ export interface IEVMEnrichedEvent<ParsedEvent = object> {
 export interface IEVMMeta extends IEVMEnrichedEvent {
 	contentId: Uint256;
 	index: number[];
-	tokenAttachment?: TokenAttachmentEventParsed[];
+	tokenAttachment?: TokenAttachmentEventObject[];
 }
 
 export enum EVMMailerContractType {
@@ -139,5 +139,3 @@ export type LogInternal = {
 	log: ethers.providers.Log;
 	logDescription: ethers.utils.LogDescription;
 };
-
-export type TokenAttachmentEventParsed = Omit<TokenAttachmentEventObject, 'contentId'>;

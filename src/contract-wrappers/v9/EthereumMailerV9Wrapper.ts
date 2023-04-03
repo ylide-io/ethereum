@@ -1,5 +1,6 @@
 import { YlideMailerV9, YlideMailerV9__factory } from '@ylide/ethereum-contracts';
 import { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
+import { TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
 import { ethers } from 'ethers';
 import type { EthereumBlockchainReader } from '../../controllers/helpers/EthereumBlockchainReader';
 import { EventParsed, ethersEventToInternalEvent } from '../../controllers/helpers/ethersHelper';
@@ -41,13 +42,17 @@ export class EthereumMailerV9Wrapper {
 		getFilter: (contract: YlideMailerV9) => TypedEventFilter<T>,
 		processEvent: (
 			event: IEVMEnrichedEvent<EventParsed<T>>,
-			provider: ethers.providers.Provider,
-		) => Promise<IEVMMessage>,
+			tokenAttachmentEvents?: TokenAttachmentEventObject[],
+		) => IEVMMessage,
 		fromMessage: IEVMMessage | null,
 		includeFromMessage: boolean,
 		toMessage: IEVMMessage | null,
 		includeToMessage: boolean,
 		limit: number | null,
+		getTokenAttachmentEvents?: (
+			event: T,
+			provider: ethers.providers.Provider,
+		) => Promise<TokenAttachmentEventObject[]>,
 	): Promise<IEVMMessage[]> {
 		validateMessage(mailer, fromMessage);
 		validateMessage(mailer, toMessage);
@@ -84,7 +89,10 @@ export class EthereumMailerV9Wrapper {
 			const enrichedEvents = await this.blockchainReader.enrichEvents<EventParsed<T>>(
 				preparedEvents.map(g => ethersEventToInternalEvent(g)),
 			);
-			const messages = await Promise.all(enrichedEvents.map(e => processEvent(e, provider)));
+			const tokenAttachmentEvents = getTokenAttachmentEvents
+				? await Promise.all(preparedEvents.map(e => getTokenAttachmentEvents?.(e, provider)))
+				: [];
+			const messages = enrichedEvents.map((e, i) => processEvent(e, tokenAttachmentEvents[i]));
 			return messages;
 		});
 	}

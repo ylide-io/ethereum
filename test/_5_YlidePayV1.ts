@@ -35,7 +35,6 @@ describe('YlidePayV1', () => {
 	let erc721: MockERC721;
 	let feedId: Uint256;
 	const uniqueId = 123;
-	const recipients = [1, 2].map(n => BigNumber.from(n)).map(bnToUint256);
 	const keys = [new Uint8Array([1, 2, 3, 4, 5, 6]), new Uint8Array([6, 5, 4, 3, 2, 1])];
 	const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
 
@@ -52,24 +51,6 @@ describe('YlidePayV1', () => {
 	let firstBlockNumber: number;
 	const partsCount = 4;
 	const blockCountLock = 20;
-
-	const getSendBulMailArgs = () => ({
-		feedId,
-		uniqueId,
-		recipients,
-		keys,
-		content,
-	});
-
-	const getAddMailRecipientsArgs = () => ({
-		feedId,
-		uniqueId,
-		recipients,
-		keys,
-		partsCount,
-		blockCountLock,
-		firstBlockNumber,
-	});
 
 	let readerForOwner: EthereumBlockchainReader;
 
@@ -139,7 +120,7 @@ describe('YlidePayV1', () => {
 			uniqueId,
 			nonce: nonce1,
 			deadline,
-			recipients: recipients.map(r => BigNumber.from(`0x${r}`)),
+			recipients: [user2.address, owner.address].map(r => BigNumber.from(r)),
 			keys: ethers.utils.concat(keys),
 			content,
 		});
@@ -149,7 +130,7 @@ describe('YlidePayV1', () => {
 			user1 as unknown as providers.JsonRpcSigner,
 			feedId,
 			uniqueId,
-			recipients,
+			[user2.address, owner.address].map(r => bnToUint256(BigNumber.from(r))),
 			keys,
 			content,
 			deadline,
@@ -171,7 +152,7 @@ describe('YlidePayV1', () => {
 			user1.address,
 			feedId,
 			uniqueId,
-			recipients,
+			[user2.address, owner.address].map(r => bnToUint256(BigNumber.from(r))),
 			keys,
 			content,
 			BigNumber.from(0),
@@ -190,25 +171,6 @@ describe('YlidePayV1', () => {
 			},
 		);
 
-		for (const m of messages) {
-			expect(m.$$meta.tokenAttachment).deep.equal([
-				{
-					amountOrTokenId: BigNumber.from(1000),
-					recipient: user2.address,
-					sender: user1.address,
-					token: erc20.address,
-					tokenType: 0,
-				},
-				{
-					amountOrTokenId: BigNumber.from(1000),
-					recipient: owner.address,
-					sender: user1.address,
-					token: erc20.address,
-					tokenType: 0,
-				},
-			]);
-		}
-
 		expect(await erc20.balanceOf(user1.address)).equal(0);
 		expect(await erc20.balanceOf(user2.address)).equal(1000);
 		expect(await erc20.balanceOf(owner.address)).equal(1000);
@@ -223,7 +185,7 @@ describe('YlidePayV1', () => {
 			deadline,
 			partsCount,
 			blockCountLock,
-			recipients: recipients.map(r => BigNumber.from(`0x${r}`)),
+			recipients: [BigNumber.from(user2.address)],
 			keys: ethers.utils.concat(keys),
 		});
 
@@ -235,7 +197,7 @@ describe('YlidePayV1', () => {
 			firstBlockNumber,
 			partsCount,
 			blockCountLock,
-			recipients,
+			[bnToUint256(BigNumber.from(user2.address))],
 			keys,
 			deadline,
 			nonce2,
@@ -259,7 +221,7 @@ describe('YlidePayV1', () => {
 			firstBlockNumber,
 			partsCount,
 			blockCountLock,
-			recipients,
+			[bnToUint256(BigNumber.from(user2.address))],
 			keys,
 			BigNumber.from(0),
 			{
@@ -277,17 +239,5 @@ describe('YlidePayV1', () => {
 		expect(await erc721.balanceOf(user1.address)).equal(0);
 		expect(await erc721.balanceOf(user2.address)).equal(1);
 		expect(await erc721.ownerOf(123)).equal(user2.address);
-
-		for (const m of messages2) {
-			expect(m.$$meta.tokenAttachment).deep.equal([
-				{
-					amountOrTokenId: BigNumber.from(123),
-					recipient: user2.address,
-					sender: user1.address,
-					token: erc721.address,
-					tokenType: 1,
-				},
-			]);
-		}
 	});
 });

@@ -6,8 +6,12 @@ import {
 	MailingFeedJoinedEvent,
 	MailingFeedJoinedEventObject,
 } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
-import { YlidePayV1 } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
-import type { Uint256 } from '@ylide/sdk';
+import {
+	TokenAttachmentEvent,
+	TokenAttachmentEventObject,
+	YlidePayV1,
+} from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
+import { Uint256, YlideCore, hexToUint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { BigNumber, BigNumberish, TypedDataDomain, ethers } from 'ethers';
 import {
@@ -18,14 +22,7 @@ import {
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
 import { AddMailRecipientsTypes, EVM_CONTRACT_TO_NETWORK, EVM_NAMES, SendBulkMailTypes } from '../../misc/constants';
 import { encodeEvmMsgId } from '../../misc/evmMsgId';
-import type {
-	IEVMEnrichedEvent,
-	IEVMEvent,
-	IEVMMailerContractLink,
-	IEVMMessage,
-	Payment,
-	TokenAttachmentEventParsed,
-} from '../../misc/types';
+import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage, Payment } from '../../misc/types';
 import { IEventPosition, bnToUint256 } from '../../misc/utils';
 import { EthereumPayV1Wrapper } from '../EthereumPayV1Wrapper';
 import type { EthereumMailerV9Wrapper } from './EthereumMailerV9Wrapper';
@@ -38,25 +35,11 @@ export class EthereumMailerV9WrapperMailing {
 		this.payWrapper = new EthereumPayV1Wrapper(wrapper.blockchainReader);
 	}
 
-	async processMailPushEvent(
+	processMailPushEvent(
 		mailer: IEVMMailerContractLink,
 		event: IEVMEnrichedEvent<MailPushEventObject>,
-		provider: ethers.providers.Provider,
-	): Promise<IEVMMessage> {
-		let tokenAttachment: TokenAttachmentEventParsed[] | undefined;
-
-		const tokenAttachmentAddress = event.event.parsed.tokenAttachment;
-		if (tokenAttachmentAddress !== ethers.constants.AddressZero) {
-			const contentId = event.event.parsed.contentId;
-			const pay = new ethers.Contract(
-				tokenAttachmentAddress,
-				YlidePayV1__factory.createInterface(),
-				provider,
-			) as YlidePayV1;
-			tokenAttachment = await pay
-				.queryFilter(pay.filters.TokenAttachment(contentId), event.block.hash)
-				.then(events => events.map(parseTokenAttachmentEvent));
-		}
+		tokenAttachment: TokenAttachmentEventObject[] = [],
+	): IEVMMessage {
 		return {
 			isBroadcast: false,
 			feedId: bnToUint256(event.event.parsed.feedId),
@@ -77,8 +60,8 @@ export class EthereumMailerV9WrapperMailing {
 				index: BlockNumberRingBufferIndex.decodeIndexValue(
 					bnToUint256(event.event.parsed.previousFeedEventsIndex),
 				),
-				tokenAttachment,
 				...event,
+				tokenAttachment,
 			},
 		};
 	}
@@ -208,6 +191,7 @@ export class EthereumMailerV9WrapperMailing {
 		receipt: ethers.ContractReceipt;
 		logs: ethers.utils.LogDescription[];
 		mailPushEvents: IEVMEvent<MailPushEventObject>[];
+		tokenAttachmentEvents: TokenAttachmentEventObject[];
 		messages: IEVMMessage[];
 	}> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
@@ -235,12 +219,24 @@ export class EthereumMailerV9WrapperMailing {
 		const receipt = await tx.wait();
 		const {
 			logs,
-			byName: { MailPush, TokenAttachment },
+			byName: { MailPush },
 		} = parseOutLogs(contract, receipt.logs);
+
+		const tokenAttachmentEvents: TokenAttachmentEventObject[] = [];
+		if (payments && signatureArgs && mailer.pay) {
+			const {
+				byName: { TokenAttachment },
+			} = parseOutLogs(this.payWrapper.cache.getContract(mailer.address, signer), receipt.logs);
+			tokenAttachmentEvents.push(
+				...TokenAttachment.map(e =>
+					parseTokenAttachmentEvent(e.logDescription as unknown as TokenAttachmentEvent),
+				),
+			);
+		}
 		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
-		const messages = await Promise.all(enriched.map(e => this.processMailPushEvent(mailer, e, signer.provider!)));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
+		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
+		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, tokenAttachmentEvents, messages };
 	}
 
 	async addMailRecipients(
@@ -262,6 +258,7 @@ export class EthereumMailerV9WrapperMailing {
 		receipt: ethers.ContractReceipt;
 		logs: ethers.utils.LogDescription[];
 		mailPushEvents: IEVMEvent<MailPushEventObject>[];
+		tokenAttachmentEvents: TokenAttachmentEventObject[];
 		messages: IEVMMessage[];
 	}> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
@@ -301,10 +298,21 @@ export class EthereumMailerV9WrapperMailing {
 			logs,
 			byName: { MailPush },
 		} = parseOutLogs(contract, receipt.logs);
+		const tokenAttachmentEvents: TokenAttachmentEventObject[] = [];
+		if (payments && signatureArgs && mailer.pay) {
+			const {
+				byName: { TokenAttachment },
+			} = parseOutLogs(this.payWrapper.cache.getContract(mailer.address, signer), receipt.logs);
+			tokenAttachmentEvents.push(
+				...TokenAttachment.map(e =>
+					parseTokenAttachmentEvent(e.logDescription as unknown as TokenAttachmentEvent),
+				),
+			);
+		}
 		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
-		const messages = await Promise.all(enriched.map(e => this.processMailPushEvent(mailer, e, signer.provider!)));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
+		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
+		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, tokenAttachmentEvents, messages };
 	}
 
 	async getMailPushEvent(
@@ -324,8 +332,43 @@ export class EthereumMailerV9WrapperMailing {
 			const [enriched] = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>([
 				ethersEventToInternalEvent(event),
 			]);
-			return this.processMailPushEvent(mailer, enriched, contract.provider);
+			const tokenAttachmentEvents = await this.getTokenAttachmentEvents(event, provider);
+			return this.processMailPushEvent(mailer, enriched, tokenAttachmentEvents);
 		});
+	}
+
+	private addressToUint256(address: string): Uint256 {
+		const lowerAddress = address.toLowerCase();
+		const cleanHexAddress = lowerAddress.startsWith('0x') ? lowerAddress.substring(2) : lowerAddress;
+		return hexToUint256(''.padStart(24, '0') + cleanHexAddress);
+	}
+
+	private isSender(event: MailPushEvent) {
+		return YlideCore.getSentAddress(this.addressToUint256(event.args.sender)) === event.args.sender;
+	}
+
+	async getTokenAttachmentEvents(event: MailPushEvent, provider: ethers.providers.Provider) {
+		const tokenAttachmentAddress = event.args.tokenAttachment;
+
+		if (tokenAttachmentAddress !== ethers.constants.AddressZero) {
+			const pay = new ethers.Contract(
+				tokenAttachmentAddress,
+				YlidePayV1__factory.createInterface(),
+				provider,
+			) as YlidePayV1;
+
+			return pay
+				.queryFilter(
+					pay.filters.TokenAttachment(
+						event.args.contentId,
+						null,
+						this.isSender(event) ? null : event.args.recipient.toHexString(),
+					),
+					event.blockHash,
+				)
+				.then(r => r.map(parseTokenAttachmentEvent));
+		}
+		return [];
 	}
 
 	getMessageRecipients(mailer: IEVMMailerContractLink, message: IEVMMessage) {
@@ -357,8 +400,10 @@ export class EthereumMailerV9WrapperMailing {
 		const getBaseIndex: () => Promise<number[]> = async () =>
 			this.getRecipientToMailIndex(mailer, feedId, recipient);
 		const getFilter = (contract: YlideMailerV9) => contract.filters.MailPush(`0x${recipient}`, `0x${feedId}`);
-		const processEvent = (event: IEVMEnrichedEvent<MailPushEventObject>, provider: ethers.providers.Provider) =>
-			this.processMailPushEvent(mailer, event, provider);
+		const processEvent = (
+			event: IEVMEnrichedEvent<MailPushEventObject>,
+			tokenAttachmentEvents: TokenAttachmentEventObject[] = [],
+		) => this.processMailPushEvent(mailer, event, tokenAttachmentEvents);
 		return await this.wrapper.retrieveHistoryDesc<MailPushEvent>(
 			mailer,
 			getBaseIndex,
@@ -369,6 +414,7 @@ export class EthereumMailerV9WrapperMailing {
 			toMessage,
 			includeToMessage,
 			limit,
+			this.getTokenAttachmentEvents.bind(this),
 		);
 	}
 

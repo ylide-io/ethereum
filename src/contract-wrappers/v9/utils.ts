@@ -1,10 +1,9 @@
-import { YlideMailerV9 } from '@ylide/ethereum-contracts';
 import { TypedEvent } from '@ylide/ethereum-contracts/lib/common';
 import { Uint256 } from '@ylide/sdk';
-import { ethers } from 'ethers';
-import { decodeContentId, LogInternal } from '../../misc';
+import { Contract, ethers } from 'ethers';
+import { LogInternal, decodeContentId } from '../../misc';
 
-export const parseOutLogs = (contract: YlideMailerV9, rawLogs: ethers.providers.Log[]) => {
+export const parseOutLogs = <T extends Contract>(contract: T, rawLogs: ethers.providers.Log[]) => {
 	const logs = rawLogs
 		.map(l => {
 			try {
