@@ -337,14 +337,11 @@ export class EthereumMailerV9WrapperMailing {
 		});
 	}
 
-	private addressToUint256(address: string): Uint256 {
-		const lowerAddress = address.toLowerCase();
-		const cleanHexAddress = lowerAddress.startsWith('0x') ? lowerAddress.substring(2) : lowerAddress;
-		return hexToUint256(''.padStart(24, '0') + cleanHexAddress);
-	}
-
-	private isSender(event: MailPushEvent) {
-		return YlideCore.getSentAddress(this.addressToUint256(event.args.sender)) === event.args.sender;
+	private isSentSender(event: MailPushEvent) {
+		return (
+			YlideCore.getSentAddress(bnToUint256(BigNumber.from(event.args.sender))) ===
+			bnToUint256(event.args.recipient)
+		);
 	}
 
 	async getTokenAttachmentEvents(event: MailPushEvent, provider: ethers.providers.Provider) {
@@ -362,7 +359,7 @@ export class EthereumMailerV9WrapperMailing {
 					pay.filters.TokenAttachment(
 						event.args.contentId,
 						null,
-						this.isSender(event) ? null : event.args.recipient.toHexString(),
+						this.isSentSender(event) ? null : event.args.recipient.toHexString(),
 					),
 					event.blockHash,
 				)

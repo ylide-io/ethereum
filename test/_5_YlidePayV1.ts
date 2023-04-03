@@ -10,7 +10,7 @@ import {
 	YlidePayV1,
 	YlidePayV1__factory,
 } from '@ylide/ethereum-contracts';
-import { Uint256 } from '@ylide/sdk';
+import { Uint256, YlideCore } from '@ylide/sdk';
 import { expect } from 'chai';
 import { BigNumber, providers } from 'ethers';
 import { ethers, network } from 'hardhat';
@@ -22,6 +22,7 @@ import {
 	IEVMMailerContractLink,
 	SendBulkMailTypes,
 	bnToUint256,
+	decodeEvmMsgId,
 } from '../src';
 import { EthereumMailerV9Wrapper } from '../src/contract-wrappers/v9';
 
@@ -120,8 +121,11 @@ describe('YlidePayV1', () => {
 			uniqueId,
 			nonce: nonce1,
 			deadline,
-			recipients: [user2.address, owner.address].map(r => BigNumber.from(r)),
-			keys: ethers.utils.concat(keys),
+			recipients: [
+				...[user2.address, owner.address].map(r => BigNumber.from(r)),
+				BigNumber.from(`0x${YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address)))}`),
+			],
+			keys: ethers.utils.concat([...keys, new Uint8Array(1)]),
 			content,
 		});
 
@@ -130,8 +134,12 @@ describe('YlidePayV1', () => {
 			user1 as unknown as providers.JsonRpcSigner,
 			feedId,
 			uniqueId,
-			[user2.address, owner.address].map(r => bnToUint256(BigNumber.from(r))),
-			keys,
+			[
+				...[user2.address, owner.address].map(r => bnToUint256(BigNumber.from(r))),
+				YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
+			],
+
+			[...keys, new Uint8Array(1)],
 			content,
 			deadline,
 			nonce1.toNumber(),
@@ -152,8 +160,11 @@ describe('YlidePayV1', () => {
 			user1.address,
 			feedId,
 			uniqueId,
-			[user2.address, owner.address].map(r => bnToUint256(BigNumber.from(r))),
-			keys,
+			[
+				...[user2.address, owner.address].map(r => bnToUint256(BigNumber.from(r))),
+				YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
+			],
+			[...keys, new Uint8Array(1)],
 			content,
 			BigNumber.from(0),
 			{
@@ -170,6 +181,27 @@ describe('YlidePayV1', () => {
 				],
 			},
 		);
+
+		for (const m of messages) {
+			const message1 = decodeEvmMsgId(m.msgId);
+			const attachment = await ownerMailerV9Wrapper.mailing.getMailPushEvent(
+				mailerDesc,
+				message1.blockNumber,
+				message1.txIndex,
+				message1.logIndex,
+			);
+			if (m.recipientAddress === YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address)))) {
+				expect(attachment?.$$meta.tokenAttachment?.length).equal(2);
+				for (let i = 0; i < 2; i++) {
+					expect(attachment?.$$meta.tokenAttachment?.[i].sender).equal(user1.address);
+				}
+			} else {
+				expect(attachment?.$$meta.tokenAttachment?.length).equal(1);
+				expect(attachment?.recipientAddress).equal(
+					bnToUint256(BigNumber.from(attachment?.$$meta.tokenAttachment?.[0]?.recipient)).toLowerCase(),
+				);
+			}
+		}
 
 		expect(await erc20.balanceOf(user1.address)).equal(0);
 		expect(await erc20.balanceOf(user2.address)).equal(1000);
