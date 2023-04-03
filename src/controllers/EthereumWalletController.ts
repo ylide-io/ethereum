@@ -594,7 +594,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	async signBulkMail(
 		me: IGenericAccount,
-		signer: ethers.VoidSigner,
+		signer: ethers.providers.JsonRpcSigner,
 		feedId: Uint256,
 		uniqueId: number,
 		recipients: Uint256[],
@@ -629,7 +629,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	async signAddMailRecipients(
 		me: IGenericAccount,
-		signer: ethers.VoidSigner,
+		signer: ethers.providers.JsonRpcSigner,
 		feedId: Uint256,
 		uniqueId: number,
 		firstBlockNumber: number,

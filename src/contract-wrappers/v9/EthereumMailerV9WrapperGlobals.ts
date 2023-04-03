@@ -107,4 +107,17 @@ export class EthereumMailerV9WrapperGlobals {
 			return terminationBlock.toNumber();
 		});
 	}
+
+	async setIsYlideTokenAttachment(
+		mailer: IEVMMailerContractLink,
+		signer: ethers.Signer,
+		from: string,
+		contractAddresses: string[],
+		isSet: boolean[],
+	) {
+		const contract = this.wrapper.cache.getContract(mailer.address, signer);
+		const tx = await contract.setIsYlideTokenAttachment(contractAddresses, isSet, { from });
+		const receipt = await tx.wait();
+		return { tx, receipt };
+	}
 }

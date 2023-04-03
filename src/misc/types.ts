@@ -69,7 +69,7 @@ export interface IEVMEnrichedEvent<ParsedEvent = object> {
 export interface IEVMMeta extends IEVMEnrichedEvent {
 	contentId: Uint256;
 	index: number[];
-	tokenAttachment?: TokenAttachmentEventParsed;
+	tokenAttachment?: TokenAttachmentEventParsed[];
 }
 
 export enum EVMMailerContractType {

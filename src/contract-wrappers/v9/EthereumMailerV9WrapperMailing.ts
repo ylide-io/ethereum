@@ -6,10 +6,10 @@ import {
 	MailingFeedJoinedEvent,
 	MailingFeedJoinedEventObject,
 } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
-import { TokenAttachmentEventObject, YlidePayV1 } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
+import { YlidePayV1 } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
 import type { Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
-import { BigNumber, TypedDataDomain, ethers } from 'ethers';
+import { BigNumber, BigNumberish, TypedDataDomain, ethers } from 'ethers';
 import {
 	ethersEventToInternalEvent,
 	ethersLogToInternalEvent,
@@ -41,8 +41,9 @@ export class EthereumMailerV9WrapperMailing {
 	async processMailPushEvent(
 		mailer: IEVMMailerContractLink,
 		event: IEVMEnrichedEvent<MailPushEventObject>,
+		provider: ethers.providers.Provider,
 	): Promise<IEVMMessage> {
-		let tokenAttachment: TokenAttachmentEventParsed | undefined;
+		let tokenAttachment: TokenAttachmentEventParsed[] | undefined;
 
 		const tokenAttachmentAddress = event.event.parsed.tokenAttachment;
 		if (tokenAttachmentAddress !== ethers.constants.AddressZero) {
@@ -50,10 +51,11 @@ export class EthereumMailerV9WrapperMailing {
 			const pay = new ethers.Contract(
 				tokenAttachmentAddress,
 				YlidePayV1__factory.createInterface(),
+				provider,
 			) as YlidePayV1;
 			tokenAttachment = await pay
 				.queryFilter(pay.filters.TokenAttachment(contentId), event.block.hash)
-				.then(events => parseTokenAttachmentEvent(events[0]));
+				.then(events => events.map(parseTokenAttachmentEvent));
 		}
 		return {
 			isBroadcast: false,
@@ -215,9 +217,9 @@ export class EthereumMailerV9WrapperMailing {
 				mailer.pay,
 				signer,
 				{
-					feedId,
+					feedId: `0x${feedId}`,
 					uniqueId,
-					recipients,
+					recipients: recipients.map(r => `0x${r}`),
 					keys,
 					content,
 				},
@@ -237,7 +239,7 @@ export class EthereumMailerV9WrapperMailing {
 		} = parseOutLogs(contract, receipt.logs);
 		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
-		const messages = await Promise.all(enriched.map(e => this.processMailPushEvent(mailer, e)));
+		const messages = await Promise.all(enriched.map(e => this.processMailPushEvent(mailer, e, signer.provider!)));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
@@ -269,12 +271,12 @@ export class EthereumMailerV9WrapperMailing {
 				mailer.pay,
 				signer,
 				{
-					feedId,
+					feedId: `0x${feedId}`,
 					uniqueId,
 					firstBlockNumber,
 					partsCount,
 					blockCountLock,
-					recipients,
+					recipients: recipients.map(r => `0x${r}`),
 					keys,
 				},
 				signatureArgs,
@@ -301,7 +303,7 @@ export class EthereumMailerV9WrapperMailing {
 		} = parseOutLogs(contract, receipt.logs);
 		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
-		const messages = await Promise.all(enriched.map(e => this.processMailPushEvent(mailer, e)));
+		const messages = await Promise.all(enriched.map(e => this.processMailPushEvent(mailer, e, signer.provider!)));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
@@ -322,7 +324,7 @@ export class EthereumMailerV9WrapperMailing {
 			const [enriched] = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>([
 				ethersEventToInternalEvent(event),
 			]);
-			return this.processMailPushEvent(mailer, enriched);
+			return this.processMailPushEvent(mailer, enriched, contract.provider);
 		});
 	}
 
@@ -355,8 +357,8 @@ export class EthereumMailerV9WrapperMailing {
 		const getBaseIndex: () => Promise<number[]> = async () =>
 			this.getRecipientToMailIndex(mailer, feedId, recipient);
 		const getFilter = (contract: YlideMailerV9) => contract.filters.MailPush(`0x${recipient}`, `0x${feedId}`);
-		const processEvent = (event: IEVMEnrichedEvent<MailPushEventObject>) =>
-			this.processMailPushEvent(mailer, event);
+		const processEvent = (event: IEVMEnrichedEvent<MailPushEventObject>, provider: ethers.providers.Provider) =>
+			this.processMailPushEvent(mailer, event, provider);
 		return await this.wrapper.retrieveHistoryDesc<MailPushEvent>(
 			mailer,
 			getBaseIndex,
@@ -444,22 +446,22 @@ export class EthereumMailerV9WrapperMailing {
 
 	async signBulkMail(
 		mailer: IEVMMailerContractLink,
-		signer: ethers.VoidSigner,
+		signer: ethers.providers.JsonRpcSigner,
 		feedId: Uint256,
 		uniqueId: number,
 		recipients: Uint256[],
 		keys: Uint8Array[],
 		content: Uint8Array,
-		deadline: number,
-		nonce: number,
+		deadline: BigNumberish,
+		nonce: BigNumberish,
 		chainId: number,
 	) {
 		return signer._signTypedData(this.getDomain(mailer, chainId), SendBulkMailTypes, {
-			feedId,
+			feedId: BigNumber.from(`0x${feedId}`),
 			uniqueId,
 			nonce,
 			deadline,
-			recipients,
+			recipients: recipients.map(r => BigNumber.from(`0x${r}`)),
 			keys: ethers.utils.concat(keys),
 			content,
 		});
@@ -467,7 +469,7 @@ export class EthereumMailerV9WrapperMailing {
 
 	async signAddMailRecipients(
 		mailer: IEVMMailerContractLink,
-		signer: ethers.VoidSigner,
+		signer: ethers.providers.JsonRpcSigner,
 		feedId: Uint256,
 		uniqueId: number,
 		firstBlockNumber: number,
@@ -475,19 +477,19 @@ export class EthereumMailerV9WrapperMailing {
 		blockCountLock: number,
 		recipients: Uint256[],
 		keys: Uint8Array[],
-		deadline: number,
-		nonce: number,
+		deadline: BigNumberish,
+		nonce: BigNumberish,
 		chainId: number,
 	) {
 		return signer._signTypedData(this.getDomain(mailer, chainId), AddMailRecipientsTypes, {
-			feedId,
+			feedId: BigNumber.from(`0x${feedId}`),
 			uniqueId,
 			firstBlockNumber,
 			nonce,
 			deadline,
 			partsCount,
 			blockCountLock,
-			recipients,
+			recipients: recipients.map(r => BigNumber.from(`0x${r}`)),
 			keys: ethers.utils.concat(keys),
 		});
 	}

@@ -13,9 +13,10 @@
 	"include": ["./src"],
 	"files": [
 		"./hardhat.config.ts",
-		"tests/_1_RegistryV5.ts",
-		"tests/_2_RegistryV6.ts",
-		"tests/_3_MailerV8.ts",
-		"tests/_4_MailerV9.ts"
+		"test/_1_RegistryV5.ts",
+		"test/_2_RegistryV6.ts",
+		"test/_3_MailerV8.ts",
+		"test/_4_MailerV9.ts",
+		"test/_5_YlidePayV1.ts"
 	]
 }

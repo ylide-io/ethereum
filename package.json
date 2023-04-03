@@ -17,7 +17,7 @@
 		"src/**/*"
 	],
 	"scripts": {
-		"test": "mocha -r ts-node/register 'tests/**.ts'",
+		"test": "mocha -r ts-node/register 'test/**.ts'",
 		"build": "rimraf ./lib && tsc --project build-tsconfig.json",
 		"start": "ts-node ./src/index.ts",
 		"format": "prettier --write \"src/**/*.ts\"",
