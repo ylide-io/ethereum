@@ -41,6 +41,7 @@ import { EVM_CONTRACTS } from '../misc/contractConstants';
 import { EthereumNameService } from './EthereumNameService';
 import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9';
 import { EVMMailerV9Source } from '../messages-sources/EVMMailerV9Source';
+import { ethers } from 'ethers';
 
 export class EthereumBlockchainController extends AbstractBlockchainController {
 	readonly blockchainReader: EthereumBlockchainReader;
@@ -414,7 +415,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		if (!mailer) {
 			throw new Error('This message does not belongs to this blockchain controller');
 		}
-		if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+		if (mailer.wrapper instanceof EthereumMailerV8Wrapper || mailer.wrapper instanceof EthereumMailerV9Wrapper) {
 			const result = await mailer.wrapper.mailing.getMessageRecipients(mailer.link, msg);
 			if (filterOutSent) {
 				const sender = YlideCore.getSentAddress(this.addressToUint256(result.sender));
@@ -424,6 +425,28 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				};
 			}
 			return result;
+		}
+		throw new Error('Method not implemented.');
+	}
+
+	async getTokenAttachments(msg: IEVMMessage) {
+		const decodedMsgId = decodeEvmMsgId(msg.msgId);
+		const mailer = this.mailers.find(m => m.link.id === decodedMsgId.contractId);
+		if (!mailer) {
+			throw new Error('This message does not belongs to this blockchain controller');
+		}
+		if (mailer.wrapper instanceof EthereumMailerV9Wrapper) {
+			const tokenAttachmentAddress = msg.$$meta.tokenAttachment;
+			if (!tokenAttachmentAddress || tokenAttachmentAddress === ethers.constants.AddressZero) {
+				throw new Error('Message has no token attachment');
+			}
+			const tokenAttachmentLink = EVM_CONTRACTS[this.network].payContracts?.find(
+				c => c.address === tokenAttachmentAddress,
+			);
+			if (!tokenAttachmentLink) {
+				throw new Error('Message has no token attachment');
+			}
+			return mailer.wrapper.mailing.getTokenAttachments(tokenAttachmentLink, msg);
 		}
 		throw new Error('Method not implemented.');
 	}

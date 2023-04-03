@@ -69,7 +69,7 @@ export interface IEVMEnrichedEvent<ParsedEvent = object> {
 export interface IEVMMeta extends IEVMEnrichedEvent {
 	contentId: Uint256;
 	index: number[];
-	tokenAttachment?: TokenAttachmentEventObject[];
+	tokenAttachment?: string;
 }
 
 export enum EVMMailerContractType {
@@ -113,6 +113,7 @@ export interface IEVMYlidePayContractLink extends IEVMBaseContractLink {
 export interface IEVMNetworkContracts {
 	mailerContracts: IEVMMailerContractLink[];
 	registryContracts: IEVMRegistryContractLink[];
+	payContracts?: IEVMYlidePayContractLink[];
 
 	currentRegistryId: number;
 	currentMailerId: number;

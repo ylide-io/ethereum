@@ -11,7 +11,7 @@ import {
 	TokenAttachmentEventObject,
 	YlidePayV1,
 } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
-import { Uint256, YlideCore, hexToUint256 } from '@ylide/sdk';
+import { Uint256, YlideCore } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { BigNumber, BigNumberish, TypedDataDomain, ethers } from 'ethers';
 import {
@@ -22,7 +22,14 @@ import {
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
 import { AddMailRecipientsTypes, EVM_CONTRACT_TO_NETWORK, EVM_NAMES, SendBulkMailTypes } from '../../misc/constants';
 import { encodeEvmMsgId } from '../../misc/evmMsgId';
-import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage, Payment } from '../../misc/types';
+import type {
+	IEVMEnrichedEvent,
+	IEVMEvent,
+	IEVMMailerContractLink,
+	IEVMMessage,
+	IEVMYlidePayContractLink,
+	Payment,
+} from '../../misc/types';
 import { IEventPosition, bnToUint256 } from '../../misc/utils';
 import { EthereumPayV1Wrapper } from '../EthereumPayV1Wrapper';
 import type { EthereumMailerV9Wrapper } from './EthereumMailerV9Wrapper';
@@ -35,11 +42,7 @@ export class EthereumMailerV9WrapperMailing {
 		this.payWrapper = new EthereumPayV1Wrapper(wrapper.blockchainReader);
 	}
 
-	processMailPushEvent(
-		mailer: IEVMMailerContractLink,
-		event: IEVMEnrichedEvent<MailPushEventObject>,
-		tokenAttachment: TokenAttachmentEventObject[] = [],
-	): IEVMMessage {
+	processMailPushEvent(mailer: IEVMMailerContractLink, event: IEVMEnrichedEvent<MailPushEventObject>): IEVMMessage {
 		return {
 			isBroadcast: false,
 			feedId: bnToUint256(event.event.parsed.feedId),
@@ -61,7 +64,6 @@ export class EthereumMailerV9WrapperMailing {
 					bnToUint256(event.event.parsed.previousFeedEventsIndex),
 				),
 				...event,
-				tokenAttachment,
 			},
 		};
 	}
@@ -332,40 +334,8 @@ export class EthereumMailerV9WrapperMailing {
 			const [enriched] = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>([
 				ethersEventToInternalEvent(event),
 			]);
-			const tokenAttachmentEvents = await this.getTokenAttachmentEvents(event, provider);
-			return this.processMailPushEvent(mailer, enriched, tokenAttachmentEvents);
+			return this.processMailPushEvent(mailer, enriched);
 		});
-	}
-
-	private isSentSender(event: MailPushEvent) {
-		return (
-			YlideCore.getSentAddress(bnToUint256(BigNumber.from(event.args.sender))) ===
-			bnToUint256(event.args.recipient)
-		);
-	}
-
-	async getTokenAttachmentEvents(event: MailPushEvent, provider: ethers.providers.Provider) {
-		const tokenAttachmentAddress = event.args.tokenAttachment;
-
-		if (tokenAttachmentAddress !== ethers.constants.AddressZero) {
-			const pay = new ethers.Contract(
-				tokenAttachmentAddress,
-				YlidePayV1__factory.createInterface(),
-				provider,
-			) as YlidePayV1;
-
-			return pay
-				.queryFilter(
-					pay.filters.TokenAttachment(
-						event.args.contentId,
-						null,
-						this.isSentSender(event) ? null : event.args.recipient.toHexString(),
-					),
-					event.blockHash,
-				)
-				.then(r => r.map(parseTokenAttachmentEvent));
-		}
-		return [];
 	}
 
 	getMessageRecipients(mailer: IEVMMailerContractLink, message: IEVMMessage) {
@@ -382,6 +352,28 @@ export class EthereumMailerV9WrapperMailing {
 				recipients: events.flatMap(e => e.args.recipients.map(bnToUint256)),
 			};
 		});
+	}
+
+	getTokenAttachments(payLink: IEVMYlidePayContractLink, message: IEVMMessage) {
+		return this.payWrapper.cache.contractOperation(payLink, async (contract, _, blockLimit) => {
+			const events = await getMultipleEvents<TokenAttachmentEvent>(
+				contract,
+				contract.filters.TokenAttachment(
+					'0x' + message.$$meta.contentId,
+					null,
+					this.isSentSender(message.senderAddress, message.recipientAddress)
+						? null
+						: BigNumber.from(`0x${message.recipientAddress}`).toHexString(),
+				),
+				blockLimit,
+				message.$$meta.contentId,
+			);
+			return events.map(e => parseTokenAttachmentEvent(e));
+		});
+	}
+
+	private isSentSender(sender: string, recipient: Uint256) {
+		return YlideCore.getSentAddress(bnToUint256(BigNumber.from(sender))) === recipient;
 	}
 
 	async retrieveMailHistoryDesc(

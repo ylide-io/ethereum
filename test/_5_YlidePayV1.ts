@@ -183,24 +183,22 @@ describe('YlidePayV1', () => {
 		);
 
 		for (const m of messages) {
-			const message1 = decodeEvmMsgId(m.msgId);
-			const attachment = await ownerMailerV9Wrapper.mailing.getMailPushEvent(
-				mailerDesc,
-				message1.blockNumber,
-				message1.txIndex,
-				message1.logIndex,
+			const attachments = await ownerMailerV9Wrapper.mailing.getTokenAttachments(
+				{
+					id: 1,
+					address: ylidePay.address,
+					verified: false,
+					type: EVMYlidePayContractType.EVMYlidePayV1,
+					creationBlock: 2,
+				},
+				m,
 			);
 			if (m.recipientAddress === YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address)))) {
-				expect(attachment?.$$meta.tokenAttachment?.length).equal(2);
-				for (let i = 0; i < 2; i++) {
-					expect(attachment?.$$meta.tokenAttachment?.[i].sender).equal(user1.address);
-				}
+				expect(attachments.length).equal(2);
 			} else {
-				expect(attachment?.$$meta.tokenAttachment?.length).equal(1);
-				expect(attachment?.recipientAddress).equal(
-					bnToUint256(BigNumber.from(attachment?.$$meta.tokenAttachment?.[0]?.recipient)).toLowerCase(),
-				);
+				expect(attachments.length).equal(1);
 			}
+			attachments.forEach(a => expect(a.sender).equal(user1.address));
 		}
 
 		expect(await erc20.balanceOf(user1.address)).equal(0);
@@ -217,7 +215,10 @@ describe('YlidePayV1', () => {
 			deadline,
 			partsCount,
 			blockCountLock,
-			recipients: [BigNumber.from(user2.address)],
+			recipients: [
+				BigNumber.from(user2.address),
+				BigNumber.from(`0x${YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address)))}`),
+			],
 			keys: ethers.utils.concat(keys),
 		});
 
@@ -229,7 +230,10 @@ describe('YlidePayV1', () => {
 			firstBlockNumber,
 			partsCount,
 			blockCountLock,
-			[bnToUint256(BigNumber.from(user2.address))],
+			[
+				bnToUint256(BigNumber.from(user2.address)),
+				YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
+			],
 			keys,
 			deadline,
 			nonce2,
@@ -253,7 +257,10 @@ describe('YlidePayV1', () => {
 			firstBlockNumber,
 			partsCount,
 			blockCountLock,
-			[bnToUint256(BigNumber.from(user2.address))],
+			[
+				bnToUint256(BigNumber.from(user2.address)),
+				YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
+			],
 			keys,
 			BigNumber.from(0),
 			{
