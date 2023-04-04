@@ -17,10 +17,16 @@ import {
 	Uint256,
 	YlideCore,
 } from '@ylide/sdk';
-import { EVMMailerContractType, EVMNetwork, EVMRegistryContractType } from '../misc/types';
 import { EVM_CHAINS, EVM_CONTRACT_TO_NETWORK, EVM_ENS, EVM_NAMES, EVM_RPCS } from '../misc/constants';
 import { decodeEvmMsgId } from '../misc/evmMsgId';
 import type { IEVMMailerContractLink, IEVMMessage, IEVMRegistryContractLink } from '../misc/types';
+import {
+	EVMMailerContractType,
+	EVMNetwork,
+	EVMRegistryContractType,
+	TokenAttachmentType,
+	YlideTokenAttachment,
+} from '../misc/types';
 
 import { EthereumBlockchainReader, IRPCDescriptor } from './helpers/EthereumBlockchainReader';
 import { EthereumContentReader } from './helpers/EthereumContentReader';
@@ -34,14 +40,14 @@ import { EthereumMailerV6Wrapper } from '../contract-wrappers/EthereumMailerV6Wr
 import { EthereumMailerV7Wrapper } from '../contract-wrappers/EthereumMailerV7Wrapper';
 import { EthereumMailerV8Wrapper } from '../contract-wrappers/v8/EthereumMailerV8Wrapper';
 
+import { ethers } from 'ethers';
+import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9';
 import { EVMMailerV6Source } from '../messages-sources/EVMMailerV6Source';
 import { EVMMailerV7Source } from '../messages-sources/EVMMailerV7Source';
 import { EVMMailerV8Source } from '../messages-sources/EVMMailerV8Source';
+import { EVMMailerV9Source } from '../messages-sources/EVMMailerV9Source';
 import { EVM_CONTRACTS } from '../misc/contractConstants';
 import { EthereumNameService } from './EthereumNameService';
-import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9';
-import { EVMMailerV9Source } from '../messages-sources/EVMMailerV9Source';
-import { ethers } from 'ethers';
 
 export class EthereumBlockchainController extends AbstractBlockchainController {
 	readonly blockchainReader: EthereumBlockchainReader;
@@ -429,7 +435,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		throw new Error('Method not implemented.');
 	}
 
-	async getTokenAttachments(msg: IEVMMessage) {
+	async getTokenAttachments(msg: IEVMMessage): Promise<YlideTokenAttachment> {
 		const decodedMsgId = decodeEvmMsgId(msg.msgId);
 		const mailer = this.mailers.find(m => m.link.id === decodedMsgId.contractId);
 		if (!mailer) {
@@ -446,7 +452,11 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			if (!tokenAttachmentLink) {
 				throw new Error('Message has no token attachment');
 			}
-			return mailer.wrapper.mailing.getTokenAttachments(tokenAttachmentLink, msg);
+			const attachments = await mailer.wrapper.mailing.getTokenAttachments(tokenAttachmentLink, msg);
+			return {
+				kind: TokenAttachmentType.Pay,
+				attachments,
+			};
 		}
 		throw new Error('Method not implemented.');
 	}

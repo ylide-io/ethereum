@@ -1,4 +1,4 @@
-import { IYlideMailer, YlideMailerV9, YlidePayV1__factory } from '@ylide/ethereum-contracts';
+import { IYlideMailer, YlideMailerV9 } from '@ylide/ethereum-contracts';
 import {
 	ContentRecipientsEvent,
 	MailPushEvent,
@@ -6,11 +6,7 @@ import {
 	MailingFeedJoinedEvent,
 	MailingFeedJoinedEventObject,
 } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
-import {
-	TokenAttachmentEvent,
-	TokenAttachmentEventObject,
-	YlidePayV1,
-} from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
+import { TokenAttachmentEvent, TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
 import { Uint256, YlideCore } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { BigNumber, BigNumberish, TypedDataDomain, ethers } from 'ethers';
@@ -22,7 +18,7 @@ import {
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
 import { AddMailRecipientsTypes, EVM_CONTRACT_TO_NETWORK, EVM_NAMES, SendBulkMailTypes } from '../../misc/constants';
 import { encodeEvmMsgId } from '../../misc/evmMsgId';
-import type {
+import {
 	IEVMEnrichedEvent,
 	IEVMEvent,
 	IEVMMailerContractLink,
@@ -354,7 +350,10 @@ export class EthereumMailerV9WrapperMailing {
 		});
 	}
 
-	getTokenAttachments(payLink: IEVMYlidePayContractLink, message: IEVMMessage) {
+	getTokenAttachments(
+		payLink: IEVMYlidePayContractLink,
+		message: IEVMMessage,
+	): Promise<TokenAttachmentEventObject[]> {
 		return this.payWrapper.cache.contractOperation(payLink, async (contract, _, blockLimit) => {
 			const events = await getMultipleEvents<TokenAttachmentEvent>(
 				contract,

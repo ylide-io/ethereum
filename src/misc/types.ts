@@ -72,6 +72,24 @@ export interface IEVMMeta extends IEVMEnrichedEvent {
 	tokenAttachment?: string;
 }
 
+export enum TokenAttachmentType {
+	Pay,
+	Stake,
+	StreamSablier,
+}
+
+export type Pay = {
+	kind: TokenAttachmentType.Pay;
+	attachments: TokenAttachmentEventObject[];
+};
+
+export type Stake = {
+	kind: TokenAttachmentType.Stake;
+	attachments: TokenAttachmentEventObject[];
+};
+
+export type YlideTokenAttachment = Pay | Stake;
+
 export enum EVMMailerContractType {
 	EVMMailerV6 = 'EVMMailerV6',
 	EVMMailerV7 = 'EVMMailerV7',
