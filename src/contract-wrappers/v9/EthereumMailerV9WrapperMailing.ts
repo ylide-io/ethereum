@@ -19,6 +19,7 @@ import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRi
 import { AddMailRecipientsTypes, EVM_CONTRACT_TO_NETWORK, EVM_NAMES, SendBulkMailTypes } from '../../misc/constants';
 import { encodeEvmMsgId } from '../../misc/evmMsgId';
 import {
+	GenerateSignatureCallback,
 	IEVMEnrichedEvent,
 	IEVMEvent,
 	IEVMMailerContractLink,
@@ -183,7 +184,7 @@ export class EthereumMailerV9WrapperMailing {
 		keys: Uint8Array[],
 		content: Uint8Array,
 		value: ethers.BigNumber,
-		signatureArgs?: IYlideMailer.SignatureArgsStruct,
+		generateSignature?: GenerateSignatureCallback,
 		payments?: YlidePayment,
 	): Promise<{
 		tx: ethers.ContractTransaction;
@@ -195,7 +196,8 @@ export class EthereumMailerV9WrapperMailing {
 	}> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
 		let tx: ethers.ContractTransaction = {} as ethers.ContractTransaction;
-		if (signatureArgs && mailer.pay && payments?.kind === TokenAttachmentContractType.Pay) {
+		if (generateSignature && mailer.pay && payments?.kind === TokenAttachmentContractType.Pay) {
+			const signatureArgs = await generateSignature(uniqueId);
 			tx = await this.payWrapper.sendBulkMailWithToken(
 				mailer.pay,
 				signer,
@@ -206,6 +208,8 @@ export class EthereumMailerV9WrapperMailing {
 					keys,
 					content,
 				},
+				from,
+				value,
 				signatureArgs,
 				payments.args,
 			);
@@ -222,7 +226,7 @@ export class EthereumMailerV9WrapperMailing {
 		} = parseOutLogs(contract, receipt.logs);
 
 		const tokenAttachmentEvents: TokenAttachmentEventObject[] = [];
-		if (payments && signatureArgs && mailer.pay) {
+		if (payments && generateSignature && mailer.pay) {
 			const {
 				byName: { TokenAttachment },
 			} = parseOutLogs(this.payWrapper.cache.getContract(mailer.address, signer), receipt.logs);
@@ -250,7 +254,7 @@ export class EthereumMailerV9WrapperMailing {
 		recipients: Uint256[],
 		keys: Uint8Array[],
 		value: ethers.BigNumber,
-		signatureArgs?: IYlideMailer.SignatureArgsStruct,
+		generateSignature?: GenerateSignatureCallback,
 		payments?: YlidePayment,
 	): Promise<{
 		tx: ethers.ContractTransaction;
@@ -262,7 +266,8 @@ export class EthereumMailerV9WrapperMailing {
 	}> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
 		let tx: ethers.ContractTransaction = {} as ethers.ContractTransaction;
-		if (signatureArgs && mailer.pay && payments?.kind === TokenAttachmentContractType.Pay) {
+		if (generateSignature && mailer.pay && payments?.kind === TokenAttachmentContractType.Pay) {
+			const signatureArgs = await generateSignature(uniqueId, firstBlockNumber, partsCount, blockCountLock);
 			tx = await this.payWrapper.addMailRecipientsWithToken(
 				mailer.pay,
 				signer,
@@ -275,6 +280,8 @@ export class EthereumMailerV9WrapperMailing {
 					recipients: recipients.map(r => `0x${r}`),
 					keys,
 				},
+				from,
+				value,
 				signatureArgs,
 				payments.args,
 			);
@@ -298,7 +305,7 @@ export class EthereumMailerV9WrapperMailing {
 			byName: { MailPush },
 		} = parseOutLogs(contract, receipt.logs);
 		const tokenAttachmentEvents: TokenAttachmentEventObject[] = [];
-		if (payments && signatureArgs && mailer.pay) {
+		if (payments && generateSignature && mailer.pay) {
 			const {
 				byName: { TokenAttachment },
 			} = parseOutLogs(this.payWrapper.cache.getContract(mailer.address, signer), receipt.logs);

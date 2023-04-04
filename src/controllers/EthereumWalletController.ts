@@ -24,7 +24,13 @@ import SmartBuffer from '@ylide/smart-buffer';
 import { BigNumber, ethers } from 'ethers';
 
 import { EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CHUNK_SIZES, EVM_NAMES } from '../misc/constants';
-import type { IEVMMailerContractLink, IEVMMessage, IEVMRegistryContractLink, YlidePayment } from '../misc/types';
+import type {
+	GenerateSignatureCallback,
+	IEVMMailerContractLink,
+	IEVMMessage,
+	IEVMRegistryContractLink,
+	YlidePayment,
+} from '../misc/types';
 import { EVMNetwork } from '../misc/types';
 import { EthereumBlockchainController } from './EthereumBlockchainController';
 import { EthereumBlockchainReader } from './helpers/EthereumBlockchainReader';
@@ -380,7 +386,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		contentData: Uint8Array,
 		recipients: { address: Uint256; messageKey: MessageKey }[],
 		options?: { network?: EVMNetwork; value?: BigNumber },
-		signatureArgs?: IYlideMailer.SignatureArgsStruct,
+		generateSignature?: GenerateSignatureCallback,
 		payments?: YlidePayment,
 	): Promise<SendMailResult> {
 		await this.ensureAccount(me);
@@ -427,7 +433,7 @@ export class EthereumWalletController extends AbstractWalletController {
 					recipients.map(r => r.messageKey.toBytes()),
 					chunks[0],
 					options?.value || BigNumber.from(0),
-					signatureArgs,
+					generateSignature,
 					payments,
 				);
 				return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
@@ -485,7 +491,7 @@ export class EthereumWalletController extends AbstractWalletController {
 						recs.map(r => r.address),
 						recs.map(r => r.messageKey.toBytes()),
 						options?.value || BigNumber.from(0),
-						signatureArgs,
+						generateSignature,
 						payments,
 					);
 					msgs.push(...messages);

@@ -58,21 +58,25 @@ export class EthereumPayV1Wrapper {
 		contract: IEVMYlidePayContractLink,
 		signer: ethers.Signer,
 		args: IYlideMailer.SendBulkArgsStruct,
+		from: string,
+		value: ethers.BigNumber,
 		signatureArgs: IYlideMailer.SignatureArgsStruct,
 		transferInfos: YlidePayV1.TransferInfoStruct[],
 	) {
 		const c = this.cache.getContract(contract.address, signer);
-		return c.sendBulkMailWithToken(args, signatureArgs, transferInfos);
+		return c.sendBulkMailWithToken(args, signatureArgs, transferInfos, { from, value });
 	}
 
 	async addMailRecipientsWithToken(
 		contract: IEVMYlidePayContractLink,
 		signer: ethers.Signer,
 		args: IYlideMailer.AddMailRecipientsArgsStruct,
+		from: string,
+		value: ethers.BigNumber,
 		signatureArgs: IYlideMailer.SignatureArgsStruct,
 		transferInfos: YlidePayV1.TransferInfoStruct[],
 	) {
 		const c = this.cache.getContract(contract.address, signer);
-		return c.addMailRecipientsWithToken(args, signatureArgs, transferInfos);
+		return c.addMailRecipientsWithToken(args, signatureArgs, transferInfos, { from, value });
 	}
 }

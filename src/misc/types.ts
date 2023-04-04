@@ -1,4 +1,4 @@
-import { YlidePayV1 } from '@ylide/ethereum-contracts';
+import { IYlideMailer, YlidePayV1 } from '@ylide/ethereum-contracts';
 import { TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
 import type { IMessage, Uint256 } from '@ylide/sdk';
 import { ethers } from 'ethers';
@@ -154,3 +154,10 @@ export type LogInternal = {
 	log: ethers.providers.Log;
 	logDescription: ethers.utils.LogDescription;
 };
+
+export type GenerateSignatureCallback = (
+	uniqueId: number,
+	firstBlockNumber?: number,
+	partsCount?: number,
+	blockCountLock?: number,
+) => Promise<IYlideMailer.SignatureArgsStruct>;
