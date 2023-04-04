@@ -24,7 +24,8 @@ import {
 	IEVMMailerContractLink,
 	IEVMMessage,
 	IEVMYlidePayContractLink,
-	Payment,
+	TokenAttachmentContractType,
+	YlidePayment,
 } from '../../misc/types';
 import { IEventPosition, bnToUint256 } from '../../misc/utils';
 import { EthereumPayV1Wrapper } from '../EthereumPayV1Wrapper';
@@ -183,7 +184,7 @@ export class EthereumMailerV9WrapperMailing {
 		content: Uint8Array,
 		value: ethers.BigNumber,
 		signatureArgs?: IYlideMailer.SignatureArgsStruct,
-		payments?: Payment,
+		payments?: YlidePayment,
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
@@ -194,7 +195,7 @@ export class EthereumMailerV9WrapperMailing {
 	}> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
 		let tx: ethers.ContractTransaction = {} as ethers.ContractTransaction;
-		if (payments && signatureArgs && mailer.pay) {
+		if (signatureArgs && mailer.pay && payments?.kind === TokenAttachmentContractType.Pay) {
 			tx = await this.payWrapper.sendBulkMailWithToken(
 				mailer.pay,
 				signer,
@@ -250,7 +251,7 @@ export class EthereumMailerV9WrapperMailing {
 		keys: Uint8Array[],
 		value: ethers.BigNumber,
 		signatureArgs?: IYlideMailer.SignatureArgsStruct,
-		payments?: Payment,
+		payments?: YlidePayment,
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
@@ -261,7 +262,7 @@ export class EthereumMailerV9WrapperMailing {
 	}> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
 		let tx: ethers.ContractTransaction = {} as ethers.ContractTransaction;
-		if (payments && signatureArgs && mailer.pay) {
+		if (signatureArgs && mailer.pay && payments?.kind === TokenAttachmentContractType.Pay) {
 			tx = await this.payWrapper.addMailRecipientsWithToken(
 				mailer.pay,
 				signer,

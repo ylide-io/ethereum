@@ -19,12 +19,14 @@ import {
 } from '@ylide/sdk';
 import { EVM_CHAINS, EVM_CONTRACT_TO_NETWORK, EVM_ENS, EVM_NAMES, EVM_RPCS } from '../misc/constants';
 import { decodeEvmMsgId } from '../misc/evmMsgId';
-import type { IEVMMailerContractLink, IEVMMessage, IEVMRegistryContractLink } from '../misc/types';
 import {
 	EVMMailerContractType,
 	EVMNetwork,
 	EVMRegistryContractType,
-	TokenAttachmentType,
+	IEVMMailerContractLink,
+	IEVMMessage,
+	IEVMRegistryContractLink,
+	TokenAttachmentContractType,
 	YlideTokenAttachment,
 } from '../misc/types';
 
@@ -454,7 +456,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			}
 			const attachments = await mailer.wrapper.mailing.getTokenAttachments(tokenAttachmentLink, msg);
 			return {
-				kind: TokenAttachmentType.Pay,
+				kind: TokenAttachmentContractType.Pay,
 				attachments,
 			};
 		}

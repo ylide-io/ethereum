@@ -24,7 +24,7 @@ import SmartBuffer from '@ylide/smart-buffer';
 import { BigNumber, ethers } from 'ethers';
 
 import { EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CHUNK_SIZES, EVM_NAMES } from '../misc/constants';
-import type { IEVMMailerContractLink, IEVMMessage, IEVMRegistryContractLink, Payment } from '../misc/types';
+import type { IEVMMailerContractLink, IEVMMessage, IEVMRegistryContractLink, YlidePayment } from '../misc/types';
 import { EVMNetwork } from '../misc/types';
 import { EthereumBlockchainController } from './EthereumBlockchainController';
 import { EthereumBlockchainReader } from './helpers/EthereumBlockchainReader';
@@ -381,7 +381,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		recipients: { address: Uint256; messageKey: MessageKey }[],
 		options?: { network?: EVMNetwork; value?: BigNumber },
 		signatureArgs?: IYlideMailer.SignatureArgsStruct,
-		payments?: Payment,
+		payments?: YlidePayment,
 	): Promise<SendMailResult> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Publish message', options);

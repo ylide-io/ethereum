@@ -22,7 +22,6 @@ import {
 	IEVMMailerContractLink,
 	SendBulkMailTypes,
 	bnToUint256,
-	decodeEvmMsgId,
 } from '../src';
 import { EthereumMailerV9Wrapper } from '../src/contract-wrappers/v9';
 
@@ -174,7 +173,7 @@ describe('YlidePayV1', () => {
 				sender: user1.address,
 			},
 			{
-				type: 0,
+				kind: 0,
 				args: [
 					{ amountOrTokenId: 1000, token: erc20.address, recipient: user2.address, tokenType: 0 },
 					{ amountOrTokenId: 1000, token: erc20.address, recipient: owner.address, tokenType: 0 },
@@ -270,7 +269,7 @@ describe('YlidePayV1', () => {
 				sender: user1.address,
 			},
 			{
-				type: 0,
+				kind: 0,
 				args: [{ amountOrTokenId: 123, token: erc721.address, recipient: user2.address, tokenType: 1 }],
 			},
 		);
