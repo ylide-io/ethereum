@@ -14,9 +14,8 @@ import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRi
 import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../../misc/constants';
 import { encodeEvmMsgId } from '../../misc/evmMsgId';
 import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
-import { bnToUint256, IEventPosition } from '../../misc/utils';
+import { bnToUint256, getMultipleEvents, IEventPosition, parseOutLogs } from '../../misc/utils';
 import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
-import { getMultipleEvents, parseOutLogs } from './utils';
 
 export class EthereumMailerV8WrapperMailing {
 	constructor(public readonly wrapper: EthereumMailerV8Wrapper) {

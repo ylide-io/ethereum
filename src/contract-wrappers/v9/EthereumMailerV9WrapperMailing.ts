@@ -1,4 +1,4 @@
-import { IYlideMailer, YlideMailerV9 } from '@ylide/ethereum-contracts';
+import { YlideMailerV9 } from '@ylide/ethereum-contracts';
 import {
 	ContentRecipientsEvent,
 	MailPushEvent,
@@ -6,65 +6,42 @@ import {
 	MailingFeedJoinedEvent,
 	MailingFeedJoinedEventObject,
 } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
-import { TokenAttachmentEvent, TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
-import { Uint256, YlideCore } from '@ylide/sdk';
-import SmartBuffer from '@ylide/smart-buffer';
+import { Uint256 } from '@ylide/sdk';
 import { BigNumber, BigNumberish, TypedDataDomain, ethers } from 'ethers';
-import {
-	ethersEventToInternalEvent,
-	ethersLogToInternalEvent,
-	parseTokenAttachmentEvent,
-} from '../../controllers/helpers/ethersHelper';
+import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers/helpers/ethersHelper';
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
-import { AddMailRecipientsTypes, EVM_CONTRACT_TO_NETWORK, EVM_NAMES, SendBulkMailTypes } from '../../misc/constants';
-import { encodeEvmMsgId } from '../../misc/evmMsgId';
-import {
-	GenerateSignatureCallback,
-	IEVMEnrichedEvent,
-	IEVMEvent,
-	IEVMMailerContractLink,
-	IEVMMessage,
-	IEVMYlidePayContractLink,
-	TokenAttachmentContractType,
-	YlidePayment,
-} from '../../misc/types';
-import { IEventPosition, bnToUint256 } from '../../misc/utils';
-import { EthereumPayV1Wrapper } from '../EthereumPayV1Wrapper';
+import { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
+import { IEventPosition, bnToUint256, getMultipleEvents, parseOutLogs, processMailPushEvent } from '../../misc/utils';
 import type { EthereumMailerV9Wrapper } from './EthereumMailerV9Wrapper';
-import { getMultipleEvents, parseOutLogs } from './utils';
 
 export class EthereumMailerV9WrapperMailing {
-	public readonly payWrapper: EthereumPayV1Wrapper;
+	public readonly SendBulkMailTypes = {
+		SendBulkMail: [
+			{ name: 'feedId', type: 'uint256' },
+			{ name: 'uniqueId', type: 'uint256' },
+			{ name: 'nonce', type: 'uint256' },
+			{ name: 'deadline', type: 'uint256' },
+			{ name: 'recipients', type: 'uint256[]' },
+			{ name: 'keys', type: 'bytes' },
+			{ name: 'content', type: 'bytes' },
+		],
+	};
 
-	constructor(public readonly wrapper: EthereumMailerV9Wrapper) {
-		this.payWrapper = new EthereumPayV1Wrapper(wrapper.blockchainReader);
-	}
+	public readonly AddMailRecipientsTypes = {
+		AddMailRecipients: [
+			{ name: 'feedId', type: 'uint256' },
+			{ name: 'uniqueId', type: 'uint256' },
+			{ name: 'firstBlockNumber', type: 'uint256' },
+			{ name: 'nonce', type: 'uint256' },
+			{ name: 'deadline', type: 'uint256' },
+			{ name: 'partsCount', type: 'uint16' },
+			{ name: 'blockCountLock', type: 'uint16' },
+			{ name: 'recipients', type: 'uint256[]' },
+			{ name: 'keys', type: 'bytes' },
+		],
+	};
 
-	processMailPushEvent(mailer: IEVMMailerContractLink, event: IEVMEnrichedEvent<MailPushEventObject>): IEVMMessage {
-		return {
-			isBroadcast: false,
-			feedId: bnToUint256(event.event.parsed.feedId),
-			msgId: encodeEvmMsgId(
-				false,
-				mailer.id,
-				event.event.blockNumber,
-				event.event.transactionIndex,
-				event.event.logIndex,
-			),
-			createdAt: event.block.timestamp,
-			senderAddress: event.tx.from,
-			recipientAddress: bnToUint256(event.event.parsed.recipient),
-			blockchain: EVM_NAMES[EVM_CONTRACT_TO_NETWORK[mailer.id]],
-			key: SmartBuffer.ofHexString(event.event.parsed.key.replace('0x', '')).bytes,
-			$$meta: {
-				contentId: bnToUint256(event.event.parsed.contentId),
-				index: BlockNumberRingBufferIndex.decodeIndexValue(
-					bnToUint256(event.event.parsed.previousFeedEventsIndex),
-				),
-				...event,
-			},
-		};
-	}
+	constructor(public readonly wrapper: EthereumMailerV9Wrapper) {}
 
 	async createMailingFeed(
 		mailer: IEVMMailerContractLink,
@@ -184,62 +161,28 @@ export class EthereumMailerV9WrapperMailing {
 		keys: Uint8Array[],
 		content: Uint8Array,
 		value: ethers.BigNumber,
-		generateSignature?: GenerateSignatureCallback,
-		payments?: YlidePayment,
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
 		logs: ethers.utils.LogDescription[];
 		mailPushEvents: IEVMEvent<MailPushEventObject>[];
-		tokenAttachmentEvents: TokenAttachmentEventObject[];
 		messages: IEVMMessage[];
 	}> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		let tx: ethers.ContractTransaction = {} as ethers.ContractTransaction;
-		if (generateSignature && mailer.pay && payments?.kind === TokenAttachmentContractType.Pay) {
-			const signatureArgs = await generateSignature(uniqueId);
-			tx = await this.payWrapper.sendBulkMailWithToken(
-				mailer.pay,
-				signer,
-				{
-					feedId: `0x${feedId}`,
-					uniqueId,
-					recipients: recipients.map(r => `0x${r}`),
-					keys,
-					content,
-				},
-				from,
-				value,
-				signatureArgs,
-				payments.args,
-			);
-		} else {
-			tx = await contract['sendBulkMail((uint256,uint256,uint256[],bytes[],bytes))'](
-				{ feedId: `0x${feedId}`, uniqueId, recipients: recipients.map(r => `0x${r}`), keys, content },
-				{ from, value },
-			);
-		}
+		const tx = await contract['sendBulkMail((uint256,uint256,uint256[],bytes[],bytes))'](
+			{ feedId: `0x${feedId}`, uniqueId, recipients: recipients.map(r => `0x${r}`), keys, content },
+			{ from, value },
+		);
 		const receipt = await tx.wait();
 		const {
 			logs,
 			byName: { MailPush },
 		} = parseOutLogs(contract, receipt.logs);
 
-		const tokenAttachmentEvents: TokenAttachmentEventObject[] = [];
-		if (payments && generateSignature && mailer.pay) {
-			const {
-				byName: { TokenAttachment },
-			} = parseOutLogs(this.payWrapper.cache.getContract(mailer.address, signer), receipt.logs);
-			tokenAttachmentEvents.push(
-				...TokenAttachment.map(e =>
-					parseTokenAttachmentEvent(e.logDescription as unknown as TokenAttachmentEvent),
-				),
-			);
-		}
 		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
-		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, tokenAttachmentEvents, messages };
+		const messages = enriched.map(e => processMailPushEvent(mailer, e));
+		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
 	async addMailRecipients(
@@ -254,71 +197,35 @@ export class EthereumMailerV9WrapperMailing {
 		recipients: Uint256[],
 		keys: Uint8Array[],
 		value: ethers.BigNumber,
-		generateSignature?: GenerateSignatureCallback,
-		payments?: YlidePayment,
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
 		logs: ethers.utils.LogDescription[];
 		mailPushEvents: IEVMEvent<MailPushEventObject>[];
-		tokenAttachmentEvents: TokenAttachmentEventObject[];
 		messages: IEVMMessage[];
 	}> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		let tx: ethers.ContractTransaction = {} as ethers.ContractTransaction;
-		if (generateSignature && mailer.pay && payments?.kind === TokenAttachmentContractType.Pay) {
-			const signatureArgs = await generateSignature(uniqueId, firstBlockNumber, partsCount, blockCountLock);
-			tx = await this.payWrapper.addMailRecipientsWithToken(
-				mailer.pay,
-				signer,
-				{
-					feedId: `0x${feedId}`,
-					uniqueId,
-					firstBlockNumber,
-					partsCount,
-					blockCountLock,
-					recipients: recipients.map(r => `0x${r}`),
-					keys,
-				},
-				from,
-				value,
-				signatureArgs,
-				payments.args,
-			);
-		} else {
-			tx = await contract['addMailRecipients((uint256,uint256,uint256,uint16,uint16,uint256[],bytes[]))'](
-				{
-					feedId: `0x${feedId}`,
-					uniqueId,
-					firstBlockNumber,
-					partsCount,
-					blockCountLock,
-					recipients: recipients.map(r => `0x${r}`),
-					keys,
-				},
-				{ from, value },
-			);
-		}
+		const tx = await contract['addMailRecipients((uint256,uint256,uint256,uint16,uint16,uint256[],bytes[]))'](
+			{
+				feedId: `0x${feedId}`,
+				uniqueId,
+				firstBlockNumber,
+				partsCount,
+				blockCountLock,
+				recipients: recipients.map(r => `0x${r}`),
+				keys,
+			},
+			{ from, value },
+		);
 		const receipt = await tx.wait();
 		const {
 			logs,
 			byName: { MailPush },
 		} = parseOutLogs(contract, receipt.logs);
-		const tokenAttachmentEvents: TokenAttachmentEventObject[] = [];
-		if (payments && generateSignature && mailer.pay) {
-			const {
-				byName: { TokenAttachment },
-			} = parseOutLogs(this.payWrapper.cache.getContract(mailer.address, signer), receipt.logs);
-			tokenAttachmentEvents.push(
-				...TokenAttachment.map(e =>
-					parseTokenAttachmentEvent(e.logDescription as unknown as TokenAttachmentEvent),
-				),
-			);
-		}
 		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
-		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, tokenAttachmentEvents, messages };
+		const messages = enriched.map(e => processMailPushEvent(mailer, e));
+		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
 	async getMailPushEvent(
@@ -338,7 +245,7 @@ export class EthereumMailerV9WrapperMailing {
 			const [enriched] = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>([
 				ethersEventToInternalEvent(event),
 			]);
-			return this.processMailPushEvent(mailer, enriched);
+			return processMailPushEvent(mailer, enriched);
 		});
 	}
 
@@ -358,31 +265,6 @@ export class EthereumMailerV9WrapperMailing {
 		});
 	}
 
-	getTokenAttachments(
-		payLink: IEVMYlidePayContractLink,
-		message: IEVMMessage,
-	): Promise<TokenAttachmentEventObject[]> {
-		return this.payWrapper.cache.contractOperation(payLink, async (contract, _, blockLimit) => {
-			const events = await getMultipleEvents<TokenAttachmentEvent>(
-				contract,
-				contract.filters.TokenAttachment(
-					'0x' + message.$$meta.contentId,
-					null,
-					this.isSentSender(message.senderAddress, message.recipientAddress)
-						? null
-						: BigNumber.from(`0x${message.recipientAddress}`).toHexString(),
-				),
-				blockLimit,
-				message.$$meta.contentId,
-			);
-			return events.map(e => parseTokenAttachmentEvent(e));
-		});
-	}
-
-	private isSentSender(sender: string, recipient: Uint256) {
-		return YlideCore.getSentAddress(bnToUint256(BigNumber.from(sender))) === recipient;
-	}
-
 	async retrieveMailHistoryDesc(
 		mailer: IEVMMailerContractLink,
 		feedId: Uint256,
@@ -396,8 +278,7 @@ export class EthereumMailerV9WrapperMailing {
 		const getBaseIndex: () => Promise<number[]> = async () =>
 			this.getRecipientToMailIndex(mailer, feedId, recipient);
 		const getFilter = (contract: YlideMailerV9) => contract.filters.MailPush(`0x${recipient}`, `0x${feedId}`);
-		const processEvent = (event: IEVMEnrichedEvent<MailPushEventObject>) =>
-			this.processMailPushEvent(mailer, event);
+		const processEvent = (event: IEVMEnrichedEvent<MailPushEventObject>) => processMailPushEvent(mailer, event);
 		return await this.wrapper.retrieveHistoryDesc<MailPushEvent>(
 			mailer,
 			getBaseIndex,
@@ -495,12 +376,12 @@ export class EthereumMailerV9WrapperMailing {
 		nonce: BigNumberish,
 		chainId: number,
 	) {
-		return signer._signTypedData(this.getDomain(mailer, chainId), SendBulkMailTypes, {
-			feedId: BigNumber.from(`0x${feedId}`),
+		return signer._signTypedData(this.getDomain(mailer, chainId), this.SendBulkMailTypes, {
+			feedId: `0x${feedId}`,
 			uniqueId,
 			nonce,
 			deadline,
-			recipients: recipients.map(r => BigNumber.from(`0x${r}`)),
+			recipients: recipients.map(r => `0x${r}`),
 			keys: ethers.utils.concat(keys),
 			content,
 		});
@@ -520,15 +401,15 @@ export class EthereumMailerV9WrapperMailing {
 		nonce: BigNumberish,
 		chainId: number,
 	) {
-		return signer._signTypedData(this.getDomain(mailer, chainId), AddMailRecipientsTypes, {
-			feedId: BigNumber.from(`0x${feedId}`),
+		return signer._signTypedData(this.getDomain(mailer, chainId), this.AddMailRecipientsTypes, {
+			feedId: `0x${feedId}`,
 			uniqueId,
 			firstBlockNumber,
 			nonce,
 			deadline,
 			partsCount,
 			blockCountLock,
-			recipients: recipients.map(r => BigNumber.from(`0x${r}`)),
+			recipients: recipients.map(r => `0x${r}`),
 			keys: ethers.utils.concat(keys),
 		});
 	}

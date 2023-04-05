@@ -1,7 +1,20 @@
 import { IYlideMailer, YlidePayV1, YlidePayV1__factory } from '@ylide/ethereum-contracts';
-import { ethers } from 'ethers';
+import { MailPushEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
+import { TokenAttachmentEvent, TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
+import { Uint256 } from '@ylide/sdk';
+import { BigNumber, Contract, ethers } from 'ethers';
+import { ethersLogToInternalEvent } from '../controllers';
 import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
-import { IEVMYlidePayContractLink } from '../misc';
+import {
+	IEVMEvent,
+	IEVMMailerContractLink,
+	IEVMMessage,
+	IEVMYlidePayContractLink,
+	getMultipleEvents,
+	isSentSender,
+	parseOutLogs,
+	processMailPushEvent,
+} from '../misc';
 import { ContractCache } from './ContractCache';
 
 export class EthereumPayV1Wrapper {
@@ -55,28 +68,130 @@ export class EthereumPayV1Wrapper {
 	}
 
 	async sendBulkMailWithToken(
-		contract: IEVMYlidePayContractLink,
+		mailer: IEVMMailerContractLink,
+		mailerContract: Contract,
+		payer: IEVMYlidePayContractLink,
 		signer: ethers.Signer,
-		args: IYlideMailer.SendBulkArgsStruct,
 		from: string,
+		feedId: Uint256,
+		uniqueId: number,
+		recipients: Uint256[],
+		keys: Uint8Array[],
+		content: Uint8Array,
 		value: ethers.BigNumber,
 		signatureArgs: IYlideMailer.SignatureArgsStruct,
-		transferInfos: YlidePayV1.TransferInfoStruct[],
-	) {
-		const c = this.cache.getContract(contract.address, signer);
-		return c.sendBulkMailWithToken(args, signatureArgs, transferInfos, { from, value });
+		paymentArgs: YlidePayV1.TransferInfoStruct[],
+	): Promise<{
+		tx: ethers.ContractTransaction;
+		receipt: ethers.ContractReceipt;
+		logs: ethers.utils.LogDescription[];
+		mailPushEvents: IEVMEvent<MailPushEventObject>[];
+		messages: IEVMMessage[];
+	}> {
+		const c = this.cache.getContract(payer.address, signer);
+		const tx = await c.sendBulkMailWithToken(
+			{
+				feedId: `0x${feedId}`,
+				uniqueId,
+				recipients: recipients.map(r => `0x${r}`),
+				keys,
+				content,
+			},
+
+			signatureArgs,
+			paymentArgs,
+			{ from, value },
+		);
+		const receipt = await tx.wait();
+		const {
+			logs,
+			byName: { MailPush },
+		} = parseOutLogs(mailerContract, receipt.logs);
+
+		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
+		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
+		const messages = enriched.map(e => processMailPushEvent(mailer, e));
+		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
 	async addMailRecipientsWithToken(
-		contract: IEVMYlidePayContractLink,
+		mailer: IEVMMailerContractLink,
+		mailerContract: Contract,
+		payer: IEVMYlidePayContractLink,
 		signer: ethers.Signer,
-		args: IYlideMailer.AddMailRecipientsArgsStruct,
 		from: string,
+		feedId: Uint256,
+		uniqueId: number,
+		firstBlockNumber: number,
+		partsCount: number,
+		blockCountLock: number,
+		recipients: Uint256[],
+		keys: Uint8Array[],
 		value: ethers.BigNumber,
 		signatureArgs: IYlideMailer.SignatureArgsStruct,
-		transferInfos: YlidePayV1.TransferInfoStruct[],
-	) {
-		const c = this.cache.getContract(contract.address, signer);
-		return c.addMailRecipientsWithToken(args, signatureArgs, transferInfos, { from, value });
+		paymentArgs: YlidePayV1.TransferInfoStruct[],
+	): Promise<{
+		tx: ethers.ContractTransaction;
+		receipt: ethers.ContractReceipt;
+		logs: ethers.utils.LogDescription[];
+		mailPushEvents: IEVMEvent<MailPushEventObject>[];
+		messages: IEVMMessage[];
+	}> {
+		const c = this.cache.getContract(payer.address, signer);
+		const tx = await c.addMailRecipientsWithToken(
+			{
+				feedId: `0x${feedId}`,
+				uniqueId,
+				firstBlockNumber,
+				partsCount,
+				blockCountLock,
+				recipients: recipients.map(r => `0x${r}`),
+				keys,
+			},
+			signatureArgs,
+			paymentArgs,
+			{ from, value },
+		);
+		const receipt = await tx.wait();
+		const {
+			logs,
+			byName: { MailPush },
+		} = parseOutLogs(mailerContract, receipt.logs);
+		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
+		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
+		const messages = enriched.map(e => processMailPushEvent(mailer, e));
+		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
+	}
+
+	getTokenAttachments(
+		payLink: IEVMYlidePayContractLink,
+		message: IEVMMessage,
+	): Promise<TokenAttachmentEventObject[]> {
+		return this.cache.contractOperation(payLink, async (contract, _, blockLimit) => {
+			const events = await getMultipleEvents<TokenAttachmentEvent>(
+				contract,
+				contract.filters.TokenAttachment(
+					'0x' + message.$$meta.contentId,
+					null,
+					isSentSender(message.senderAddress, message.recipientAddress)
+						? null
+						: BigNumber.from(`0x${message.recipientAddress}`).toHexString(),
+				),
+				blockLimit,
+				message.$$meta.contentId,
+			);
+			return events.map(e => this.parseTokenAttachmentEvent(e));
+		});
+	}
+
+	private parseTokenAttachmentEvent(event: TokenAttachmentEvent): TokenAttachmentEventObject {
+		return {
+			amountOrTokenId: event.args.amountOrTokenId,
+			recipient: event.args.recipient,
+			sender: event.args.sender,
+			token: event.args.token,
+			tokenType: event.args.tokenType,
+			contentId: event.args.contentId,
+		};
 	}
 }

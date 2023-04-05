@@ -23,9 +23,11 @@ import {
 	EVMMailerContractType,
 	EVMNetwork,
 	EVMRegistryContractType,
+	EVMYlidePayContractType,
 	IEVMMailerContractLink,
 	IEVMMessage,
 	IEVMRegistryContractLink,
+	IEVMYlidePayContractLink,
 	TokenAttachmentContractType,
 	YlideTokenAttachment,
 } from '../misc/types';
@@ -43,6 +45,7 @@ import { EthereumMailerV7Wrapper } from '../contract-wrappers/EthereumMailerV7Wr
 import { EthereumMailerV8Wrapper } from '../contract-wrappers/v8/EthereumMailerV8Wrapper';
 
 import { ethers } from 'ethers';
+import { EthereumPayV1Wrapper } from '../contract-wrappers/EthereumPayV1Wrapper';
 import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9';
 import { EVMMailerV6Source } from '../messages-sources/EVMMailerV6Source';
 import { EVMMailerV7Source } from '../messages-sources/EVMMailerV7Source';
@@ -84,6 +87,10 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		[EVMRegistryContractType.EVMRegistryV6]: EthereumRegistryV6Wrapper,
 	};
 
+	static readonly payWrappers: Record<EVMYlidePayContractType, typeof EthereumPayV1Wrapper> = {
+		[EVMYlidePayContractType.EVMYlidePayV1]: EthereumPayV1Wrapper,
+	};
+
 	readonly mailers: {
 		link: IEVMMailerContractLink;
 		wrapper: EthereumMailerV8Wrapper | EthereumMailerV7Wrapper | EthereumMailerV6Wrapper | EthereumMailerV9Wrapper;
@@ -95,6 +102,10 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			| EthereumRegistryV4Wrapper
 			| EthereumRegistryV5Wrapper
 			| EthereumRegistryV6Wrapper;
+	}[] = [];
+	readonly payers: {
+		link: IEVMYlidePayContractLink;
+		wrapper: EthereumPayV1Wrapper;
 	}[] = [];
 
 	readonly currentMailer: {
@@ -142,6 +153,11 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		this.registries = contracts.registryContracts.map(link => ({
 			link,
 			wrapper: new EthereumBlockchainController.registryWrappers[link.type](this.blockchainReader),
+		}));
+
+		this.payers = contracts.payContracts.map(link => ({
+			link,
+			wrapper: new EthereumBlockchainController.payWrappers[link.type](this.blockchainReader),
 		}));
 
 		const currentMailerLink = contracts.mailerContracts.find(c => c.id === contracts.currentMailerId);
@@ -215,7 +231,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 	}
 
-	async getUserNonceMailer(mailerAddress: string) {
+	async getUserNonceMailer(userAddress: string) {
 		const mailer = this.mailers.find(m => m.link.id === EVM_CONTRACTS[this.network].currentMailerId);
 		if (!mailer) {
 			throw new Error(
@@ -226,7 +242,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			mailer.link.type === EVMMailerContractType.EVMMailerV9 &&
 			mailer.wrapper instanceof EthereumMailerV9Wrapper
 		) {
-			return mailer.wrapper.mailing.getNonce(mailer.link, mailerAddress);
+			return mailer.wrapper.mailing.getNonce(mailer.link, userAddress);
 		}
 		throw new Error('Unsupported mailer version');
 	}
@@ -437,30 +453,27 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		throw new Error('Method not implemented.');
 	}
 
-	async getTokenAttachments(msg: IEVMMessage): Promise<YlideTokenAttachment> {
+	async getTokenAttachments(msg: IEVMMessage): Promise<YlideTokenAttachment | null> {
 		const decodedMsgId = decodeEvmMsgId(msg.msgId);
 		const mailer = this.mailers.find(m => m.link.id === decodedMsgId.contractId);
 		if (!mailer) {
 			throw new Error('This message does not belongs to this blockchain controller');
 		}
-		if (mailer.wrapper instanceof EthereumMailerV9Wrapper) {
-			const tokenAttachmentAddress = msg.$$meta.tokenAttachment;
-			if (!tokenAttachmentAddress || tokenAttachmentAddress === ethers.constants.AddressZero) {
-				throw new Error('Message has no token attachment');
-			}
-			const tokenAttachmentLink = EVM_CONTRACTS[this.network].payContracts?.find(
-				c => c.address === tokenAttachmentAddress,
-			);
-			if (!tokenAttachmentLink) {
-				throw new Error('Message has no token attachment');
-			}
-			const attachments = await mailer.wrapper.mailing.getTokenAttachments(tokenAttachmentLink, msg);
-			return {
-				kind: TokenAttachmentContractType.Pay,
-				attachments,
-			};
+		const tokenAttachmentAddress = msg.$$meta.tokenAttachment;
+		if (!tokenAttachmentAddress || tokenAttachmentAddress === ethers.constants.AddressZero) {
+			return null;
 		}
-		throw new Error('Method not implemented.');
+		if (mailer.wrapper instanceof EthereumMailerV9Wrapper) {
+			const payer = this.payers.find(p => p.link.address === tokenAttachmentAddress);
+			if (payer) {
+				const attachments = await payer.wrapper.getTokenAttachments(payer.link, msg);
+				return {
+					kind: TokenAttachmentContractType.Pay,
+					attachments,
+				};
+			}
+		}
+		return null;
 	}
 
 	prepareExtraEncryptionStrategyBulk(

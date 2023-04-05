@@ -8,10 +8,10 @@ import { ethers } from 'ethers';
 import type { GenericMessageContentEventObject } from '../../controllers/helpers/EthereumContentReader';
 import { EthereumContentReader } from '../../controllers/helpers/EthereumContentReader';
 import { ethersEventToInternalEvent } from '../../controllers/helpers/ethersHelper';
+import { getMultipleEvents } from '../../misc';
 import { decodeContentId } from '../../misc/contentId';
 import type { IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
 import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
-import { getMultipleEvents } from './utils';
 
 export class EthereumMailerV8WrapperContent {
 	constructor(public readonly wrapper: EthereumMailerV8Wrapper) {

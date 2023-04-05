@@ -1,7 +1,7 @@
 import { IYlideMailer, YlidePayV1 } from '@ylide/ethereum-contracts';
 import { TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
 import type { IMessage, Uint256 } from '@ylide/sdk';
-import { ethers } from 'ethers';
+import { BigNumberish, ethers } from 'ethers';
 
 export enum EVMNetwork {
 	LOCAL_HARDHAT, //  = 'LOCAL_HARDHAT',
@@ -113,7 +113,7 @@ export interface IEVMYlidePayContractLink extends IEVMBaseContractLink {
 export interface IEVMNetworkContracts {
 	mailerContracts: IEVMMailerContractLink[];
 	registryContracts: IEVMRegistryContractLink[];
-	payContracts?: IEVMYlidePayContractLink[];
+	payContracts: IEVMYlidePayContractLink[];
 
 	currentRegistryId: number;
 	currentMailerId: number;
@@ -156,8 +156,10 @@ export type LogInternal = {
 };
 
 export type GenerateSignatureCallback = (
-	uniqueId: number,
-	firstBlockNumber?: number,
-	partsCount?: number,
-	blockCountLock?: number,
+	uniqueId: BigNumberish,
+	firstBlockNumber?: BigNumberish,
+	partsCount?: BigNumberish,
+	blockCountLock?: BigNumberish,
+	recipients?: string[],
+	keys?: Uint8Array,
 ) => Promise<IYlideMailer.SignatureArgsStruct>;

@@ -205,29 +205,3 @@ export const EVM_CHUNK_SIZES: Record<EVMNetwork, number> = {
 	[EVMNetwork.METIS]: 15 * 1024,
 	[EVMNetwork.ASTAR]: 15 * 1024,
 };
-
-export const SendBulkMailTypes = {
-	SendBulkMail: [
-		{ name: 'feedId', type: 'uint256' },
-		{ name: 'uniqueId', type: 'uint256' },
-		{ name: 'nonce', type: 'uint256' },
-		{ name: 'deadline', type: 'uint256' },
-		{ name: 'recipients', type: 'uint256[]' },
-		{ name: 'keys', type: 'bytes' },
-		{ name: 'content', type: 'bytes' },
-	],
-};
-
-export const AddMailRecipientsTypes = {
-	AddMailRecipients: [
-		{ name: 'feedId', type: 'uint256' },
-		{ name: 'uniqueId', type: 'uint256' },
-		{ name: 'firstBlockNumber', type: 'uint256' },
-		{ name: 'nonce', type: 'uint256' },
-		{ name: 'deadline', type: 'uint256' },
-		{ name: 'partsCount', type: 'uint16' },
-		{ name: 'blockCountLock', type: 'uint16' },
-		{ name: 'recipients', type: 'uint256[]' },
-		{ name: 'keys', type: 'bytes' },
-	],
-};
