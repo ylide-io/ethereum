@@ -7,3 +7,4 @@ export * from './evmMsgId';
 export * from './periods';
 export * from './types';
 export * from './utils';
+export * from './test-utils';

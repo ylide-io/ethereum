@@ -25,6 +25,7 @@ import { BigNumber, ethers } from 'ethers';
 
 import { EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CHUNK_SIZES, EVM_NAMES } from '../misc/constants';
 import {
+	EVMContracts,
 	EVMNetwork,
 	GenerateSignatureCallback,
 	IEVMMailerContractLink,
@@ -85,30 +86,17 @@ export class EthereumWalletController extends AbstractWalletController {
 	private lastCurrentAccount: IGenericAccount | null = null;
 	readonly providerObject: any;
 
-	constructor(
-		options: {
-			dev?: boolean;
-			endpoint?: string;
-			wallet?: string;
-			signer?: JsonRpcSigner;
-			providerObject?: any;
-			onNetworkSwitchRequest?: NetworkSwitchHandler;
-			onSwitchAccountRequest?: SwitchAccountCallback;
-		} = {},
-	) {
+	private readonly evmContractsTest: EVMContracts | null;
+
+	constructor(options: {
+		wallet: string;
+		signer: JsonRpcSigner;
+		onNetworkSwitchRequest: NetworkSwitchHandler;
+		providerObject?: any;
+		onSwitchAccountRequest?: SwitchAccountCallback;
+		evmContractsTest?: EVMContracts;
+	}) {
 		super(options);
-
-		if (!options || !options.wallet) {
-			throw new Error(
-				'You have to pass valid wallet param to the options of EthereumWalletController constructor',
-			);
-		}
-
-		if (!options || !options.signer) {
-			throw new Error(
-				'You have to pass valid Signer param to the options of EthereumWalletController constructor',
-			);
-		}
 
 		this.providerObject = options.providerObject || (window as any).ethereum;
 		this.signer = options.signer;
@@ -117,11 +105,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 		this.onSwitchAccountRequest = options?.onSwitchAccountRequest || null;
 
-		if (!options || !options.onNetworkSwitchRequest) {
-			throw new Error(
-				'You have to pass valid onNetworkSwitchRequest param to the options of EthereumWalletController constructor',
-			);
-		}
+		this.evmContractsTest = options.evmContractsTest || null;
 
 		this.onNetworkSwitchRequest = options.onNetworkSwitchRequest;
 
@@ -134,6 +118,10 @@ export class EthereumWalletController extends AbstractWalletController {
 				batchNotSupported: true,
 			},
 		]);
+	}
+
+	private evmContracts() {
+		return this.evmContractsTest || EVM_CONTRACTS;
 	}
 
 	private handleError(err: any) {
@@ -194,12 +182,12 @@ export class EthereumWalletController extends AbstractWalletController {
 			| EthereumRegistryV5Wrapper
 			| EthereumRegistryV6Wrapper;
 	} {
-		const id = EVM_CONTRACTS[network].currentRegistryId;
+		const id = this.evmContracts()[network].currentRegistryId;
 		const existing = this.registries.find(r => r.link.id === id);
 		if (existing) {
 			return existing;
 		} else {
-			const link = EVM_CONTRACTS[network].registryContracts.find(r => r.id === id);
+			const link = this.evmContracts()[network].registryContracts.find(r => r.id === id);
 			if (!link) {
 				throw new Error(`Network ${network} has no current registry`);
 			}
@@ -216,12 +204,12 @@ export class EthereumWalletController extends AbstractWalletController {
 		link: IEVMMailerContractLink;
 		wrapper: EthereumMailerV6Wrapper | EthereumMailerV7Wrapper | EthereumMailerV8Wrapper | EthereumMailerV9Wrapper;
 	} {
-		const id = EVM_CONTRACTS[network].currentMailerId;
+		const id = this.evmContracts()[network].currentMailerId;
 		const existing = this.mailers.find(r => r.link.id === id);
 		if (existing) {
 			return existing;
 		} else {
-			const link = EVM_CONTRACTS[network].mailerContracts.find(r => r.id === id);
+			const link = this.evmContracts()[network].mailerContracts.find(r => r.id === id);
 			if (!link) {
 				throw new Error(`Network ${network} has no current mailer`);
 			}
@@ -245,7 +233,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		if (existing) {
 			return existing;
 		} else {
-			const link = EVM_CONTRACTS[network].payContracts?.find(r => r.id === mailerLink.pay?.id);
+			const link = this.evmContracts()[network].payContracts?.find(r => r.id === mailerLink.pay?.id);
 			if (!link) {
 				throw new Error(`Network ${network} has no current pay contract`);
 			}
@@ -295,7 +283,7 @@ export class EthereumWalletController extends AbstractWalletController {
 	}
 
 	private async ensureNetworkOptions(reason: string, options?: { network?: EVMNetwork }) {
-		if (!options || typeof options.network === 'undefined' || !EVM_CONTRACTS[options.network]) {
+		if (!options || typeof options.network === 'undefined' || !this.evmContracts()[options.network]) {
 			throw new Error(`Please, pass network param in options in order to execute this request`);
 		}
 		const { network: expectedNetwork } = options;

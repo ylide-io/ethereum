@@ -20,6 +20,7 @@ import {
 import { EVM_CHAINS, EVM_CONTRACT_TO_NETWORK, EVM_ENS, EVM_NAMES, EVM_RPCS } from '../misc/constants';
 import { decodeEvmMsgId } from '../misc/evmMsgId';
 import {
+	EVMContracts,
 	EVMMailerContractType,
 	EVMNetwork,
 	EVMRegistryContractType,
@@ -114,10 +115,13 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	};
 	readonly currentRegistry: { link: IEVMRegistryContractLink; wrapper: EthereumRegistryV5Wrapper };
 
+	private readonly evmContractsTest: EVMContracts | null;
+
 	constructor(
 		private readonly options: {
 			network?: EVMNetwork;
 			rpcs?: IRPCDescriptor[];
+			evmContractsTest?: EVMContracts;
 		} = {},
 	) {
 		super();
@@ -128,6 +132,8 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 		this.network = options.network;
 		this.chainId = EVM_CHAINS[options.network];
+
+		this.evmContractsTest = options.evmContractsTest || null;
 
 		this.blockchainReader = EthereumBlockchainReader.createEthereumBlockchainReader(
 			options.rpcs ||
@@ -143,7 +149,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				})),
 		);
 
-		const contracts = EVM_CONTRACTS[this.network];
+		const contracts = this.evmContracts()[this.network];
 
 		this.mailers = contracts.mailerContracts.map(link => ({
 			link,
@@ -186,16 +192,16 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		this.contentReader = new EthereumContentReader(this.blockchainReader);
 	}
 
+	private evmContracts() {
+		return this.evmContractsTest || EVM_CONTRACTS;
+	}
+
 	blockchain(): string {
 		return EVM_NAMES[this.network];
 	}
 
 	blockchainGroup(): string {
 		return 'evm';
-	}
-
-	async init(): Promise<void> {
-		await this.blockchainReader.init();
 	}
 
 	private tryGetNameService(): EthereumNameService | null {
@@ -232,17 +238,11 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	async getUserNonceMailer(userAddress: string) {
-		const mailer = this.mailers.find(m => m.link.id === EVM_CONTRACTS[this.network].currentMailerId);
-		if (!mailer) {
-			throw new Error(
-				`Unknown contract ${EVM_CONTRACTS[this.network].currentMailerId} for network ${this.network}`,
-			);
-		}
 		if (
-			mailer.link.type === EVMMailerContractType.EVMMailerV9 &&
-			mailer.wrapper instanceof EthereumMailerV9Wrapper
+			this.currentMailer.link.type === EVMMailerContractType.EVMMailerV9 &&
+			this.currentMailer.wrapper instanceof EthereumMailerV9Wrapper
 		) {
-			return mailer.wrapper.mailing.getNonce(mailer.link, userAddress);
+			return this.currentMailer.wrapper.mailing.getNonce(this.currentMailer.link, userAddress);
 		}
 		throw new Error('Unsupported mailer version');
 	}
@@ -254,7 +254,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			throw new Error(`Message ${msgId} is not from ${this.network} network`);
 		}
 
-		const contract = EVM_CONTRACTS[this.network].mailerContracts.find(c => c.id === parsed.contractId);
+		const contract = this.evmContracts()[this.network].mailerContracts.find(c => c.id === parsed.contractId);
 		if (!contract) {
 			throw new Error(`Unknown contract ${parsed.contractId} for network ${this.network}`);
 		}

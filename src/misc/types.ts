@@ -3,6 +3,8 @@ import { TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contra
 import type { IMessage, Uint256 } from '@ylide/sdk';
 import { BigNumberish, ethers } from 'ethers';
 
+export type EVMContracts = Record<EVMNetwork, IEVMNetworkContracts>;
+
 export enum EVMNetwork {
 	LOCAL_HARDHAT, //  = 'LOCAL_HARDHAT',
 
