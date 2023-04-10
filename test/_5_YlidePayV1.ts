@@ -15,6 +15,7 @@ import { expect } from 'chai';
 import { BigNumber, providers } from 'ethers';
 import { ethers, network } from 'hardhat';
 import {
+	ContractType,
 	EVMMailerContractType,
 	EVMYlidePayContractType,
 	EthereumBlockchainReader,
@@ -108,13 +109,7 @@ describe('YlidePayV1', () => {
 		const mailerWrapper = new EthereumMailerV9Wrapper(readerForOwner);
 		const payWrapper = new EthereumPayV1Wrapper(readerForOwner);
 
-		await mailerWrapper.globals.setIsYlideTokenAttachment(
-			mailerDesc,
-			owner,
-			owner.address,
-			[ylidePay.address],
-			[true],
-		);
+		await mailerWrapper.globals.setIsYlide(mailerDesc, owner, owner.address, [ylidePay.address], [true]);
 
 		const nonce1 = await mailerWrapper.mailing.getNonce(mailerDesc, user1.address);
 
@@ -131,6 +126,8 @@ describe('YlidePayV1', () => {
 			],
 			keys: ethers.utils.concat([...keys, new Uint8Array(1)]),
 			content,
+			contractAddress: ylidePay.address,
+			contractType: ContractType.PAY,
 		});
 
 		const sig2 = await mailerWrapper.mailing.signBulkMail(
@@ -148,6 +145,8 @@ describe('YlidePayV1', () => {
 			deadline,
 			nonce1.toNumber(),
 			31337,
+			ylidePay.address,
+			ContractType.PAY,
 		);
 
 		expect(sig1).equal(sig2);
@@ -223,6 +222,8 @@ describe('YlidePayV1', () => {
 				BigNumber.from(`0x${YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address)))}`),
 			],
 			keys: ethers.utils.concat(keys),
+			contractAddress: ylidePay.address,
+			contractType: ContractType.PAY,
 		});
 
 		const sig4 = await mailerWrapper.mailing.signAddMailRecipients(
@@ -241,6 +242,8 @@ describe('YlidePayV1', () => {
 			deadline,
 			nonce2,
 			31337,
+			ylidePay.address,
+			ContractType.PAY,
 		);
 
 		expect(sig3).equal(sig4);

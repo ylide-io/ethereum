@@ -10,7 +10,7 @@ import { Uint256 } from '@ylide/sdk';
 import { BigNumber, BigNumberish, TypedDataDomain, ethers } from 'ethers';
 import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers/helpers/ethersHelper';
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
-import { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
+import { ContractType, IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
 import { IEventPosition, bnToUint256, getMultipleEvents, parseOutLogs, processMailPushEvent } from '../../misc/utils';
 import type { EthereumMailerV9Wrapper } from './EthereumMailerV9Wrapper';
 
@@ -24,6 +24,8 @@ export class EthereumMailerV9WrapperMailing {
 			{ name: 'recipients', type: 'uint256[]' },
 			{ name: 'keys', type: 'bytes' },
 			{ name: 'content', type: 'bytes' },
+			{ name: 'contractAddress', type: 'address' },
+			{ name: 'contractType', type: 'uint8' },
 		],
 	};
 
@@ -38,6 +40,8 @@ export class EthereumMailerV9WrapperMailing {
 			{ name: 'blockCountLock', type: 'uint16' },
 			{ name: 'recipients', type: 'uint256[]' },
 			{ name: 'keys', type: 'bytes' },
+			{ name: 'contractAddress', type: 'address' },
+			{ name: 'contractType', type: 'uint8' },
 		],
 	};
 
@@ -375,6 +379,8 @@ export class EthereumMailerV9WrapperMailing {
 		deadline: BigNumberish,
 		nonce: BigNumberish,
 		chainId: number,
+		contractAddress: string,
+		contractType: ContractType,
 	) {
 		return signer._signTypedData(this.getDomain(mailer, chainId), this.SendBulkMailTypes, {
 			feedId: `0x${feedId}`,
@@ -384,6 +390,8 @@ export class EthereumMailerV9WrapperMailing {
 			recipients: recipients.map(r => `0x${r}`),
 			keys: ethers.utils.concat(keys),
 			content,
+			contractAddress,
+			contractType,
 		});
 	}
 
@@ -400,6 +408,8 @@ export class EthereumMailerV9WrapperMailing {
 		deadline: BigNumberish,
 		nonce: BigNumberish,
 		chainId: number,
+		contractAddress: string,
+		contractType: ContractType,
 	) {
 		return signer._signTypedData(this.getDomain(mailer, chainId), this.AddMailRecipientsTypes, {
 			feedId: `0x${feedId}`,
@@ -411,6 +421,8 @@ export class EthereumMailerV9WrapperMailing {
 			blockCountLock,
 			recipients: recipients.map(r => `0x${r}`),
 			keys: ethers.utils.concat(keys),
+			contractAddress,
+			contractType,
 		});
 	}
 }

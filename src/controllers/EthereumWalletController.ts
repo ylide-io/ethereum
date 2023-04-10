@@ -25,6 +25,7 @@ import { BigNumber, ethers } from 'ethers';
 
 import { EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CHUNK_SIZES, EVM_NAMES } from '../misc/constants';
 import {
+	ContractType,
 	EVMNetwork,
 	GenerateSignatureCallback,
 	IEVMMailerContractLink,
@@ -700,6 +701,8 @@ export class EthereumWalletController extends AbstractWalletController {
 		content: Uint8Array,
 		deadline: number,
 		nonce: number,
+		contractAddress: string,
+		contractType: ContractType,
 		options?: { network?: EVMNetwork; value?: BigNumber },
 	) {
 		await this.ensureAccount(me);
@@ -720,6 +723,8 @@ export class EthereumWalletController extends AbstractWalletController {
 				deadline,
 				nonce,
 				await this.getCurrentChainId(),
+				contractAddress,
+				contractType,
 			);
 		}
 		throw new Error('Delegated call signatures are only supported in MailerV9');
@@ -737,6 +742,8 @@ export class EthereumWalletController extends AbstractWalletController {
 		keys: Uint8Array[],
 		deadline: number,
 		nonce: number,
+		contractAddress: string,
+		contractType: ContractType,
 		options?: { network?: EVMNetwork; value?: BigNumber },
 	) {
 		await this.ensureAccount(me);
@@ -759,6 +766,8 @@ export class EthereumWalletController extends AbstractWalletController {
 				deadline,
 				nonce,
 				await this.getCurrentChainId(),
+				contractAddress,
+				contractType,
 			);
 		}
 		throw new Error('Delegated call signatures are only supported in MailerV9');

@@ -20,6 +20,7 @@ import {
 import { EVM_CHAINS, EVM_CONTRACT_TO_NETWORK, EVM_ENS, EVM_NAMES, EVM_RPCS } from '../misc/constants';
 import { decodeEvmMsgId } from '../misc/evmMsgId';
 import {
+	ContractType,
 	EVMMailerContractType,
 	EVMNetwork,
 	EVMRegistryContractType,
@@ -433,7 +434,14 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return [];
 	}
 
-	async getMessageRecipients(msg: IEVMMessage, filterOutSent: true) {
+	async getMessageRecipients(
+		msg: IEVMMessage,
+		filterOutSent: true,
+	): Promise<{
+		contentId: Uint256;
+		sender: string;
+		recipients: Uint256[];
+	} | null> {
 		const decodedMsgId = decodeEvmMsgId(msg.msgId);
 		const mailer = this.mailers.find(m => m.link.id === decodedMsgId.contractId);
 		if (!mailer) {
@@ -450,7 +458,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			}
 			return result;
 		}
-		throw new Error('Method not implemented.');
+		return null;
 	}
 
 	async getTokenAttachments(msg: IEVMMessage): Promise<YlideTokenAttachment | null> {
@@ -459,18 +467,20 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		if (!mailer) {
 			throw new Error('This message does not belongs to this blockchain controller');
 		}
-		const tokenAttachmentAddress = msg.$$meta.tokenAttachment;
-		if (!tokenAttachmentAddress || tokenAttachmentAddress === ethers.constants.AddressZero) {
+		const supplement = msg.$$meta.supplement;
+		if (!supplement || supplement.contractAddress === ethers.constants.AddressZero) {
 			return null;
 		}
 		if (mailer.wrapper instanceof EthereumMailerV9Wrapper) {
-			const payer = this.payers.find(p => p.link.address === tokenAttachmentAddress);
-			if (payer) {
-				const attachments = await payer.wrapper.getTokenAttachments(payer.link, msg);
-				return {
-					kind: TokenAttachmentContractType.Pay,
-					attachments,
-				};
+			if (supplement.contractType === TokenAttachmentContractType.Pay) {
+				const payer = this.payers.find(p => p.link.address === supplement.contractAddress);
+				if (payer) {
+					const attachments = await payer.wrapper.getTokenAttachments(payer.link, msg);
+					return {
+						kind: TokenAttachmentContractType.Pay,
+						attachments,
+					};
+				}
 			}
 		}
 		return null;

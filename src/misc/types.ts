@@ -69,7 +69,7 @@ export interface IEVMEnrichedEvent<ParsedEvent = object> {
 export interface IEVMMeta extends IEVMEnrichedEvent {
 	contentId: Uint256;
 	index: number[];
-	tokenAttachment?: string;
+	supplement?: IYlideMailer.SupplementStruct;
 }
 
 export enum EVMMailerContractType {
@@ -163,3 +163,8 @@ export type GenerateSignatureCallback = (
 	recipients?: string[],
 	keys?: Uint8Array,
 ) => Promise<IYlideMailer.SignatureArgsStruct>;
+
+export enum ContractType {
+	NONE,
+	PAY,
+}

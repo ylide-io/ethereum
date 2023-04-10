@@ -108,13 +108,13 @@ export class EthereumMailerV9WrapperGlobals {
 		});
 	}
 
-	async isYlideTokenAttachment(mailer: IEVMMailerContractLink, contractAddresses: string): Promise<boolean> {
+	async isYlide(mailer: IEVMMailerContractLink, contractAddresses: string): Promise<boolean> {
 		return await this.wrapper.cache.contractOperation(mailer, async (contract, provider) => {
-			return contract.isYlideTokenAttachment(contractAddresses);
+			return contract.isYlide(contractAddresses);
 		});
 	}
 
-	async setIsYlideTokenAttachment(
+	async setIsYlide(
 		mailer: IEVMMailerContractLink,
 		signer: ethers.Signer,
 		from: string,
