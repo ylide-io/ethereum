@@ -436,7 +436,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 	async getMessageRecipients(
 		msg: IEVMMessage,
-		filterOutSent: true,
+		filterOutSent = true,
 	): Promise<{
 		contentId: Uint256;
 		sender: string;
