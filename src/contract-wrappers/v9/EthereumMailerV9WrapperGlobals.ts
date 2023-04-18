@@ -122,7 +122,7 @@ export class EthereumMailerV9WrapperGlobals {
 		isSet: boolean[],
 	) {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.setIsYlideTokenAttachment(contractAddresses, isSet, { from });
+		const tx = await contract.setIsYlide(contractAddresses, isSet, { from });
 		const receipt = await tx.wait();
 		return { tx, receipt };
 	}
