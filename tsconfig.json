@@ -17,6 +17,8 @@
 		"test/_2_RegistryV6.ts",
 		"test/_3_MailerV8.ts",
 		"test/_4_MailerV9.ts",
-		"test/_5_YlidePayV1.ts"
+		"test/_5_YlidePayV1.ts",
+		"test/_6_YlideSafeV1.ts",
+		"test/test-utils.ts"
 	]
 }

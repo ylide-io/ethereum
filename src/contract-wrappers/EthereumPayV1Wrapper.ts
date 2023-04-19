@@ -47,10 +47,9 @@ export class EthereumPayV1Wrapper {
 		contract: IEVMYlidePayContractLink,
 		signer: ethers.Signer,
 		newOwner: string,
-		from: string,
 	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
 		const c = this.cache.getContract(contract.address, signer);
-		const tx = await c.transferOwnership(newOwner, { from });
+		const tx = await c.transferOwnership(newOwner);
 		const receipt = await tx.wait();
 		return { tx, receipt };
 	}
@@ -59,10 +58,9 @@ export class EthereumPayV1Wrapper {
 		contract: IEVMYlidePayContractLink,
 		signer: ethers.Signer,
 		mailerAddress: string,
-		from: string,
 	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
 		const c = this.cache.getContract(contract.address, signer);
-		const tx = await c.setYlideMailer(mailerAddress, { from });
+		const tx = await c.setYlideMailer(mailerAddress);
 		const receipt = await tx.wait();
 		return { tx, receipt };
 	}
@@ -70,10 +68,9 @@ export class EthereumPayV1Wrapper {
 	async pause(
 		contract: IEVMYlidePayContractLink,
 		signer: ethers.Signer,
-		from: string,
 	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
 		const c = this.cache.getContract(contract.address, signer);
-		const tx = await c.pause({ from });
+		const tx = await c.pause();
 		const receipt = await tx.wait();
 		return { tx, receipt };
 	}
@@ -81,16 +78,15 @@ export class EthereumPayV1Wrapper {
 	async unpause(
 		contract: IEVMYlidePayContractLink,
 		signer: ethers.Signer,
-		from: string,
 	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
 		const c = this.cache.getContract(contract.address, signer);
-		const tx = await c.pause({ from });
+		const tx = await c.pause();
 		const receipt = await tx.wait();
 		return { tx, receipt };
 	}
 
 	async sendBulkMailWithToken(
-		{ mailer, signer, from, value }: MailWrapperArgs,
+		{ mailer, signer, value }: MailWrapperArgs,
 		sendBulkArgs: IYlideMailer.SendBulkArgsStruct,
 		signatureArgs: IYlideMailer.SignatureArgsStruct,
 		mailerWrapper: EthereumMailerV9Wrapper,
@@ -105,14 +101,14 @@ export class EthereumPayV1Wrapper {
 	}> {
 		const mailerContract = mailerWrapper.cache.getContract(mailer.address, signer);
 		const contract = this.cache.getContract(payer.address, signer);
-		const tx = await contract.sendBulkMailWithToken(sendBulkArgs, signatureArgs, paymentArgs, { from, value });
+		const tx = await contract.sendBulkMailWithToken(sendBulkArgs, signatureArgs, paymentArgs, { value });
 		return processSendMailTxV9(tx, mailerContract, mailer, (msgs: IEVMEvent<MailPushEventObject>[]) =>
 			this.blockchainReader.enrichEvents<MailPushEventObject>(msgs),
 		);
 	}
 
 	async addMailRecipientsWithToken(
-		{ mailer, signer, from, value }: MailWrapperArgs,
+		{ mailer, signer, value }: MailWrapperArgs,
 		addMailRecipientsArgs: IYlideMailer.AddMailRecipientsArgsStruct,
 		signatureArgs: IYlideMailer.SignatureArgsStruct,
 		mailerWrapper: EthereumMailerV9Wrapper,
@@ -128,7 +124,6 @@ export class EthereumPayV1Wrapper {
 		const mailerContract = mailerWrapper.cache.getContract(mailer.address, signer);
 		const contract = this.cache.getContract(payer.address, signer);
 		const tx = await contract.addMailRecipientsWithToken(addMailRecipientsArgs, signatureArgs, paymentArgs, {
-			from,
 			value,
 		});
 		return processSendMailTxV9(tx, mailerContract, mailer, (msgs: IEVMEvent<MailPushEventObject>[]) =>

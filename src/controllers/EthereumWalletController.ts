@@ -20,7 +20,7 @@ import {
 	sha256,
 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
-import { BigNumber, ethers } from 'ethers';
+import { BigNumber, BigNumberish, ethers } from 'ethers';
 
 import { EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CHUNK_SIZES, EVM_NAMES } from '../misc/constants';
 import {
@@ -33,7 +33,6 @@ import {
 	IEVMYlideSafeContractLink,
 	Options,
 	Recipient,
-	TokenAttachmentContractType,
 } from '../misc/types';
 import { EthereumBlockchainController } from './EthereumBlockchainController';
 import { EthereumBlockchainReader } from './helpers/EthereumBlockchainReader';
@@ -50,7 +49,7 @@ import { EthereumRegistryV5Wrapper } from '../contract-wrappers/EthereumRegistry
 import { EthereumRegistryV6Wrapper } from '../contract-wrappers/EthereumRegistryV6Wrapper';
 import { EthereumSafeV1Wrapper } from '../contract-wrappers/EthereumSafeV1Wrapper.ts';
 import {
-	EVMMailerContractType,
+	EVMContracts,
 	MailerWrapper,
 	formatRecipientsToObj,
 	formatRecipientsToTuple,
@@ -97,31 +96,17 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	private lastCurrentAccount: IGenericAccount | null = null;
 	readonly providerObject: any;
+	private readonly evmContractsTest: EVMContracts | null;
 
-	constructor(
-		options: {
-			dev?: boolean;
-			endpoint?: string;
-			wallet?: string;
-			signer?: JsonRpcSigner;
-			providerObject?: any;
-			onNetworkSwitchRequest?: NetworkSwitchHandler;
-			onSwitchAccountRequest?: SwitchAccountCallback;
-		} = {},
-	) {
+	constructor(options: {
+		wallet: string;
+		signer: JsonRpcSigner;
+		onNetworkSwitchRequest: NetworkSwitchHandler;
+		providerObject?: any;
+		onSwitchAccountRequest?: SwitchAccountCallback;
+		evmContractsTest?: EVMContracts;
+	}) {
 		super(options);
-
-		if (!options || !options.wallet) {
-			throw new Error(
-				'You have to pass valid wallet param to the options of EthereumWalletController constructor',
-			);
-		}
-
-		if (!options || !options.signer) {
-			throw new Error(
-				'You have to pass valid Signer param to the options of EthereumWalletController constructor',
-			);
-		}
 
 		this.providerObject = options.providerObject || (window as any).ethereum;
 		this.signer = options.signer;
@@ -130,11 +115,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 		this.onSwitchAccountRequest = options?.onSwitchAccountRequest || null;
 
-		if (!options || !options.onNetworkSwitchRequest) {
-			throw new Error(
-				'You have to pass valid onNetworkSwitchRequest param to the options of EthereumWalletController constructor',
-			);
-		}
+		this.evmContractsTest = options.evmContractsTest || null;
 
 		this.onNetworkSwitchRequest = options.onNetworkSwitchRequest;
 
@@ -147,6 +128,10 @@ export class EthereumWalletController extends AbstractWalletController {
 				batchNotSupported: true,
 			},
 		]);
+	}
+
+	private evmContracts() {
+		return this.evmContractsTest || EVM_CONTRACTS;
 	}
 
 	private handleError(err: any) {
@@ -207,12 +192,12 @@ export class EthereumWalletController extends AbstractWalletController {
 			| EthereumRegistryV5Wrapper
 			| EthereumRegistryV6Wrapper;
 	} {
-		const id = EVM_CONTRACTS[network].currentRegistryId;
+		const id = this.evmContracts()[network].currentRegistryId;
 		const existing = this.registries.find(r => r.link.id === id);
 		if (existing) {
 			return existing;
 		} else {
-			const link = EVM_CONTRACTS[network].registryContracts.find(r => r.id === id);
+			const link = this.evmContracts()[network].registryContracts.find(r => r.id === id);
 			if (!link) {
 				throw new Error(`Network ${network} has no current registry`);
 			}
@@ -229,12 +214,12 @@ export class EthereumWalletController extends AbstractWalletController {
 		link: IEVMMailerContractLink;
 		wrapper: EthereumMailerV6Wrapper | EthereumMailerV7Wrapper | EthereumMailerV8Wrapper | EthereumMailerV9Wrapper;
 	} {
-		const id = EVM_CONTRACTS[network].currentMailerId;
+		const id = this.evmContracts()[network].currentMailerId;
 		const existing = this.mailers.find(r => r.link.id === id);
 		if (existing) {
 			return existing;
 		} else {
-			const link = EVM_CONTRACTS[network].mailerContracts.find(r => r.id === id);
+			const link = this.evmContracts()[network].mailerContracts.find(r => r.id === id);
 			if (!link) {
 				throw new Error(`Network ${network} has no current mailer`);
 			}
@@ -258,7 +243,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		if (existing) {
 			return existing;
 		} else {
-			const link = EVM_CONTRACTS[network].payContracts?.find(r => r.id === mailerLink.pay?.id);
+			const link = this.evmContracts()[network].payContracts?.find(r => r.id === mailerLink.pay?.id);
 			if (!link) {
 				throw new Error(`Network ${network} has no current pay contract`);
 			}
@@ -282,9 +267,9 @@ export class EthereumWalletController extends AbstractWalletController {
 		if (existing) {
 			return existing;
 		} else {
-			const link = EVM_CONTRACTS[network].safeContracts?.find(r => r.id === mailerLink.safe?.id);
+			const link = this.evmContracts()[network].safeContracts?.find(r => r.id === mailerLink.safe?.id);
 			if (!link) {
-				throw new Error(`Network ${network} has no current pay contract`);
+				throw new Error(`Network ${network} has no current safe contract`);
 			}
 			const wrapper = new EthereumBlockchainController.safeWrappers[link.type](this.blockchainReader);
 			this.safes.push({
@@ -332,7 +317,7 @@ export class EthereumWalletController extends AbstractWalletController {
 	}
 
 	private async ensureNetworkOptions(reason: string, options?: { network?: EVMNetwork }) {
-		if (!options || typeof options.network === 'undefined' || !EVM_CONTRACTS[options.network]) {
+		if (!options || typeof options.network === 'undefined' || !this.evmContracts()[options.network]) {
 			throw new Error(`Please, pass network param in options in order to execute this request`);
 		}
 		const { network: expectedNetwork } = options;
@@ -479,6 +464,7 @@ export class EthereumWalletController extends AbstractWalletController {
 				recipients,
 			});
 		} else if (chunks.length === 1 && recipients.length < Math.ceil((15.5 * 1024 - chunks[0].byteLength) / 70)) {
+			console.log(1);
 			return this.#sendBulkMail({
 				link,
 				wrapper,
@@ -488,8 +474,10 @@ export class EthereumWalletController extends AbstractWalletController {
 				from,
 				recipients,
 				network,
+				options,
 			});
 		}
+		console.log(2);
 		return this.#sendLargeMail({
 			link,
 			wrapper,
@@ -499,6 +487,7 @@ export class EthereumWalletController extends AbstractWalletController {
 			from,
 			recipients,
 			network,
+			options,
 		});
 	}
 
@@ -571,12 +560,26 @@ export class EthereumWalletController extends AbstractWalletController {
 				content: chunks[0],
 				...formatRecipientsToObj(recipients),
 			};
-			if (options?.generateSignature) {
-				console.log('Signing message');
-				const signatureArgs = await options.generateSignature(uniqueId);
-				if (options?.payments && options.payments.kind === TokenAttachmentContractType.Pay) {
-					console.log(`Sending bulk mail with token (Pay), chunk length: ${chunks[0].length} bytes`);
+			if (options?.supplement) {
+				const [chainId, nonce] = await Promise.all([
+					this.getCurrentChainId(),
+					wrapper.mailing.getNonce(link, from),
+				]);
+				const ylideSignArgs = {
+					mailer: link,
+					nonce,
+					chainId,
+					deadline: options.supplement.deadline,
+					signer: this.signer,
+				};
+				if (options.supplement.kind === ContractType.PAY) {
+					console.log('Signing message');
 					const payer = this.getPayerByMailerLinkAndNetwork(link, network);
+					const signatureArgs = await wrapper.mailing.signBulkMail(ylideSignArgs, sendBulkArgs, {
+						contractAddress: payer.link.address,
+						contractType: options.supplement.kind,
+					});
+					console.log(`Sending bulk mail with token (Pay), chunk length: ${chunks[0].length} bytes`);
 					return processMailResponse(
 						payer.wrapper.sendBulkMailWithToken(
 							wrapperArgs,
@@ -584,12 +587,17 @@ export class EthereumWalletController extends AbstractWalletController {
 							signatureArgs,
 							wrapper,
 							payer.link,
-							options.payments.args,
+							options.supplement.data,
 						),
 					);
-				} else if (options.safeArgs) {
-					console.log(`Sending bulk mail as Safe, chunk length: ${chunks[0].length} bytes`);
+				} else if (options.supplement.kind === ContractType.SAFE) {
+					console.log('Signing message');
 					const ylideSafe = this.getYlideSafeByMailerLinkAndNetwork(link, network);
+					const signatureArgs = await wrapper.mailing.signBulkMail(ylideSignArgs, sendBulkArgs, {
+						contractAddress: ylideSafe.link.address,
+						contractType: options.supplement.kind,
+					});
+					console.log(`Sending bulk mail as Safe, chunk length: ${chunks[0].length} bytes`);
 					return processMailResponse(
 						ylideSafe.wrapper.sendBulkMail(
 							wrapperArgs,
@@ -597,7 +605,7 @@ export class EthereumWalletController extends AbstractWalletController {
 							signatureArgs,
 							wrapper,
 							ylideSafe.link,
-							options.safeArgs,
+							options.supplement.data,
 						),
 					);
 				}
@@ -683,20 +691,30 @@ export class EthereumWalletController extends AbstractWalletController {
 					blockCountLock,
 					...formatRecipientsToObj(rs),
 				});
-				if (options?.generateSignature) {
-					if (options.payments?.kind === TokenAttachmentContractType.Pay) {
+				if (options?.supplement) {
+					const chainId = await this.getCurrentChainId();
+					const { deadline } = options.supplement;
+					const getYlideSignArgs = (nonce: BigNumberish) => ({
+						mailer: link,
+						nonce,
+						chainId,
+						deadline,
+						signer: this.signer,
+					});
+					if (options.supplement.kind === ContractType.PAY) {
 						const payer = this.getPayerByMailerLinkAndNetwork(link, network);
 						for (let i = 0; i < recipients.length; i += 210) {
-							const recs = recipients.slice(i, i + 210);
-							const paymentArgs = options.payments.args.slice(i, i + 210);
 							console.log('Signing message');
-							const signatureArgs = await options.generateSignature(
-								uniqueId,
-								firstBlockNumber,
-								chunks.length,
-								blockCountLock,
-								recs.map(r => hexPrefix(r.address)),
-								ethers.utils.concat(recs.map(r => r.messageKey.toBytes())),
+							const nonce = await wrapper.mailing.getNonce(link, from);
+							const recs = recipients.slice(i, i + 210);
+							const paymentArgs = options.supplement.data.slice(i, i + 210);
+							const signatureArgs = await wrapper.mailing.signAddMailRecipients(
+								getYlideSignArgs(nonce),
+								getAddMailRecipientsArgs(recs),
+								{
+									contractAddress: payer.link.address,
+									contractType: options.supplement.kind,
+								},
 							);
 							console.log(`Sending bulk mail with token (Pay), chunk length: ${chunks[0].length} bytes`);
 							const { messages } = await payer.wrapper.addMailRecipientsWithToken(
@@ -709,18 +727,20 @@ export class EthereumWalletController extends AbstractWalletController {
 							);
 							msgs.push(...messages);
 						}
-					} else if (options.safeArgs) {
+					} else if (options.supplement.kind === ContractType.SAFE) {
 						const ylideSafe = this.getYlideSafeByMailerLinkAndNetwork(link, network);
 						for (let i = 0; i < recipients.length; i += 210) {
-							const recs = recipients.slice(i, i + 210);
 							console.log('Signing message');
-							const signatureArgs = await options.generateSignature(
-								uniqueId,
-								firstBlockNumber,
-								chunks.length,
-								blockCountLock,
-								recs.map(r => hexPrefix(r.address)),
-								ethers.utils.concat(recs.map(r => r.messageKey.toBytes())),
+							const nonce = await wrapper.mailing.getNonce(link, from);
+							const recs = recipients.slice(i, i + 210);
+							const safeRecs = options.supplement.data.safeRecipients.slice(i, i + 210);
+							const signatureArgs = await wrapper.mailing.signAddMailRecipients(
+								getYlideSignArgs(nonce),
+								getAddMailRecipientsArgs(recs),
+								{
+									contractAddress: ylideSafe.link.address,
+									contractType: options.supplement.kind,
+								},
 							);
 							console.log(`Sending bulk mail as Safe, chunk length: ${chunks[0].length} bytes`);
 							const { messages } = await ylideSafe.wrapper.addMailRecipients(
@@ -729,7 +749,10 @@ export class EthereumWalletController extends AbstractWalletController {
 								signatureArgs,
 								wrapper,
 								ylideSafe.link,
-								options.safeArgs,
+								{
+									safeSender: options.supplement.data.safeSender,
+									safeRecipients: safeRecs,
+								},
 							);
 							msgs.push(...messages);
 						}
@@ -859,88 +882,6 @@ export class EthereumWalletController extends AbstractWalletController {
 
 			return { pushes: messages.map(msg => ({ push: msg })) };
 		}
-	}
-
-	async signBulkMail(
-		me: IGenericAccount,
-		signer: ethers.providers.JsonRpcSigner,
-		feedId: Uint256,
-		uniqueId: number,
-		recipients: Uint256[],
-		keys: Uint8Array[],
-		content: Uint8Array,
-		deadline: number,
-		nonce: number,
-		contractAddress: string,
-		contractType: ContractType,
-		options?: { network?: EVMNetwork; value?: BigNumber },
-	) {
-		await this.ensureAccount(me);
-		const network = await this.ensureNetworkOptions('Sign bulk mail', options);
-		const mailer = this.getMailerByNetwork(network);
-		if (
-			mailer.link.type === EVMMailerContractType.EVMMailerV9 &&
-			mailer.wrapper instanceof EthereumMailerV9Wrapper
-		) {
-			return mailer.wrapper.mailing.signBulkMail(
-				mailer.link,
-				signer,
-				feedId,
-				uniqueId,
-				recipients,
-				keys,
-				content,
-				deadline,
-				nonce,
-				await this.getCurrentChainId(),
-				contractAddress,
-				contractType,
-			);
-		}
-		throw new Error('Delegated call signatures are only supported in MailerV9');
-	}
-
-	async signAddMailRecipients(
-		me: IGenericAccount,
-		signer: ethers.providers.JsonRpcSigner,
-		feedId: Uint256,
-		uniqueId: number,
-		firstBlockNumber: number,
-		partsCount: number,
-		blockCountLock: number,
-		recipients: Uint256[],
-		keys: Uint8Array[],
-		deadline: number,
-		nonce: number,
-		contractAddress: string,
-		contractType: ContractType,
-		options?: { network?: EVMNetwork; value?: BigNumber },
-	) {
-		await this.ensureAccount(me);
-		const network = await this.ensureNetworkOptions('Sign add mail recipients', options);
-		const mailer = this.getMailerByNetwork(network);
-		if (
-			mailer.link.type === EVMMailerContractType.EVMMailerV9 &&
-			mailer.wrapper instanceof EthereumMailerV9Wrapper
-		) {
-			return mailer.wrapper.mailing.signAddMailRecipients(
-				mailer.link,
-				signer,
-				feedId,
-				uniqueId,
-				firstBlockNumber,
-				partsCount,
-				blockCountLock,
-				recipients,
-				keys,
-				deadline,
-				nonce,
-				await this.getCurrentChainId(),
-				contractAddress,
-				contractType,
-			);
-		}
-		throw new Error('Delegated call signatures are only supported in MailerV9');
 	}
 
 	decryptMessageKey(

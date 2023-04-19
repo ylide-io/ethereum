@@ -206,7 +206,6 @@ describe('YlideMailerV9', function () {
 					const { feedId } = await userMailerV9Wrapper.mailing.createMailingFeed(
 						mailerDesc,
 						userSigner,
-						await userSigner.getAddress(),
 						'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 						BigNumber.from(0),
 					);
@@ -224,7 +223,6 @@ describe('YlideMailerV9', function () {
 					await userMailerV9Wrapper.mailing.setMailingFeedOwner(
 						mailerDesc,
 						userSigner,
-						await userSigner.getAddress(),
 						feedId!,
 						await ownerSigner.getAddress(),
 					);
@@ -233,15 +231,9 @@ describe('YlideMailerV9', function () {
 
 					expect(feed2.owner, 'Feed owner must be owner address').to.equal(await ownerSigner.getAddress());
 
-					await userMailerV9Wrapper.mailing.setMailingFeedFees(
-						mailerDesc,
-						ownerSigner,
-						await ownerSigner.getAddress(),
-						feedId!,
-						{
-							recipientFee: BigNumber.from(1),
-						},
-					);
+					await userMailerV9Wrapper.mailing.setMailingFeedFees(mailerDesc, ownerSigner, feedId!, {
+						recipientFee: BigNumber.from(1),
+					});
 
 					const feed3 = await userMailerV9Wrapper.mailing.getMailingFeedParams(mailerDesc, feedId!);
 
@@ -250,7 +242,6 @@ describe('YlideMailerV9', function () {
 					await userMailerV9Wrapper.mailing.setMailingFeedBeneficiary(
 						mailerDesc,
 						ownerSigner,
-						await ownerSigner.getAddress(),
 						feedId!,
 						await beneficiarySigner.getAddress(),
 					);
@@ -268,7 +259,6 @@ describe('YlideMailerV9', function () {
 					const { feedId } = await userMailerV9Wrapper.mailing.createMailingFeed(
 						mailerDesc,
 						userSigner,
-						await userSigner.getAddress(),
 						'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 						BigNumber.from(0),
 					);
@@ -284,7 +274,6 @@ describe('YlideMailerV9', function () {
 						{
 							mailer: mailerDesc,
 							signer: userSigner,
-							from: await userSigner.getAddress(),
 							value: BigNumber.from(0),
 						},
 						{
@@ -751,7 +740,6 @@ describe('YlideMailerV9', function () {
 						await ownerMailerV9Wrapper.mailing.createMailingFeed(
 							mailerDesc,
 							ownerSigner,
-							await ownerSigner.getAddress(),
 							'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 							BigNumber.from(0),
 						);
@@ -771,7 +759,6 @@ describe('YlideMailerV9', function () {
 						await ownerMailerV9Wrapper.mailing.createMailingFeed(
 							mailerDesc,
 							ownerSigner,
-							await ownerSigner.getAddress(),
 							'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 							BigNumber.from(15),
 						);
@@ -788,7 +775,6 @@ describe('YlideMailerV9', function () {
 					await ownerMailerV9Wrapper.mailing.createMailingFeed(
 						mailerDesc,
 						ownerSigner,
-						await ownerSigner.getAddress(),
 						'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 						BigNumber.from(20),
 					);
@@ -832,7 +818,6 @@ describe('YlideMailerV9', function () {
 							{
 								mailer: mailerDesc,
 								signer: userSigner,
-								from: await userSigner.getAddress(),
 								value: BigNumber.from(value),
 							},
 							{
@@ -1029,7 +1014,6 @@ describe('YlideMailerV9', function () {
 					await userMailerV9Wrapper.mailing.setMailingFeedBeneficiary(
 						mailerDesc,
 						ownerSigner,
-						await ownerSigner.getAddress(),
 						feedId,
 						randomZoneBeneficiary,
 					);
@@ -1094,7 +1078,6 @@ describe('YlideMailerV9', function () {
 					await userMailerV9Wrapper.mailing.setMailingFeedBeneficiary(
 						mailerDesc,
 						ownerSigner,
-						await ownerSigner.getAddress(),
 						feedId,
 						randomZoneBeneficiary,
 					);
@@ -1107,15 +1090,9 @@ describe('YlideMailerV9', function () {
 
 					await sendAndVerifySmallMail(userMailerV9Wrapper, userSigner, feedId, 0);
 
-					await userMailerV9Wrapper.mailing.setMailingFeedFees(
-						mailerDesc,
-						ownerSigner,
-						await ownerSigner.getAddress(),
-						feedId,
-						{
-							recipientFee: BigNumber.from(7),
-						},
-					);
+					await userMailerV9Wrapper.mailing.setMailingFeedFees(mailerDesc, ownerSigner, feedId, {
+						recipientFee: BigNumber.from(7),
+					});
 
 					// should be ok
 					await sendAndVerifySmallMail(userMailerV9Wrapper, userSigner, feedId, 7);
@@ -1163,7 +1140,6 @@ describe('YlideMailerV9', function () {
 					await userMailerV9Wrapper.mailing.setMailingFeedBeneficiary(
 						mailerDesc,
 						ownerSigner,
-						await ownerSigner.getAddress(),
 						feedId,
 						randomZoneBeneficiary,
 					);
@@ -1182,15 +1158,9 @@ describe('YlideMailerV9', function () {
 						broadcastFee: BigNumber.from(11),
 					});
 
-					await userMailerV9Wrapper.mailing.setMailingFeedFees(
-						mailerDesc,
-						ownerSigner,
-						await ownerSigner.getAddress(),
-						feedId,
-						{
-							recipientFee: BigNumber.from(17),
-						},
-					);
+					await userMailerV9Wrapper.mailing.setMailingFeedFees(mailerDesc, ownerSigner, feedId, {
+						recipientFee: BigNumber.from(17),
+					});
 
 					// should be ok
 					await sendAndVerifySmallMail(userMailerV9Wrapper, userSigner, feedId, 3 + 7 + 17);
@@ -1224,7 +1194,6 @@ describe('YlideMailerV9', function () {
 						{
 							mailer: mailerDesc,
 							signer: userSigner,
-							from: await userSigner.getAddress(),
 							value: BigNumber.from(0),
 						},
 						{
@@ -1368,7 +1337,6 @@ describe('YlideMailerV9', function () {
 						{
 							mailer: mailerDesc,
 							signer: userSigner,
-							from: await userSigner.getAddress(),
 							value: BigNumber.from(0),
 						},
 						{
@@ -1942,7 +1910,6 @@ describe('YlideMailerV9', function () {
 							{
 								mailer: _mailer,
 								signer,
-								from,
 								value: v,
 							},
 							{
@@ -2308,7 +2275,6 @@ describe('YlideMailerV9', function () {
 						{
 							mailer: mailerDesc,
 							signer: userSigner,
-							from: await userSigner.getAddress(),
 							value: BigNumber.from(0),
 						},
 						{
@@ -2354,7 +2320,6 @@ describe('YlideMailerV9', function () {
 						{
 							mailer: mailerDesc,
 							signer: userSigner,
-							from: await userSigner.getAddress(),
 							value: BigNumber.from(0),
 						},
 						{
@@ -2498,7 +2463,6 @@ describe('YlideMailerV9', function () {
 						{
 							mailer: mailerDesc,
 							signer: userSigner,
-							from: await userSigner.getAddress(),
 							value: BigNumber.from(0),
 						},
 						{

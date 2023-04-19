@@ -26,6 +26,7 @@ import {
 } from '../src';
 import { EthereumPayV1Wrapper } from '../src/contract-wrappers/EthereumPayV1Wrapper';
 import { EthereumMailerV9Wrapper } from '../src/contract-wrappers/v9';
+import { currentTimestamp } from './test-utils';
 
 describe('YlidePayV1', () => {
 	let owner: SignerWithAddress;
@@ -39,9 +40,6 @@ describe('YlidePayV1', () => {
 	const uniqueId = 123;
 	const keys = [new Uint8Array([1, 2, 3, 4, 5, 6]), new Uint8Array([6, 5, 4, 3, 2, 1])];
 	const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
-
-	const currentTimestamp = async () =>
-		ethers.provider.getBlock(ethers.provider.getBlockNumber()).then(block => block.timestamp);
 
 	let domain: {
 		name: string;
@@ -110,7 +108,7 @@ describe('YlidePayV1', () => {
 		const mailerWrapper = new EthereumMailerV9Wrapper(readerForOwner);
 		const payWrapper = new EthereumPayV1Wrapper(readerForOwner);
 
-		await mailerWrapper.globals.setIsYlide(mailerDesc, owner, owner.address, [ylidePay.address], [true]);
+		await mailerWrapper.globals.setIsYlide(mailerDesc, owner, [ylidePay.address], [true]);
 
 		const nonce1 = await mailerWrapper.mailing.getNonce(mailerDesc, user1.address);
 
@@ -131,23 +129,25 @@ describe('YlidePayV1', () => {
 			contractType: ContractType.PAY,
 		});
 
-		const sig2 = await mailerWrapper.mailing.signBulkMail(
-			mailerDesc,
-			user1 as unknown as providers.JsonRpcSigner,
-			feedId,
-			uniqueId,
-			[
-				...[user2.address, owner.address].map(r => bnToUint256(BigNumber.from(r))),
-				YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
-			],
-
-			[...keys, new Uint8Array(1)],
-			content,
-			deadline,
-			nonce1.toNumber(),
-			31337,
-			ylidePay.address,
-			ContractType.PAY,
+		const { signature: sig2 } = await mailerWrapper.mailing.signBulkMail(
+			{
+				mailer: mailerDesc,
+				signer: user1 as unknown as providers.JsonRpcSigner,
+				deadline,
+				nonce: nonce1,
+				chainId: 31337,
+			},
+			{
+				feedId: hexPrefix(feedId),
+				uniqueId,
+				recipients: [
+					...[user2.address, owner.address].map(r => bnToUint256(BigNumber.from(r))),
+					YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
+				].map(hexPrefix),
+				keys: [...keys, new Uint8Array(1)],
+				content,
+			},
+			{ contractAddress: ylidePay.address, contractType: ContractType.PAY },
 		);
 
 		expect(sig1).equal(sig2);
@@ -159,7 +159,7 @@ describe('YlidePayV1', () => {
 		expect(await erc20.balanceOf(user2.address)).equal(0);
 
 		const { messages } = await payWrapper.sendBulkMailWithToken(
-			{ mailer: mailerDesc, signer: user1, value: BigNumber.from(0), from: user1.address },
+			{ mailer: mailerDesc, signer: user1, value: BigNumber.from(0) },
 			{
 				feedId: hexPrefix(feedId),
 				uniqueId,
@@ -226,24 +226,27 @@ describe('YlidePayV1', () => {
 			contractType: ContractType.PAY,
 		});
 
-		const sig4 = await mailerWrapper.mailing.signAddMailRecipients(
-			mailerDesc,
-			user1 as unknown as providers.JsonRpcSigner,
-			feedId,
-			uniqueId,
-			firstBlockNumber,
-			partsCount,
-			blockCountLock,
-			[
-				bnToUint256(BigNumber.from(user2.address)),
-				YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
-			],
-			keys,
-			deadline,
-			nonce2,
-			31337,
-			ylidePay.address,
-			ContractType.PAY,
+		const { signature: sig4 } = await mailerWrapper.mailing.signAddMailRecipients(
+			{
+				mailer: mailerDesc,
+				signer: user1 as unknown as providers.JsonRpcSigner,
+				deadline,
+				nonce: nonce2,
+				chainId: 31337,
+			},
+			{
+				feedId: hexPrefix(feedId),
+				uniqueId,
+				firstBlockNumber,
+				partsCount,
+				blockCountLock,
+				recipients: [
+					bnToUint256(BigNumber.from(user2.address)),
+					YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
+				].map(hexPrefix),
+				keys,
+			},
+			{ contractAddress: ylidePay.address, contractType: ContractType.PAY },
 		);
 
 		expect(sig3).equal(sig4);
@@ -255,7 +258,7 @@ describe('YlidePayV1', () => {
 		expect(await erc721.balanceOf(user2.address)).equal(0);
 
 		await payWrapper.addMailRecipientsWithToken(
-			{ mailer: mailerDesc, signer: user1, value: BigNumber.from(0), from: user1.address },
+			{ mailer: mailerDesc, signer: user1, value: BigNumber.from(0) },
 			{
 				feedId: hexPrefix(feedId),
 				uniqueId,

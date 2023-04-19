@@ -5,6 +5,8 @@ import { BigNumber, BigNumberish, ethers } from 'ethers';
 import { EthereumMailerV6Wrapper, EthereumMailerV7Wrapper, EthereumMailerV8Wrapper } from '../contract-wrappers';
 import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9';
 
+export type EVMContracts = Record<EVMNetwork, IEVMNetworkContracts>;
+
 export enum EVMNetwork {
 	LOCAL_HARDHAT, //  = 'LOCAL_HARDHAT',
 
@@ -137,67 +139,56 @@ export type IHistorySource =
 	| { type: 'recipient'; feedId: Uint256; recipient: Uint256 }
 	| { type: 'broadcast'; feedId: Uint256 };
 
-export enum TokenAttachmentContractType {
-	Pay,
-	Stake,
-	StreamSablier,
-}
-
-export type Pay = {
-	kind: TokenAttachmentContractType.Pay;
-	args: YlidePayV1.TransferInfoStruct[];
-};
-
-export type YlidePayment = Pay;
-
-export type YlideSafeArgs = YlideSafeV1.SafeArgsStruct;
-
-export type PayAttachment = {
-	kind: TokenAttachmentContractType.Pay;
-	attachments: TokenAttachmentEventObject[];
-};
-
-export type StakeAttachment = {
-	kind: TokenAttachmentContractType.Stake;
-	attachments: TokenAttachmentEventObject[];
-};
-
-export type YlideTokenAttachment = PayAttachment | StakeAttachment;
-
 export type LogInternal = {
 	log: ethers.providers.Log;
 	logDescription: ethers.utils.LogDescription;
 };
 
-export type GenerateSignatureCallback = (
-	uniqueId: BigNumberish,
-	firstBlockNumber?: BigNumberish,
-	partsCount?: BigNumberish,
-	blockCountLock?: BigNumberish,
-	recipients?: string[],
-	keys?: Uint8Array,
-) => Promise<IYlideMailer.SignatureArgsStruct>;
-
 export enum ContractType {
 	NONE,
 	PAY,
+	SAFE,
 }
 
 export type MailWrapperArgs = {
 	mailer: IEVMMailerContractLink;
 	signer: ethers.Signer;
-	from: string;
 	value: ethers.BigNumber;
 };
 
 export type Recipient = { address: Uint256; messageKey: MessageKey };
 
+export type PayAttachment = {
+	kind: ContractType.PAY;
+	attachments: TokenAttachmentEventObject[];
+};
+
+export type YlideTokenAttachment = PayAttachment;
+
+export type SupplementPay = {
+	kind: ContractType.PAY;
+	data: YlidePayV1.TransferInfoStruct[];
+	deadline: number;
+};
+
+export type SupplementSafe = {
+	kind: ContractType.SAFE;
+	data: YlideSafeV1.SafeArgsStruct;
+	deadline: number;
+};
+
 export type Options = {
 	network?: EVMNetwork;
 	value?: BigNumber;
-	generateSignature?: GenerateSignatureCallback;
-	payments?: YlidePayment;
-	safeArgs?: YlideSafeArgs;
+	supplement?: SupplementPay | SupplementSafe;
+};
+
+export type YlideSignArgs = {
+	mailer: IEVMMailerContractLink;
+	signer: ethers.providers.JsonRpcSigner;
+	deadline: BigNumberish;
+	nonce: BigNumberish;
+	chainId: number;
 };
 
 export type MailerWrapper =
