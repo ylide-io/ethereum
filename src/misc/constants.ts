@@ -102,11 +102,11 @@ export const EVM_RPCS: Record<
 			rpc: 'wss://bsc-mainnet.nodereal.io/ws/v1/03e041fbd4e74ce489f9be55da8e895a',
 			blockLimit: 49999,
 		},
-		{
-			rpc: 'https://still-tiniest-surf.bsc.discover.quiknode.pro/390c72acf357bb7fc5f2b9175a08d48b774c69db/',
-			blockLimit: 3499,
-			lastestNotSupported: true,
-		},
+		// {
+		// 	rpc: 'https://still-tiniest-surf.bsc.discover.quiknode.pro/390c72acf357bb7fc5f2b9175a08d48b774c69db/',
+		// 	blockLimit: 3499,
+		// 	lastestNotSupported: true,
+		// },
 		{ rpc: 'https://bsc-dataseed.binance.org/' },
 		{ rpc: 'https://bsc-dataseed2.binance.org' },
 		{ rpc: 'https://bsc-dataseed3.binance.org' },
