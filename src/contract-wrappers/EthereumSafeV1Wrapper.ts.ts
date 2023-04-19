@@ -1,50 +1,86 @@
-import { IYlideMailer, YlidePayV1, YlidePayV1__factory } from '@ylide/ethereum-contracts';
+import { IYlideMailer, YlideSafeV1, YlideSafeV1__factory } from '@ylide/ethereum-contracts';
 import { MailPushEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
-import { TokenAttachmentEvent, TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
-import { BigNumber, ethers } from 'ethers';
+import { ethers } from 'ethers';
 import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
-import {
-	IEVMEvent,
-	IEVMMessage,
-	IEVMYlidePayContractLink,
-	MailWrapperArgs,
-	getMultipleEvents,
-	isSentSender,
-	processSendMailTxV9,
-} from '../misc';
+import { IEVMEvent, IEVMMessage, IEVMYlideSafeContractLink, MailWrapperArgs, processSendMailTxV9 } from '../misc';
 import { ContractCache } from './ContractCache';
 import { EthereumMailerV9Wrapper } from './v9';
 
-export class EthereumPayV1Wrapper {
-	public readonly cache: ContractCache<YlidePayV1>;
+const SAFE_ABI = [
+	{
+		inputs: [],
+		name: 'getOwners',
+		outputs: [
+			{
+				internalType: 'address[]',
+				name: '',
+				type: 'address[]',
+			},
+		],
+		stateMutability: 'view',
+		type: 'function',
+	},
+	{
+		inputs: [
+			{
+				internalType: 'address',
+				name: 'owner',
+				type: 'address',
+			},
+		],
+		name: 'isOwner',
+		outputs: [
+			{
+				internalType: 'bool',
+				name: '',
+				type: 'bool',
+			},
+		],
+		stateMutability: 'view',
+		type: 'function',
+	},
+];
+
+export class EthereumSafeV1Wrapper {
+	public readonly cache: ContractCache<YlideSafeV1>;
 
 	constructor(public readonly blockchainReader: EthereumBlockchainReader) {
-		this.cache = new ContractCache(YlidePayV1__factory, blockchainReader);
+		this.cache = new ContractCache(YlideSafeV1__factory, blockchainReader);
 	}
 
 	static async deploy(signer: ethers.Signer, mailer: string) {
-		const factory = new YlidePayV1__factory(signer);
+		const factory = new YlideSafeV1__factory(signer);
 		return (await factory.deploy(mailer)).address;
 	}
 
-	getOwner(contract: IEVMYlidePayContractLink): Promise<string> {
+	getOwner(contract: IEVMYlideSafeContractLink): Promise<string> {
 		return this.cache.contractOperation(contract, c => c.owner());
 	}
 
-	getContractType(contract: IEVMYlidePayContractLink): Promise<number> {
-		return this.cache.contractOperation(contract, c => c.contractType());
-	}
-
-	getVersion(contract: IEVMYlidePayContractLink): Promise<number> {
+	getVersion(contract: IEVMYlideSafeContractLink): Promise<number> {
 		return this.cache.contractOperation(contract, c => c.version().then(r => r.toNumber()));
 	}
 
-	getYlideMailer(contract: IEVMYlidePayContractLink): Promise<string> {
+	getYlideMailer(contract: IEVMYlideSafeContractLink): Promise<string> {
 		return this.cache.contractOperation(contract, c => c.ylideMailer());
 	}
 
+	getSafeOwners(safeAddress: string) {
+		return this.cache.blockchainReader.retryableOperation<Promise<string[]>>(provider => {
+			const contract = new ethers.Contract(safeAddress, SAFE_ABI, provider);
+			return contract.getOwners();
+		});
+	}
+
+	isSafeOwner(safeAddress: string, userAddress: string) {
+		return this.cache.blockchainReader.retryableOperation<Promise<boolean>>(provider => {
+			const contract = new ethers.Contract(safeAddress, SAFE_ABI, provider);
+			return contract.isOwner(userAddress);
+		});
+	}
+
 	async setOwner(
-		contract: IEVMYlidePayContractLink,
+		contract: IEVMYlideSafeContractLink,
 		signer: ethers.Signer,
 		newOwner: string,
 		from: string,
@@ -56,7 +92,7 @@ export class EthereumPayV1Wrapper {
 	}
 
 	async setYlideMailer(
-		contract: IEVMYlidePayContractLink,
+		contract: IEVMYlideSafeContractLink,
 		signer: ethers.Signer,
 		mailerAddress: string,
 		from: string,
@@ -68,7 +104,7 @@ export class EthereumPayV1Wrapper {
 	}
 
 	async pause(
-		contract: IEVMYlidePayContractLink,
+		contract: IEVMYlideSafeContractLink,
 		signer: ethers.Signer,
 		from: string,
 	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
@@ -79,7 +115,7 @@ export class EthereumPayV1Wrapper {
 	}
 
 	async unpause(
-		contract: IEVMYlidePayContractLink,
+		contract: IEVMYlideSafeContractLink,
 		signer: ethers.Signer,
 		from: string,
 	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
@@ -89,13 +125,13 @@ export class EthereumPayV1Wrapper {
 		return { tx, receipt };
 	}
 
-	async sendBulkMailWithToken(
+	async sendBulkMail(
 		{ mailer, signer, from, value }: MailWrapperArgs,
 		sendBulkArgs: IYlideMailer.SendBulkArgsStruct,
 		signatureArgs: IYlideMailer.SignatureArgsStruct,
 		mailerWrapper: EthereumMailerV9Wrapper,
-		payer: IEVMYlidePayContractLink,
-		paymentArgs: YlidePayV1.TransferInfoStruct[],
+		ylideSafe: IEVMYlideSafeContractLink,
+		safeArgs: YlideSafeV1.SafeArgsStruct,
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
@@ -104,20 +140,20 @@ export class EthereumPayV1Wrapper {
 		messages: IEVMMessage[];
 	}> {
 		const mailerContract = mailerWrapper.cache.getContract(mailer.address, signer);
-		const contract = this.cache.getContract(payer.address, signer);
-		const tx = await contract.sendBulkMailWithToken(sendBulkArgs, signatureArgs, paymentArgs, { from, value });
+		const contract = this.cache.getContract(ylideSafe.address, signer);
+		const tx = await contract.sendBulkMail(sendBulkArgs, signatureArgs, safeArgs, { from, value });
 		return processSendMailTxV9(tx, mailerContract, mailer, (msgs: IEVMEvent<MailPushEventObject>[]) =>
 			this.blockchainReader.enrichEvents<MailPushEventObject>(msgs),
 		);
 	}
 
-	async addMailRecipientsWithToken(
+	async addMailRecipients(
 		{ mailer, signer, from, value }: MailWrapperArgs,
 		addMailRecipientsArgs: IYlideMailer.AddMailRecipientsArgsStruct,
 		signatureArgs: IYlideMailer.SignatureArgsStruct,
 		mailerWrapper: EthereumMailerV9Wrapper,
-		payer: IEVMYlidePayContractLink,
-		paymentArgs: YlidePayV1.TransferInfoStruct[],
+		ylideSafe: IEVMYlideSafeContractLink,
+		safeArgs: YlideSafeV1.SafeArgsStruct,
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
@@ -126,45 +162,10 @@ export class EthereumPayV1Wrapper {
 		messages: IEVMMessage[];
 	}> {
 		const mailerContract = mailerWrapper.cache.getContract(mailer.address, signer);
-		const contract = this.cache.getContract(payer.address, signer);
-		const tx = await contract.addMailRecipientsWithToken(addMailRecipientsArgs, signatureArgs, paymentArgs, {
-			from,
-			value,
-		});
+		const contract = this.cache.getContract(ylideSafe.address, signer);
+		const tx = await contract.addMailRecipients(addMailRecipientsArgs, signatureArgs, safeArgs, { from, value });
 		return processSendMailTxV9(tx, mailerContract, mailer, (msgs: IEVMEvent<MailPushEventObject>[]) =>
 			this.blockchainReader.enrichEvents<MailPushEventObject>(msgs),
 		);
-	}
-
-	getTokenAttachments(
-		payLink: IEVMYlidePayContractLink,
-		message: IEVMMessage,
-	): Promise<TokenAttachmentEventObject[]> {
-		return this.cache.contractOperation(payLink, async (contract, _, blockLimit) => {
-			const events = await getMultipleEvents<TokenAttachmentEvent>(
-				contract,
-				contract.filters.TokenAttachment(
-					'0x' + message.$$meta.contentId,
-					null,
-					isSentSender(message.senderAddress, message.recipientAddress)
-						? null
-						: BigNumber.from(`0x${message.recipientAddress}`).toHexString(),
-				),
-				blockLimit,
-				message.$$meta.contentId,
-			);
-			return events.map(e => this.parseTokenAttachmentEvent(e));
-		});
-	}
-
-	private parseTokenAttachmentEvent(event: TokenAttachmentEvent): TokenAttachmentEventObject {
-		return {
-			amountOrTokenId: event.args.amountOrTokenId,
-			recipient: event.args.recipient,
-			sender: event.args.sender,
-			token: event.args.token,
-			tokenType: event.args.tokenType,
-			contentId: event.args.contentId,
-		};
 	}
 }

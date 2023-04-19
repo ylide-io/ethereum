@@ -1,7 +1,9 @@
-import { IYlideMailer, YlidePayV1 } from '@ylide/ethereum-contracts';
+import { IYlideMailer, YlidePayV1, YlideSafeV1 } from '@ylide/ethereum-contracts';
 import { TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
-import type { IMessage, Uint256 } from '@ylide/sdk';
-import { BigNumberish, ethers } from 'ethers';
+import type { IMessage, MessageKey, Uint256 } from '@ylide/sdk';
+import { BigNumber, BigNumberish, ethers } from 'ethers';
+import { EthereumMailerV6Wrapper, EthereumMailerV7Wrapper, EthereumMailerV8Wrapper } from '../contract-wrappers';
+import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9';
 
 export enum EVMNetwork {
 	LOCAL_HARDHAT, //  = 'LOCAL_HARDHAT',
@@ -89,6 +91,10 @@ export enum EVMRegistryContractType {
 export enum EVMYlidePayContractType {
 	EVMYlidePayV1 = 'EVMYlidePayV1',
 }
+
+export enum EVMYlideSafeContractType {
+	EVMYlideSafeV1 = 'EVMYlideSafeV1',
+}
 export interface IEVMBaseContractLink {
 	id: number;
 	verified: boolean;
@@ -100,6 +106,7 @@ export interface IEVMBaseContractLink {
 export interface IEVMMailerContractLink extends IEVMBaseContractLink {
 	type: EVMMailerContractType;
 	pay?: IEVMYlidePayContractLink;
+	safe?: IEVMYlideSafeContractLink;
 }
 
 export interface IEVMRegistryContractLink extends IEVMBaseContractLink {
@@ -110,10 +117,15 @@ export interface IEVMYlidePayContractLink extends IEVMBaseContractLink {
 	type: EVMYlidePayContractType;
 }
 
+export interface IEVMYlideSafeContractLink extends IEVMBaseContractLink {
+	type: EVMYlideSafeContractType;
+}
+
 export interface IEVMNetworkContracts {
 	mailerContracts: IEVMMailerContractLink[];
 	registryContracts: IEVMRegistryContractLink[];
 	payContracts: IEVMYlidePayContractLink[];
+	safeContracts: IEVMYlideSafeContractLink[];
 
 	currentRegistryId: number;
 	currentMailerId: number;
@@ -137,6 +149,8 @@ export type Pay = {
 };
 
 export type YlidePayment = Pay;
+
+export type YlideSafeArgs = YlideSafeV1.SafeArgsStruct;
 
 export type PayAttachment = {
 	kind: TokenAttachmentContractType.Pay;
@@ -168,3 +182,26 @@ export enum ContractType {
 	NONE,
 	PAY,
 }
+
+export type MailWrapperArgs = {
+	mailer: IEVMMailerContractLink;
+	signer: ethers.Signer;
+	from: string;
+	value: ethers.BigNumber;
+};
+
+export type Recipient = { address: Uint256; messageKey: MessageKey };
+
+export type Options = {
+	network?: EVMNetwork;
+	value?: BigNumber;
+	generateSignature?: GenerateSignatureCallback;
+	payments?: YlidePayment;
+	safeArgs?: YlideSafeArgs;
+};
+
+export type MailerWrapper =
+	| EthereumMailerV6Wrapper
+	| EthereumMailerV7Wrapper
+	| EthereumMailerV8Wrapper
+	| EthereumMailerV9Wrapper;

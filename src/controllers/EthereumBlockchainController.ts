@@ -20,15 +20,16 @@ import {
 import { EVM_CHAINS, EVM_CONTRACT_TO_NETWORK, EVM_ENS, EVM_NAMES, EVM_RPCS } from '../misc/constants';
 import { decodeEvmMsgId } from '../misc/evmMsgId';
 import {
-	ContractType,
 	EVMMailerContractType,
 	EVMNetwork,
 	EVMRegistryContractType,
 	EVMYlidePayContractType,
+	EVMYlideSafeContractType,
 	IEVMMailerContractLink,
 	IEVMMessage,
 	IEVMRegistryContractLink,
 	IEVMYlidePayContractLink,
+	IEVMYlideSafeContractLink,
 	TokenAttachmentContractType,
 	YlideTokenAttachment,
 } from '../misc/types';
@@ -47,6 +48,7 @@ import { EthereumMailerV8Wrapper } from '../contract-wrappers/v8/EthereumMailerV
 
 import { ethers } from 'ethers';
 import { EthereumPayV1Wrapper } from '../contract-wrappers/EthereumPayV1Wrapper';
+import { EthereumSafeV1Wrapper } from '../contract-wrappers/EthereumSafeV1Wrapper.ts';
 import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9';
 import { EVMMailerV6Source } from '../messages-sources/EVMMailerV6Source';
 import { EVMMailerV7Source } from '../messages-sources/EVMMailerV7Source';
@@ -92,6 +94,10 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		[EVMYlidePayContractType.EVMYlidePayV1]: EthereumPayV1Wrapper,
 	};
 
+	static readonly safeWrappers: Record<EVMYlideSafeContractType, typeof EthereumSafeV1Wrapper> = {
+		[EVMYlideSafeContractType.EVMYlideSafeV1]: EthereumSafeV1Wrapper,
+	};
+
 	readonly mailers: {
 		link: IEVMMailerContractLink;
 		wrapper: EthereumMailerV8Wrapper | EthereumMailerV7Wrapper | EthereumMailerV6Wrapper | EthereumMailerV9Wrapper;
@@ -107,6 +113,10 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	readonly payers: {
 		link: IEVMYlidePayContractLink;
 		wrapper: EthereumPayV1Wrapper;
+	}[] = [];
+	readonly safes: {
+		link: IEVMYlideSafeContractLink;
+		wrapper: EthereumSafeV1Wrapper;
 	}[] = [];
 
 	readonly currentMailer: {
@@ -159,6 +169,11 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		this.payers = contracts.payContracts.map(link => ({
 			link,
 			wrapper: new EthereumBlockchainController.payWrappers[link.type](this.blockchainReader),
+		}));
+
+		this.safes = contracts.safeContracts.map(link => ({
+			link,
+			wrapper: new EthereumBlockchainController.safeWrappers[link.type](this.blockchainReader),
 		}));
 
 		const currentMailerLink = contracts.mailerContracts.find(c => c.id === contracts.currentMailerId);
@@ -484,6 +499,22 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			}
 		}
 		return null;
+	}
+
+	async isSafeOwner(safeAddress: string, userAddress: string) {
+		const safe = this.safes[0];
+		if (!safe) {
+			throw new Error('No safe wrapper found');
+		}
+		return safe.wrapper.isSafeOwner(safeAddress, userAddress);
+	}
+
+	async getSafeOwners(safeAddress: string) {
+		const safe = this.safes[0];
+		if (!safe) {
+			throw new Error('No safe wrapper found');
+		}
+		return safe.wrapper.getSafeOwners(safeAddress);
 	}
 
 	prepareExtraEncryptionStrategyBulk(

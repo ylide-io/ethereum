@@ -22,6 +22,7 @@ import {
 	IEVMMailerContractLink,
 	IEVMYlidePayContractLink,
 	bnToUint256,
+	hexPrefix,
 } from '../src';
 import { EthereumPayV1Wrapper } from '../src/contract-wrappers/EthereumPayV1Wrapper';
 import { EthereumMailerV9Wrapper } from '../src/contract-wrappers/v9';
@@ -116,7 +117,7 @@ describe('YlidePayV1', () => {
 		const deadline = await currentTimestamp().then(t => t + 1000);
 
 		const sig1 = await user1._signTypedData(domain, mailerWrapper.mailing.SendBulkMailTypes, {
-			feedId: BigNumber.from(`0x${feedId}`),
+			feedId: hexPrefix(feedId),
 			uniqueId,
 			nonce: nonce1,
 			deadline,
@@ -158,26 +159,25 @@ describe('YlidePayV1', () => {
 		expect(await erc20.balanceOf(user2.address)).equal(0);
 
 		const { messages } = await payWrapper.sendBulkMailWithToken(
-			mailerDesc,
-			ylideMailer,
-			payDesc,
-			user1,
-			user1.address,
-			feedId,
-			uniqueId,
-			[
-				...[user2.address, owner.address].map(r => bnToUint256(BigNumber.from(r))),
-				YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
-			],
-			[...keys, new Uint8Array(1)],
-			content,
-			BigNumber.from(0),
+			{ mailer: mailerDesc, signer: user1, value: BigNumber.from(0), from: user1.address },
+			{
+				feedId: hexPrefix(feedId),
+				uniqueId,
+				recipients: [
+					...[user2.address, owner.address].map(r => bnToUint256(BigNumber.from(r))),
+					YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
+				].map(hexPrefix),
+				keys: [...keys, new Uint8Array(1)],
+				content,
+			},
 			{
 				deadline,
 				nonce: nonce1,
 				signature: sig2,
 				sender: user1.address,
 			},
+			mailerWrapper,
+			payDesc,
 			[
 				{ amountOrTokenId: 1000, token: erc20.address, recipient: user2.address, tokenType: 0 },
 				{ amountOrTokenId: 1000, token: erc20.address, recipient: owner.address, tokenType: 0 },
@@ -210,7 +210,7 @@ describe('YlidePayV1', () => {
 		const nonce2 = await mailerWrapper.mailing.getNonce(mailerDesc, user1.address);
 
 		const sig3 = await user1._signTypedData(domain, mailerWrapper.mailing.AddMailRecipientsTypes, {
-			feedId: BigNumber.from(`0x${feedId}`),
+			feedId: hexPrefix(feedId),
 			uniqueId,
 			firstBlockNumber,
 			nonce: nonce2,
@@ -254,29 +254,28 @@ describe('YlidePayV1', () => {
 
 		expect(await erc721.balanceOf(user2.address)).equal(0);
 
-		const { messages: messages2 } = await payWrapper.addMailRecipientsWithToken(
-			mailerDesc,
-			ylideMailer,
-			payDesc,
-			user1,
-			user1.address,
-			feedId,
-			uniqueId,
-			firstBlockNumber,
-			partsCount,
-			blockCountLock,
-			[
-				bnToUint256(BigNumber.from(user2.address)),
-				YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
-			],
-			keys,
-			BigNumber.from(0),
+		await payWrapper.addMailRecipientsWithToken(
+			{ mailer: mailerDesc, signer: user1, value: BigNumber.from(0), from: user1.address },
+			{
+				feedId: hexPrefix(feedId),
+				uniqueId,
+				recipients: [
+					bnToUint256(BigNumber.from(user2.address)),
+					YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
+				].map(hexPrefix),
+				keys,
+				firstBlockNumber,
+				partsCount,
+				blockCountLock,
+			},
 			{
 				deadline,
 				nonce: nonce2,
 				signature: sig3,
 				sender: user1.address,
 			},
+			mailerWrapper,
+			payDesc,
 			[{ amountOrTokenId: 123, token: erc721.address, recipient: user2.address, tokenType: 1 }],
 		);
 

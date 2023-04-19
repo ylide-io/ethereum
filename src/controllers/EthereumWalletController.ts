@@ -3,7 +3,6 @@ import {
 	AbstractWalletController,
 	IGenericAccount,
 	MessageChunks,
-	MessageKey,
 	PublicKey,
 	PublicKeyType,
 	SendBroadcastResult,
@@ -27,13 +26,14 @@ import { EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CHUNK_SIZES, EVM_NAMES } from 
 import {
 	ContractType,
 	EVMNetwork,
-	GenerateSignatureCallback,
 	IEVMMailerContractLink,
 	IEVMMessage,
 	IEVMRegistryContractLink,
 	IEVMYlidePayContractLink,
+	IEVMYlideSafeContractLink,
+	Options,
+	Recipient,
 	TokenAttachmentContractType,
-	YlidePayment,
 } from '../misc/types';
 import { EthereumBlockchainController } from './EthereumBlockchainController';
 import { EthereumBlockchainReader } from './helpers/EthereumBlockchainReader';
@@ -48,7 +48,15 @@ import { EthereumRegistryV3Wrapper } from '../contract-wrappers/EthereumRegistry
 import { EthereumRegistryV4Wrapper } from '../contract-wrappers/EthereumRegistryV4Wrapper';
 import { EthereumRegistryV5Wrapper } from '../contract-wrappers/EthereumRegistryV5Wrapper';
 import { EthereumRegistryV6Wrapper } from '../contract-wrappers/EthereumRegistryV6Wrapper';
-import { EVMMailerContractType } from '../misc';
+import { EthereumSafeV1Wrapper } from '../contract-wrappers/EthereumSafeV1Wrapper.ts';
+import {
+	EVMMailerContractType,
+	MailerWrapper,
+	formatRecipientsToObj,
+	formatRecipientsToTuple,
+	hexPrefix,
+	processMailResponse,
+} from '../misc';
 import { EVM_CONTRACTS } from '../misc/contractConstants';
 
 export type NetworkSwitchHandler = (
@@ -81,6 +89,10 @@ export class EthereumWalletController extends AbstractWalletController {
 	readonly payers: {
 		link: IEVMYlidePayContractLink;
 		wrapper: EthereumPayV1Wrapper;
+	}[] = [];
+	readonly safes: {
+		link: IEVMYlideSafeContractLink;
+		wrapper: EthereumSafeV1Wrapper;
 	}[] = [];
 
 	private lastCurrentAccount: IGenericAccount | null = null;
@@ -259,6 +271,30 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 	}
 
+	private getYlideSafeByMailerLinkAndNetwork(
+		mailerLink: IEVMMailerContractLink,
+		network: EVMNetwork,
+	): {
+		link: IEVMYlideSafeContractLink;
+		wrapper: EthereumSafeV1Wrapper;
+	} {
+		const existing = this.safes.find(r => r.link.id === mailerLink.safe?.id);
+		if (existing) {
+			return existing;
+		} else {
+			const link = EVM_CONTRACTS[network].safeContracts?.find(r => r.id === mailerLink.safe?.id);
+			if (!link) {
+				throw new Error(`Network ${network} has no current pay contract`);
+			}
+			const wrapper = new EthereumBlockchainController.safeWrappers[link.type](this.blockchainReader);
+			this.safes.push({
+				link,
+				wrapper,
+			});
+			return { link, wrapper };
+		}
+	}
+
 	async setBonucer(network: EVMNetwork, from: string, newBonucer: string, val: boolean) {
 		const registry = this.getRegistryByNetwork(network);
 		if (
@@ -415,216 +451,350 @@ export class EthereumWalletController extends AbstractWalletController {
 		me: IGenericAccount,
 		feedId: Uint256,
 		contentData: Uint8Array,
-		recipients: { address: Uint256; messageKey: MessageKey }[],
-		options?: { network?: EVMNetwork; value?: BigNumber },
-		generateSignature?: GenerateSignatureCallback,
-		payments?: YlidePayment,
+		recipients: Recipient[],
+		options?: Options,
 	): Promise<SendMailResult> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Publish message', options);
-		const mailer = this.getMailerByNetwork(network);
+		const { link, wrapper } = this.getMailerByNetwork(network);
 
 		const uniqueId = Math.floor(Math.random() * 4 * 10 ** 9);
 		const chunkSize = EVM_CHUNK_SIZES[network];
 		const chunks = MessageChunks.splitMessageChunks(contentData, chunkSize);
+		const from = me.address;
 
 		if (
 			chunks.length === 1 &&
 			recipients.length === 1 &&
-			!(mailer.wrapper instanceof EthereumMailerV8Wrapper) &&
-			!(mailer.wrapper instanceof EthereumMailerV9Wrapper)
+			!(wrapper instanceof EthereumMailerV8Wrapper) &&
+			!(wrapper instanceof EthereumMailerV9Wrapper)
 		) {
-			if (feedId !== YLIDE_MAIN_FEED_ID) {
-				throw new Error('FeedId is not supported');
-			}
-			console.log(`Sending small mail, chunk length: ${chunks[0].length} bytes`);
-			const { messages } = await mailer.wrapper.sendSmallMail(
-				mailer.link,
+			return this.#sendSmallMail({
+				link,
+				wrapper,
+				feedId,
+				chunks,
+				uniqueId,
+				from,
+				recipients,
+			});
+		} else if (chunks.length === 1 && recipients.length < Math.ceil((15.5 * 1024 - chunks[0].byteLength) / 70)) {
+			return this.#sendBulkMail({
+				link,
+				wrapper,
+				feedId,
+				chunks,
+				uniqueId,
+				from,
+				recipients,
+				network,
+			});
+		}
+		return this.#sendLargeMail({
+			link,
+			wrapper,
+			feedId,
+			chunks,
+			uniqueId,
+			from,
+			recipients,
+			network,
+		});
+	}
+
+	#sendSmallMail({
+		link,
+		wrapper,
+		feedId,
+		chunks,
+		uniqueId,
+		from,
+		recipients,
+	}: {
+		link: IEVMMailerContractLink;
+		wrapper: EthereumMailerV6Wrapper | EthereumMailerV7Wrapper;
+
+		feedId: Uint256;
+		chunks: Uint8Array[];
+		uniqueId: number;
+		from: string;
+		recipients: Recipient[];
+	}) {
+		if (feedId !== YLIDE_MAIN_FEED_ID) {
+			throw new Error('FeedId is not supported');
+		}
+		console.log(`Sending small mail, chunk length: ${chunks[0].length} bytes`);
+		return processMailResponse(
+			wrapper.sendSmallMail(
+				link,
 				this.signer,
-				me.address,
+				from,
 				uniqueId,
 				recipients[0].address,
 				recipients[0].messageKey.toBytes(),
 				chunks[0],
-			);
-			return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
-		} else if (chunks.length === 1 && recipients.length < Math.ceil((15.5 * 1024 - chunks[0].byteLength) / 70)) {
-			if (
-				mailer.wrapper instanceof EthereumMailerV8Wrapper ||
-				mailer.wrapper instanceof EthereumMailerV9Wrapper
-			) {
-				let msgs: IEVMMessage[] = [];
-				if (generateSignature && payments && mailer.wrapper instanceof EthereumMailerV9Wrapper) {
-					if (payments.kind === TokenAttachmentContractType.Pay) {
-						console.log('Signing message for bulk mail with token (Pay)');
-						const signatureArgs = await generateSignature(uniqueId);
-						const payer = this.getPayerByMailerLinkAndNetwork(mailer.link, network);
-						console.log(`Sending bulk mail with token (Pay), chunk length: ${chunks[0].length} bytes`);
-						const { messages } = await payer.wrapper.sendBulkMailWithToken(
-							mailer.link,
-							mailer.wrapper.cache.getContract(mailer.link.address, this.signer),
-							payer.link,
-							this.signer,
-							me.address,
-							feedId,
-							uniqueId,
-							recipients.map(r => r.address),
-							recipients.map(r => r.messageKey.toBytes()),
-							chunks[0],
-							options?.value || BigNumber.from(0),
+			),
+		);
+	}
+
+	async #sendBulkMail({
+		link,
+		wrapper,
+		feedId,
+		chunks,
+		uniqueId,
+		from,
+		recipients,
+		options,
+		network,
+	}: {
+		link: IEVMMailerContractLink;
+		wrapper: MailerWrapper;
+		feedId: Uint256;
+		chunks: Uint8Array[];
+		uniqueId: number;
+		from: string;
+		recipients: Recipient[];
+		options?: Options;
+		network: EVMNetwork;
+	}) {
+		if (wrapper instanceof EthereumMailerV9Wrapper) {
+			const wrapperArgs = {
+				mailer: link,
+				signer: this.signer,
+				from,
+				value: options?.value || BigNumber.from(0),
+			};
+			const sendBulkArgs = {
+				feedId: hexPrefix(feedId),
+				uniqueId,
+				content: chunks[0],
+				...formatRecipientsToObj(recipients),
+			};
+			if (options?.generateSignature) {
+				console.log('Signing message');
+				const signatureArgs = await options.generateSignature(uniqueId);
+				if (options?.payments && options.payments.kind === TokenAttachmentContractType.Pay) {
+					console.log(`Sending bulk mail with token (Pay), chunk length: ${chunks[0].length} bytes`);
+					const payer = this.getPayerByMailerLinkAndNetwork(link, network);
+					return processMailResponse(
+						payer.wrapper.sendBulkMailWithToken(
+							wrapperArgs,
+							sendBulkArgs,
 							signatureArgs,
-							payments.args,
-						);
-						msgs = messages;
-					}
-					throw new Error('Unsupported payment type');
-				} else {
-					console.log(`Sending bulk mail, chunk length: ${chunks[0].length} bytes`);
-					const { messages } = await mailer.wrapper.mailing.sendBulkMail(
-						mailer.link,
-						this.signer,
-						me.address,
-						feedId,
-						uniqueId,
-						recipients.map(r => r.address),
-						recipients.map(r => r.messageKey.toBytes()),
-						chunks[0],
-						options?.value || BigNumber.from(0),
+							wrapper,
+							payer.link,
+							options.payments.args,
+						),
 					);
-					msgs = messages;
+				} else if (options.safeArgs) {
+					console.log(`Sending bulk mail as Safe, chunk length: ${chunks[0].length} bytes`);
+					const ylideSafe = this.getYlideSafeByMailerLinkAndNetwork(link, network);
+					return processMailResponse(
+						ylideSafe.wrapper.sendBulkMail(
+							wrapperArgs,
+							sendBulkArgs,
+							signatureArgs,
+							wrapper,
+							ylideSafe.link,
+							options.safeArgs,
+						),
+					);
 				}
-				return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
-			} else {
-				if (feedId !== YLIDE_MAIN_FEED_ID) {
-					throw new Error('FeedId is not supported');
-				}
-				console.log(`Sending bulk mail, chunk length: ${chunks[0].length} bytes`);
-				const { messages } = await mailer.wrapper.sendBulkMail(
-					mailer.link,
-					this.signer,
-					me.address,
-					uniqueId,
-					recipients.map(r => r.address),
-					recipients.map(r => r.messageKey.toBytes()),
-					chunks[0],
-				);
-				return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 			}
-		} else {
-			if (
-				mailer.wrapper instanceof EthereumMailerV8Wrapper ||
-				mailer.wrapper instanceof EthereumMailerV9Wrapper
-			) {
-				const firstBlockNumber = await this.signer.provider.getBlockNumber();
-				const blockLock = 600;
-				// const msgId = await mailer.buildHash(me.address, uniqueId, firstBlockNumber);
-				for (let i = 0; i < chunks.length; i++) {
-					console.log(`Sending multi mail, current chunk length: ${chunks[i].length} bytes`);
-					const { tx, receipt, logs } = await mailer.wrapper.content.sendMessageContentPart(
-						mailer.link,
-						this.signer,
-						me.address,
-						uniqueId,
-						firstBlockNumber,
-						blockLock,
-						chunks.length,
-						i,
-						chunks[i],
-						options?.value || BigNumber.from(0),
-					);
-				}
-				const msgs: IEVMMessage[] = [];
-				if (generateSignature && payments && mailer.wrapper instanceof EthereumMailerV9Wrapper) {
-					if (payments.kind === TokenAttachmentContractType.Pay) {
+			console.log(`Sending bulk mail, chunk length: ${chunks[0].length} bytes`);
+			return processMailResponse(wrapper.mailing.sendBulkMail(wrapperArgs, sendBulkArgs));
+		} else if (wrapper instanceof EthereumMailerV8Wrapper) {
+			console.log(`Sending bulk mail, chunk length: ${chunks[0].length} bytes`);
+			return processMailResponse(
+				wrapper.mailing.sendBulkMail(
+					link,
+					this.signer,
+					from,
+					feedId,
+					uniqueId,
+					...formatRecipientsToTuple(recipients),
+					chunks[0],
+					options?.value || BigNumber.from(0),
+				),
+			);
+		}
+		if (feedId !== YLIDE_MAIN_FEED_ID) {
+			throw new Error('FeedId is not supported');
+		}
+		console.log(`Sending bulk mail, chunk length: ${chunks[0].length} bytes`);
+		return processMailResponse(
+			wrapper.sendBulkMail(link, this.signer, from, uniqueId, ...formatRecipientsToTuple(recipients), chunks[0]),
+		);
+	}
+
+	async #sendLargeMail({
+		link,
+		wrapper,
+		feedId,
+		chunks,
+		uniqueId,
+		from,
+		recipients,
+		options,
+		network,
+	}: {
+		link: IEVMMailerContractLink;
+		wrapper: MailerWrapper;
+		feedId: Uint256;
+		chunks: Uint8Array[];
+		uniqueId: number;
+		from: string;
+		recipients: Recipient[];
+		options?: Options;
+		network: EVMNetwork;
+	}) {
+		const msgs: IEVMMessage[] = [];
+		if (wrapper instanceof EthereumMailerV8Wrapper || wrapper instanceof EthereumMailerV9Wrapper) {
+			const firstBlockNumber = await this.signer.provider.getBlockNumber();
+			const blockCountLock = 600;
+			for (let i = 0; i < chunks.length; i++) {
+				console.log(`Sending multi mail, current chunk length: ${chunks[i].length} bytes`);
+				await wrapper.content.sendMessageContentPart(
+					link,
+					this.signer,
+					from,
+					uniqueId,
+					firstBlockNumber,
+					blockCountLock,
+					chunks.length,
+					i,
+					chunks[i],
+					options?.value || BigNumber.from(0),
+				);
+			}
+			if (wrapper instanceof EthereumMailerV9Wrapper) {
+				const wrapperArgs = {
+					mailer: link,
+					signer: this.signer,
+					from,
+					value: options?.value || BigNumber.from(0),
+				};
+				const getAddMailRecipientsArgs = (rs: Recipient[]) => ({
+					feedId: hexPrefix(feedId),
+					uniqueId,
+					firstBlockNumber,
+					partsCount: chunks.length,
+					blockCountLock,
+					...formatRecipientsToObj(rs),
+				});
+				if (options?.generateSignature) {
+					if (options.payments?.kind === TokenAttachmentContractType.Pay) {
+						const payer = this.getPayerByMailerLinkAndNetwork(link, network);
 						for (let i = 0; i < recipients.length; i += 210) {
 							const recs = recipients.slice(i, i + 210);
-							const paymentArgs = payments.args.slice(i, i + 210);
-							const signatureArgs = await generateSignature(
+							const paymentArgs = options.payments.args.slice(i, i + 210);
+							console.log('Signing message');
+							const signatureArgs = await options.generateSignature(
 								uniqueId,
 								firstBlockNumber,
 								chunks.length,
-								blockLock,
-								recs.map(r => `0x${r.address}`),
+								blockCountLock,
+								recs.map(r => hexPrefix(r.address)),
 								ethers.utils.concat(recs.map(r => r.messageKey.toBytes())),
 							);
-							const payer = this.getPayerByMailerLinkAndNetwork(mailer.link, network);
 							console.log(`Sending bulk mail with token (Pay), chunk length: ${chunks[0].length} bytes`);
 							const { messages } = await payer.wrapper.addMailRecipientsWithToken(
-								mailer.link,
-								mailer.wrapper.cache.getContract(mailer.link.address, this.signer),
-								payer.link,
-								this.signer,
-								me.address,
-								feedId,
-								uniqueId,
-								firstBlockNumber,
-								chunks.length,
-								blockLock,
-								recs.map(r => r.address),
-								recs.map(r => r.messageKey.toBytes()),
-								options?.value || BigNumber.from(0),
+								wrapperArgs,
+								getAddMailRecipientsArgs(recs),
 								signatureArgs,
+								wrapper,
+								payer.link,
 								paymentArgs,
 							);
 							msgs.push(...messages);
 						}
-					}
-					throw new Error('Unsupported payment type');
-				} else {
-					for (let i = 0; i < recipients.length; i += 210) {
-						const recs = recipients.slice(i, i + 210);
-						const { messages } = await mailer.wrapper.mailing.addMailRecipients(
-							mailer.link,
-							this.signer,
-							me.address,
-							feedId,
-							uniqueId,
-							firstBlockNumber,
-							chunks.length,
-							blockLock,
-							recs.map(r => r.address),
-							recs.map(r => r.messageKey.toBytes()),
-							options?.value || BigNumber.from(0),
-						);
-						msgs.push(...messages);
+					} else if (options.safeArgs) {
+						const ylideSafe = this.getYlideSafeByMailerLinkAndNetwork(link, network);
+						for (let i = 0; i < recipients.length; i += 210) {
+							const recs = recipients.slice(i, i + 210);
+							console.log('Signing message');
+							const signatureArgs = await options.generateSignature(
+								uniqueId,
+								firstBlockNumber,
+								chunks.length,
+								blockCountLock,
+								recs.map(r => hexPrefix(r.address)),
+								ethers.utils.concat(recs.map(r => r.messageKey.toBytes())),
+							);
+							console.log(`Sending bulk mail as Safe, chunk length: ${chunks[0].length} bytes`);
+							const { messages } = await ylideSafe.wrapper.addMailRecipients(
+								wrapperArgs,
+								getAddMailRecipientsArgs(recs),
+								signatureArgs,
+								wrapper,
+								ylideSafe.link,
+								options.safeArgs,
+							);
+							msgs.push(...messages);
+						}
 					}
 				}
-
-				return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
-			} else {
-				const initTime = Math.floor(Date.now() / 1000) - 60;
-
-				for (let i = 0; i < chunks.length; i++) {
-					console.log(`Sending multi mail, current chunk length: ${chunks[i].length} bytes`);
-					await mailer.wrapper.sendMessageContentPart(
-						mailer.link,
-						this.signer,
-						me.address,
-						uniqueId,
-						initTime,
-						chunks.length,
-						i,
-						chunks[i],
-					);
-				}
-				const msgs: IEVMMessage[] = [];
 				for (let i = 0; i < recipients.length; i += 210) {
 					const recs = recipients.slice(i, i + 210);
-					const { messages } = await mailer.wrapper.addMailRecipients(
-						mailer.link,
-						this.signer,
-						me.address,
-						uniqueId,
-						initTime,
-						recs.map(r => r.address),
-						recs.map(r => r.messageKey.toBytes()),
+					console.log(`Sending bulk mail as Safe, chunk length: ${chunks[0].length} bytes`);
+					const { messages } = await wrapper.mailing.addMailRecipients(
+						wrapperArgs,
+						getAddMailRecipientsArgs(recs),
 					);
 					msgs.push(...messages);
 				}
-
-				return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
+			} else {
+				for (let i = 0; i < recipients.length; i += 210) {
+					const recs = recipients.slice(i, i + 210);
+					const { messages } = await wrapper.mailing.addMailRecipients(
+						link,
+						this.signer,
+						from,
+						feedId,
+						uniqueId,
+						firstBlockNumber,
+						chunks.length,
+						blockCountLock,
+						...formatRecipientsToTuple(recs),
+						options?.value || BigNumber.from(0),
+					);
+					msgs.push(...messages);
+				}
 			}
+
+			return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 		}
+
+		const initTime = Math.floor(Date.now() / 1000) - 60;
+
+		for (let i = 0; i < chunks.length; i++) {
+			console.log(`Sending multi mail, current chunk length: ${chunks[i].length} bytes`);
+			await wrapper.sendMessageContentPart(
+				link,
+				this.signer,
+				from,
+				uniqueId,
+				initTime,
+				chunks.length,
+				i,
+				chunks[i],
+			);
+		}
+		for (let i = 0; i < recipients.length; i += 210) {
+			const recs = recipients.slice(i, i + 210);
+			const { messages } = await wrapper.addMailRecipients(
+				link,
+				this.signer,
+				from,
+				uniqueId,
+				initTime,
+				...formatRecipientsToTuple(recs),
+			);
+			msgs.push(...messages);
+		}
+
+		return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 	}
 
 	async sendBroadcast(

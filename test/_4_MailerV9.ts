@@ -6,13 +6,13 @@
 import { LogDescription } from '@ethersproject/abi';
 import { mine } from '@nomicfoundation/hardhat-network-helpers';
 import { YlideMailerV9, YlideMailerV9__factory } from '@ylide/ethereum-contracts';
-import { bigIntToUint256, Uint256, YLIDE_MAIN_FEED_ID } from '@ylide/sdk';
+import { Uint256, YLIDE_MAIN_FEED_ID, bigIntToUint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { expect } from 'chai';
 import { BigNumber, ContractReceipt, ContractTransaction, Signer } from 'ethers';
 import hre from 'hardhat';
 import { before, describe, it } from 'mocha';
-import { EVMMailerContractType, IEVMMailerContractLink, IEVMMessage } from '../src';
+import { EVMMailerContractType, IEVMMailerContractLink, IEVMMessage, hexPrefix } from '../src';
 import { EthereumMailerV9Wrapper } from '../src/contract-wrappers/v9/EthereumMailerV9Wrapper';
 import { EthereumBlockchainReader } from '../src/controllers/helpers/EthereumBlockchainReader';
 import { constructPersonalFeedId } from '../src/misc/constructFeedId';
@@ -281,15 +281,19 @@ describe('YlideMailerV9', function () {
 					await mine(129);
 
 					const { tx, receipt, logs } = await userMailerV9Wrapper.mailing.sendBulkMail(
-						mailerDesc,
-						userSigner,
-						await userSigner.getAddress(),
-						feedId!,
-						uniqueId,
-						[recipientHex],
-						[key],
-						content,
-						BigNumber.from(0),
+						{
+							mailer: mailerDesc,
+							signer: userSigner,
+							from: await userSigner.getAddress(),
+							value: BigNumber.from(0),
+						},
+						{
+							feedId: hexPrefix(feedId!),
+							uniqueId,
+							recipients: [hexPrefix(recipientHex)],
+							keys: [key],
+							content,
+						},
 					);
 
 					expect(receipt, 'Receipt must be present').to.not.be.undefined;
@@ -825,15 +829,19 @@ describe('YlideMailerV9', function () {
 							receipt: receipt2,
 							logs: logs2,
 						} = await mailerV9Wrapper.mailing.sendBulkMail(
-							mailerDesc,
-							senderSigner,
-							await senderSigner.getAddress(),
-							feedId,
-							uniqueId,
-							[recipientHex],
-							[key],
-							content,
-							BigNumber.from(value),
+							{
+								mailer: mailerDesc,
+								signer: userSigner,
+								from: await userSigner.getAddress(),
+								value: BigNumber.from(value),
+							},
+							{
+								feedId: hexPrefix(feedId),
+								uniqueId,
+								recipients: [hexPrefix(recipientHex)],
+								keys: [key],
+								content,
+							},
 						);
 						tx = tx2;
 						receipt = receipt2;
@@ -1213,15 +1221,19 @@ describe('YlideMailerV9', function () {
 					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
 
 					const { tx, receipt, logs } = await userMailerV9Wrapper.mailing.sendBulkMail(
-						mailerDesc,
-						userSigner,
-						await userSigner.getAddress(),
-						YLIDE_MAIN_FEED_ID,
-						uniqueId,
-						[recipient1Hex, recipient2Hex],
-						[key1, key2],
-						content,
-						BigNumber.from(0),
+						{
+							mailer: mailerDesc,
+							signer: userSigner,
+							from: await userSigner.getAddress(),
+							value: BigNumber.from(0),
+						},
+						{
+							feedId: hexPrefix(YLIDE_MAIN_FEED_ID),
+							uniqueId,
+							recipients: [recipient1Hex, recipient2Hex].map(hexPrefix),
+							keys: [key1, key2],
+							content,
+						},
 					);
 
 					expect(receipt, 'Receipt must be present').to.not.be.undefined;
@@ -1353,17 +1365,21 @@ describe('YlideMailerV9', function () {
 						logs: logs3,
 						messages,
 					} = await userMailerV9Wrapper.mailing.addMailRecipients(
-						mailerDesc,
-						userSigner,
-						await userSigner.getAddress(),
-						YLIDE_MAIN_FEED_ID,
-						uniqueId,
-						currentBlock,
-						2,
-						100,
-						[recipient1Hex, recipient2Hex],
-						[key1, key2],
-						BigNumber.from(0),
+						{
+							mailer: mailerDesc,
+							signer: userSigner,
+							from: await userSigner.getAddress(),
+							value: BigNumber.from(0),
+						},
+						{
+							feedId: hexPrefix(YLIDE_MAIN_FEED_ID),
+							uniqueId,
+							firstBlockNumber: currentBlock,
+							partsCount: 2,
+							blockCountLock: 100,
+							recipients: [recipient1Hex, recipient2Hex].map(hexPrefix),
+							keys: [key1, key2],
+						},
 					);
 
 					expect(receipt3, 'Receipt must be present').to.not.be.undefined;
@@ -1921,7 +1937,22 @@ describe('YlideMailerV9', function () {
 						await mine(skipBefore);
 					}
 					for (const event of events) {
-						await m.mailing.sendBulkMail(...event.args);
+						const [_mailer, signer, from, fId, uId, rs, ks, c, v] = event.args;
+						await m.mailing.sendBulkMail(
+							{
+								mailer: _mailer,
+								signer,
+								from,
+								value: v,
+							},
+							{
+								feedId: hexPrefix(fId),
+								uniqueId: uId,
+								recipients: rs.map(hexPrefix),
+								keys: ks,
+								content: c,
+							},
+						);
 						if (skipBetween) {
 							await mine(skipBetween);
 						}
@@ -2274,15 +2305,19 @@ describe('YlideMailerV9', function () {
 					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
 
 					const { tx, receipt, logs } = await userMailerV9Wrapper.mailing.sendBulkMail(
-						mailerDesc,
-						userSigner,
-						await userSigner.getAddress(),
-						YLIDE_MAIN_FEED_ID,
-						uniqueId,
-						[recipientHex],
-						[key],
-						content,
-						BigNumber.from(0),
+						{
+							mailer: mailerDesc,
+							signer: userSigner,
+							from: await userSigner.getAddress(),
+							value: BigNumber.from(0),
+						},
+						{
+							feedId: hexPrefix(YLIDE_MAIN_FEED_ID),
+							uniqueId,
+							recipients: [recipientHex],
+							keys: [key],
+							content,
+						},
 					);
 
 					expect(receipt, 'Receipt must be present').to.not.be.undefined;
@@ -2316,15 +2351,19 @@ describe('YlideMailerV9', function () {
 					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
 
 					const { tx, receipt, logs } = await userMailerV9Wrapper.mailing.sendBulkMail(
-						mailerDesc,
-						userSigner,
-						await userSigner.getAddress(),
-						YLIDE_MAIN_FEED_ID,
-						uniqueId,
-						[recipient1Hex, recipient2Hex],
-						[key1, key2],
-						content,
-						BigNumber.from(0),
+						{
+							mailer: mailerDesc,
+							signer: userSigner,
+							from: await userSigner.getAddress(),
+							value: BigNumber.from(0),
+						},
+						{
+							feedId: hexPrefix(YLIDE_MAIN_FEED_ID),
+							uniqueId,
+							recipients: [recipient1Hex, recipient2Hex].map(hexPrefix),
+							keys: [key1, key2],
+							content,
+						},
 					);
 
 					expect(receipt, 'Receipt must be present').to.not.be.undefined;
@@ -2456,17 +2495,21 @@ describe('YlideMailerV9', function () {
 						logs: logs3,
 						messages,
 					} = await userMailerV9Wrapper.mailing.addMailRecipients(
-						mailerDesc,
-						userSigner,
-						await userSigner.getAddress(),
-						YLIDE_MAIN_FEED_ID,
-						uniqueId,
-						currentBlock,
-						2,
-						100,
-						[recipient1Hex, recipient2Hex],
-						[key1, key2],
-						BigNumber.from(0),
+						{
+							mailer: mailerDesc,
+							signer: userSigner,
+							from: await userSigner.getAddress(),
+							value: BigNumber.from(0),
+						},
+						{
+							feedId: hexPrefix(YLIDE_MAIN_FEED_ID),
+							uniqueId,
+							firstBlockNumber: currentBlock,
+							partsCount: 2,
+							blockCountLock: 100,
+							recipients: [recipient1Hex, recipient2Hex].map(hexPrefix),
+							keys: [key1, key2],
+						},
 					);
 
 					expect(receipt3, 'Receipt must be present').to.not.be.undefined;
