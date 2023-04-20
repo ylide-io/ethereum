@@ -1,4 +1,4 @@
-import { IYlideMailer, YlideSafeV1, YlideSafeV1__factory } from '@ylide/ethereum-contracts';
+import { ISafe__factory, IYlideMailer, YlideSafeV1, YlideSafeV1__factory } from '@ylide/ethereum-contracts';
 import { MailPushEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
 import { SafeMailsEvent } from '@ylide/ethereum-contracts/lib/contracts/YlideSafe1.sol/YlideSafeV1';
 import { ethers } from 'ethers';
@@ -15,41 +15,6 @@ import {
 } from '../misc';
 import { ContractCache } from './ContractCache';
 import { EthereumMailerV9Wrapper } from './v9';
-
-const SAFE_ABI = [
-	{
-		inputs: [],
-		name: 'getOwners',
-		outputs: [
-			{
-				internalType: 'address[]',
-				name: '',
-				type: 'address[]',
-			},
-		],
-		stateMutability: 'view',
-		type: 'function',
-	},
-	{
-		inputs: [
-			{
-				internalType: 'address',
-				name: 'owner',
-				type: 'address',
-			},
-		],
-		name: 'isOwner',
-		outputs: [
-			{
-				internalType: 'bool',
-				name: '',
-				type: 'bool',
-			},
-		],
-		stateMutability: 'view',
-		type: 'function',
-	},
-];
 
 export class EthereumSafeV1Wrapper {
 	public readonly cache: ContractCache<YlideSafeV1>;
@@ -76,9 +41,16 @@ export class EthereumSafeV1Wrapper {
 	}
 
 	getSafeOwners(safeAddress: string) {
-		return this.cache.blockchainReader.retryableOperation<Promise<string[]>>(provider => {
-			const contract = new ethers.Contract(safeAddress, SAFE_ABI, provider);
+		return this.cache.blockchainReader.retryableOperation<Promise<string[]>>(async provider => {
+			const contract = new ethers.Contract(safeAddress, ISafe__factory.createInterface(), provider);
 			return contract.getOwners();
+		});
+	}
+
+	isSafeOwner(safeAddress: string, userAddress: string) {
+		return this.cache.blockchainReader.retryableOperation<Promise<boolean>>(provider => {
+			const contract = new ethers.Contract(safeAddress, ISafe__factory.createInterface(), provider);
+			return contract.isOwner(userAddress);
 		});
 	}
 
@@ -100,13 +72,6 @@ export class EthereumSafeV1Wrapper {
 			safeRecipients: event.args.safeRecipients,
 			contentId: bnToUint256(event.args.contentId),
 		};
-	}
-
-	isSafeOwner(safeAddress: string, userAddress: string) {
-		return this.cache.blockchainReader.retryableOperation<Promise<boolean>>(provider => {
-			const contract = new ethers.Contract(safeAddress, SAFE_ABI, provider);
-			return contract.isOwner(userAddress);
-		});
 	}
 
 	async setOwner(
