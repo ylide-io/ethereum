@@ -1,3 +1,4 @@
+import { IYlideMailer } from '@ylide/ethereum-contracts';
 import { TypedEvent } from '@ylide/ethereum-contracts/lib/common';
 import { MailPushEventObject as MailPushEventObjectV9 } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
 import { SendMailResult, Uint256, YlideCore } from '@ylide/sdk';
@@ -137,6 +138,7 @@ export const processMailPushEvent = (
 		key: SmartBuffer.ofHexString(event.event.parsed.key.replace('0x', '')).bytes,
 		$$meta: {
 			contentId: bnToUint256(event.event.parsed.contentId),
+			supplement: parseSupplement(event.event.parsed.supplement),
 			index: BlockNumberRingBufferIndex.decodeIndexValue(bnToUint256(event.event.parsed.previousFeedEventsIndex)),
 			...event,
 		},
@@ -163,3 +165,8 @@ export const formatRecipientsToObj = (recipients: Recipient[]) => ({
 
 export const formatRecipientsToTuple = (recipients: Recipient[]) =>
 	[recipients.map(r => r.address), recipients.map(r => r.messageKey.toBytes())] as const;
+
+export const parseSupplement = (supplement: IYlideMailer.SupplementStructOutput): IYlideMailer.SupplementStruct => ({
+	contractAddress: supplement.contractAddress,
+	contractType: supplement.contractType,
+});

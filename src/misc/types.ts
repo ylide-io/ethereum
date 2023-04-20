@@ -1,5 +1,4 @@
 import { IYlideMailer, YlidePayV1, YlideSafeV1 } from '@ylide/ethereum-contracts';
-import { TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
 import type { IMessage, MessageKey, Uint256 } from '@ylide/sdk';
 import { BigNumber, BigNumberish, ethers } from 'ethers';
 import { EthereumMailerV6Wrapper, EthereumMailerV7Wrapper, EthereumMailerV8Wrapper } from '../contract-wrappers';
@@ -159,11 +158,18 @@ export type MailWrapperArgs = {
 export type Recipient = { address: Uint256; messageKey: MessageKey };
 
 export type PayAttachment = {
-	kind: ContractType.PAY;
-	attachments: TokenAttachmentEventObject[];
+	contentId: Uint256;
+	amountOrTokenId: bigint;
+	recipient: string;
+	sender: string;
+	token: string;
+	tokenType: number;
 };
 
-export type YlideTokenAttachment = PayAttachment;
+export type YlideTokenAttachment = {
+	kind: ContractType.PAY;
+	attachments: PayAttachment[];
+};
 
 export type SupplementPay = {
 	kind: ContractType.PAY;
@@ -196,3 +202,9 @@ export type MailerWrapper =
 	| EthereumMailerV7Wrapper
 	| EthereumMailerV8Wrapper
 	| EthereumMailerV9Wrapper;
+
+export type SafeMail = {
+	safeSender: string;
+	safeRecipients: string[];
+	contentId: Uint256;
+};

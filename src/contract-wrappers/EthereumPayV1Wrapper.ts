@@ -1,6 +1,6 @@
 import { IYlideMailer, YlidePayV1, YlidePayV1__factory } from '@ylide/ethereum-contracts';
 import { MailPushEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
-import { TokenAttachmentEvent, TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
+import { TokenAttachmentEvent } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
 import { BigNumber, ethers } from 'ethers';
 import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
 import {
@@ -8,6 +8,8 @@ import {
 	IEVMMessage,
 	IEVMYlidePayContractLink,
 	MailWrapperArgs,
+	PayAttachment,
+	bnToUint256,
 	getMultipleEvents,
 	isSentSender,
 	processSendMailTxV9,
@@ -131,10 +133,7 @@ export class EthereumPayV1Wrapper {
 		);
 	}
 
-	getTokenAttachments(
-		payLink: IEVMYlidePayContractLink,
-		message: IEVMMessage,
-	): Promise<TokenAttachmentEventObject[]> {
+	getTokenAttachments(payLink: IEVMYlidePayContractLink, message: IEVMMessage): Promise<PayAttachment[]> {
 		return this.cache.contractOperation(payLink, async (contract, _, blockLimit) => {
 			const events = await getMultipleEvents<TokenAttachmentEvent>(
 				contract,
@@ -152,14 +151,14 @@ export class EthereumPayV1Wrapper {
 		});
 	}
 
-	private parseTokenAttachmentEvent(event: TokenAttachmentEvent): TokenAttachmentEventObject {
+	private parseTokenAttachmentEvent(event: TokenAttachmentEvent): PayAttachment {
 		return {
-			amountOrTokenId: event.args.amountOrTokenId,
+			amountOrTokenId: event.args.amountOrTokenId.toBigInt(),
 			recipient: event.args.recipient,
 			sender: event.args.sender,
 			token: event.args.token,
 			tokenType: event.args.tokenType,
-			contentId: event.args.contentId,
+			contentId: bnToUint256(event.args.contentId),
 		};
 	}
 }

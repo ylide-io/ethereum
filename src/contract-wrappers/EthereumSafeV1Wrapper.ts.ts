@@ -1,8 +1,18 @@
 import { IYlideMailer, YlideSafeV1, YlideSafeV1__factory } from '@ylide/ethereum-contracts';
 import { MailPushEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
+import { SafeMailsEvent } from '@ylide/ethereum-contracts/lib/contracts/YlideSafe1.sol/YlideSafeV1';
 import { ethers } from 'ethers';
 import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
-import { IEVMEvent, IEVMMessage, IEVMYlideSafeContractLink, MailWrapperArgs, processSendMailTxV9 } from '../misc';
+import {
+	IEVMEvent,
+	IEVMMessage,
+	IEVMYlideSafeContractLink,
+	MailWrapperArgs,
+	SafeMail,
+	bnToUint256,
+	getMultipleEvents,
+	processSendMailTxV9,
+} from '../misc';
 import { ContractCache } from './ContractCache';
 import { EthereumMailerV9Wrapper } from './v9';
 
@@ -72,6 +82,26 @@ export class EthereumSafeV1Wrapper {
 		});
 	}
 
+	getSafeMailsEvent(safeLink: IEVMYlideSafeContractLink, message: IEVMMessage): Promise<SafeMail[]> {
+		return this.cache.contractOperation(safeLink, async (contract, _, blockLimit) => {
+			const events = await getMultipleEvents<SafeMailsEvent>(
+				contract,
+				contract.filters.SafeMails('0x' + message.$$meta.contentId),
+				blockLimit,
+				message.$$meta.contentId,
+			);
+			return events.map(e => this.parseSafeMailsEvent(e));
+		});
+	}
+
+	private parseSafeMailsEvent(event: SafeMailsEvent): SafeMail {
+		return {
+			safeSender: event.args.safeSender,
+			safeRecipients: event.args.safeRecipients,
+			contentId: bnToUint256(event.args.contentId),
+		};
+	}
+
 	isSafeOwner(safeAddress: string, userAddress: string) {
 		return this.cache.blockchainReader.retryableOperation<Promise<boolean>>(provider => {
 			const contract = new ethers.Contract(safeAddress, SAFE_ABI, provider);
@@ -138,7 +168,6 @@ export class EthereumSafeV1Wrapper {
 		const mailerContract = mailerWrapper.cache.getContract(mailer.address, signer);
 		const contract = this.cache.getContract(ylideSafe.address, signer);
 		const tx = await contract.sendBulkMail(sendBulkArgs, signatureArgs, safeArgs, { value });
-		console.log(tx);
 		return processSendMailTxV9(tx, mailerContract, mailer, (msgs: IEVMEvent<MailPushEventObject>[]) =>
 			this.blockchainReader.enrichEvents<MailPushEventObject>(msgs),
 		);

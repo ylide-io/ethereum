@@ -32,6 +32,7 @@ import {
 	IEVMRegistryContractLink,
 	IEVMYlidePayContractLink,
 	IEVMYlideSafeContractLink,
+	SafeMail,
 	YlideTokenAttachment,
 } from '../misc/types';
 
@@ -490,17 +491,36 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		if (!supplement || supplement.contractAddress === ethers.constants.AddressZero) {
 			return null;
 		}
-		if (mailer.wrapper instanceof EthereumMailerV9Wrapper) {
-			if (supplement.contractType === ContractType.PAY) {
-				const payer = this.payers.find(p => p.link.address === supplement.contractAddress);
-				if (payer) {
-					const attachments = await payer.wrapper.getTokenAttachments(payer.link, msg);
-					return {
-						kind: ContractType.PAY,
-						attachments,
-					};
-				}
+		if (supplement.contractType === ContractType.PAY) {
+			const payer = this.payers.find(p => p.link.address === supplement.contractAddress);
+			if (payer) {
+				const attachments = await payer.wrapper.getTokenAttachments(payer.link, msg);
+				return {
+					kind: ContractType.PAY,
+					attachments,
+				};
 			}
+		}
+		return null;
+	}
+
+	async getSafeMails(msg: IEVMMessage): Promise<SafeMail[] | null> {
+		const decodedMsgId = decodeEvmMsgId(msg.msgId);
+		const mailer = this.mailers.find(m => m.link.id === decodedMsgId.contractId);
+		if (!mailer) {
+			throw new Error('This message does not belongs to this blockchain controller');
+		}
+		const supplement = msg.$$meta.supplement;
+		if (
+			!supplement ||
+			supplement.contractAddress === ethers.constants.AddressZero ||
+			supplement.contractType !== ContractType.SAFE
+		) {
+			return null;
+		}
+		const safe = this.safes.find(p => p.link.address === supplement.contractAddress);
+		if (safe) {
+			return safe.wrapper.getSafeMailsEvent(safe.link, msg);
 		}
 		return null;
 	}

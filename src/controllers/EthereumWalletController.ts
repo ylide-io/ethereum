@@ -464,7 +464,6 @@ export class EthereumWalletController extends AbstractWalletController {
 				recipients,
 			});
 		} else if (chunks.length === 1 && recipients.length < Math.ceil((15.5 * 1024 - chunks[0].byteLength) / 70)) {
-			console.log(1);
 			return this.#sendBulkMail({
 				link,
 				wrapper,
@@ -716,7 +715,9 @@ export class EthereumWalletController extends AbstractWalletController {
 									contractType: options.supplement.kind,
 								},
 							);
-							console.log(`Sending bulk mail with token (Pay), chunk length: ${chunks[0].length} bytes`);
+							console.log(
+								`add mail recipients with token (Pay), chunk length: ${chunks[0].length} bytes`,
+							);
 							const { messages } = await payer.wrapper.addMailRecipientsWithToken(
 								wrapperArgs,
 								getAddMailRecipientsArgs(recs),
@@ -729,6 +730,7 @@ export class EthereumWalletController extends AbstractWalletController {
 						}
 					} else if (options.supplement.kind === ContractType.SAFE) {
 						const ylideSafe = this.getYlideSafeByMailerLinkAndNetwork(link, network);
+						console.log(recipients.length);
 						for (let i = 0; i < recipients.length; i += 210) {
 							console.log('Signing message');
 							const nonce = await wrapper.mailing.getNonce(link, from);
@@ -742,7 +744,7 @@ export class EthereumWalletController extends AbstractWalletController {
 									contractType: options.supplement.kind,
 								},
 							);
-							console.log(`Sending bulk mail as Safe, chunk length: ${chunks[0].length} bytes`);
+							console.log(`add mail recipients as Safe, chunk length: ${chunks[0].length} bytes`);
 							const { messages } = await ylideSafe.wrapper.addMailRecipients(
 								wrapperArgs,
 								getAddMailRecipientsArgs(recs),
@@ -757,15 +759,6 @@ export class EthereumWalletController extends AbstractWalletController {
 							msgs.push(...messages);
 						}
 					}
-				}
-				for (let i = 0; i < recipients.length; i += 210) {
-					const recs = recipients.slice(i, i + 210);
-					console.log(`Sending bulk mail as Safe, chunk length: ${chunks[0].length} bytes`);
-					const { messages } = await wrapper.mailing.addMailRecipients(
-						wrapperArgs,
-						getAddMailRecipientsArgs(recs),
-					);
-					msgs.push(...messages);
 				}
 			} else {
 				for (let i = 0; i < recipients.length; i += 210) {

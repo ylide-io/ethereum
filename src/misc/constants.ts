@@ -186,7 +186,7 @@ export const EVM_RPCS: Record<
 };
 
 export const EVM_CHUNK_SIZES: Record<EVMNetwork, number> = {
-	[EVMNetwork.LOCAL_HARDHAT]: 15 * 1024,
+	[EVMNetwork.LOCAL_HARDHAT]: 16,
 
 	[EVMNetwork.ETHEREUM]: 15 * 1024,
 	[EVMNetwork.BNBCHAIN]: 15 * 1024,
