@@ -31,8 +31,7 @@ import {
 	IEVMRegistryContractLink,
 	IEVMYlidePayContractLink,
 	IEVMYlideSafeContractLink,
-	SafeMail,
-	YlideTokenAttachment,
+	Supplement,
 } from '../misc/types';
 
 import { EthereumBlockchainReader, IRPCDescriptor } from './helpers/EthereumBlockchainReader';
@@ -470,30 +469,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return null;
 	}
 
-	async getTokenAttachments(msg: IEVMMessage): Promise<YlideTokenAttachment | null> {
-		const decodedMsgId = decodeEvmMsgId(msg.msgId);
-		const mailer = this.mailers.find(m => m.link.id === decodedMsgId.contractId);
-		if (!mailer) {
-			throw new Error('This message does not belongs to this blockchain controller');
-		}
-		const supplement = msg.$$meta.supplement;
-		if (!supplement || supplement.contractAddress === ethers.constants.AddressZero) {
-			return null;
-		}
-		if (supplement.contractType === ContractType.PAY) {
-			const payer = this.payers.find(p => p.link.address === supplement.contractAddress);
-			if (payer) {
-				const attachments = await payer.wrapper.getTokenAttachments(payer.link, msg);
-				return {
-					kind: ContractType.PAY,
-					attachments,
-				};
-			}
-		}
-		return null;
-	}
-
-	async getSafeMails(msg: IEVMMessage): Promise<SafeMail[] | null> {
+	async getSupplement(msg: IEVMMessage): Promise<Supplement | null> {
 		const decodedMsgId = decodeEvmMsgId(msg.msgId);
 		const mailer = this.mailers.find(m => m.link.id === decodedMsgId.contractId);
 		if (!mailer) {
@@ -503,13 +479,28 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		if (
 			!supplement ||
 			supplement.contractAddress === ethers.constants.AddressZero ||
-			supplement.contractType !== ContractType.SAFE
+			supplement.contractType === ContractType.NONE
 		) {
 			return null;
 		}
-		const safe = this.safes.find(p => p.link.address === supplement.contractAddress);
-		if (safe) {
-			return safe.wrapper.getSafeMailsEvent(safe.link, msg);
+		if (supplement.contractType === ContractType.PAY) {
+			const payer = this.payers.find(p => p.link.address === supplement.contractAddress);
+			if (payer) {
+				const data = await payer.wrapper.getTokenAttachments(payer.link, msg);
+				return {
+					kind: ContractType.PAY,
+					data,
+				};
+			}
+		} else if (supplement.contractType === ContractType.SAFE) {
+			const safe = this.safes.find(p => p.link.address === supplement.contractAddress);
+			if (safe) {
+				const data = await safe.wrapper.getSafeMailsEvent(safe.link, msg);
+				return {
+					kind: ContractType.SAFE,
+					data,
+				};
+			}
 		}
 		return null;
 	}

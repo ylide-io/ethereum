@@ -166,27 +166,42 @@ export type PayAttachment = {
 	tokenType: number;
 };
 
-export type YlideTokenAttachment = {
-	kind: ContractType.PAY;
-	attachments: PayAttachment[];
+export type SafeMail = {
+	safeSender: string;
+	safeRecipients: string[];
+	contentId: Uint256;
 };
 
 export type SupplementPay = {
+	kind: ContractType.PAY;
+	data: PayAttachment[];
+};
+
+export type SupplementSafe = {
+	kind: ContractType.SAFE;
+	data: SafeMail[];
+};
+
+export type Supplement = SupplementPay | SupplementSafe;
+
+export type SupplementPayArgs = {
 	kind: ContractType.PAY;
 	data: YlidePayV1.TransferInfoStruct[];
 	deadline: number;
 };
 
-export type SupplementSafe = {
+export type SupplementSafeArgs = {
 	kind: ContractType.SAFE;
 	data: YlideSafeV1.SafeArgsStruct;
 	deadline: number;
 };
 
+export type SupplementArgs = SupplementPayArgs | SupplementSafeArgs;
+
 export type Options = {
 	network?: EVMNetwork;
 	value?: BigNumber;
-	supplement?: SupplementPay | SupplementSafe;
+	supplement?: SupplementArgs;
 };
 
 export type YlideSignArgs = {
@@ -202,9 +217,3 @@ export type MailerWrapper =
 	| EthereumMailerV7Wrapper
 	| EthereumMailerV8Wrapper
 	| EthereumMailerV9Wrapper;
-
-export type SafeMail = {
-	safeSender: string;
-	safeRecipients: string[];
-	contentId: Uint256;
-};

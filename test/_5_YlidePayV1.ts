@@ -138,13 +138,13 @@ describe('YlidePayV1', () => {
 			const message = await blockchainController.getMessageByMsgId(msgId);
 			expect(message).not.equal(null);
 			if (message) {
-				const result = await blockchainController.getTokenAttachments(message);
+				const result = await blockchainController.getSupplement(message);
 				expect(result).not.equal(null);
 				if (result) {
 					expect(result.kind).equal(ContractType.PAY);
-					expect(result.attachments.length).equal(1);
+					expect(result.data.length).equal(1);
 					if (index === 0) {
-						expect(result.attachments[0]).deep.equal({
+						expect(result.data[0]).deep.equal({
 							contentId: message.$$meta.contentId,
 							amountOrTokenId: 1500n,
 							recipient: user2.address,
@@ -153,7 +153,7 @@ describe('YlidePayV1', () => {
 							tokenType: 0,
 						});
 					} else {
-						expect(result.attachments[0]).deep.equal({
+						expect(result.data[0]).deep.equal({
 							contentId: message.$$meta.contentId,
 							amountOrTokenId: 500n,
 							recipient: user1.address,
@@ -216,12 +216,12 @@ describe('YlidePayV1', () => {
 		const message = await blockchainController.getMessageByMsgId(msgId);
 		expect(message).not.equal(null);
 		if (message) {
-			const result = await blockchainController.getTokenAttachments(message);
+			const result = await blockchainController.getSupplement(message);
 			expect(result).not.equal(null);
 			if (result) {
 				expect(result.kind).equal(ContractType.PAY);
-				expect(result.attachments.length).equal(1);
-				expect(result.attachments[0]).deep.equal({
+				expect(result.data.length).equal(1);
+				expect(result.data[0]).deep.equal({
 					contentId: message.$$meta.contentId,
 					amountOrTokenId: 123n,
 					recipient: user1.address,
@@ -289,13 +289,13 @@ describe('YlidePayV1', () => {
 			const message = await blockchainController.getMessageByMsgId(msgId);
 			expect(message).not.equal(null);
 			if (message) {
-				const result = await blockchainController.getTokenAttachments(message);
+				const result = await blockchainController.getSupplement(message);
 				expect(result).not.equal(null);
 				if (result) {
 					expect(result.kind).equal(ContractType.PAY);
-					expect(result.attachments.length).equal(1);
+					expect(result.data.length).equal(1);
 					if (index === 0) {
-						expect(result.attachments[0]).deep.equal({
+						expect(result.data[0]).deep.equal({
 							contentId: message.$$meta.contentId,
 							amountOrTokenId: 1500n,
 							recipient: user2.address,
@@ -304,7 +304,7 @@ describe('YlidePayV1', () => {
 							tokenType: 0,
 						});
 					} else {
-						expect(result.attachments[0]).deep.equal({
+						expect(result.data[0]).deep.equal({
 							contentId: message.$$meta.contentId,
 							amountOrTokenId: 500n,
 							recipient: user1.address,
@@ -367,12 +367,12 @@ describe('YlidePayV1', () => {
 		const message = await blockchainController.getMessageByMsgId(msgId);
 		expect(message).not.equal(null);
 		if (message) {
-			const result = await blockchainController.getTokenAttachments(message);
+			const result = await blockchainController.getSupplement(message);
 			expect(result).not.equal(null);
 			if (result) {
 				expect(result.kind).equal(ContractType.PAY);
-				expect(result.attachments.length).equal(1);
-				expect(result.attachments[0]).deep.equal({
+				expect(result.data.length).equal(1);
+				expect(result.data[0]).deep.equal({
 					contentId: message.$$meta.contentId,
 					amountOrTokenId: 123n,
 					recipient: user1.address,

@@ -150,13 +150,16 @@ describe('YlideSafeV1', () => {
 		const message = await blockchainController.getMessageByMsgId(msgId);
 		expect(message).not.equal(null);
 		if (message) {
-			const result = await blockchainController.getSafeMails(message);
+			const result = await blockchainController.getSupplement(message);
 			expect(result).not.equal(null);
 			if (result) {
-				expect(result.length).equal(1);
-				expect(message.$$meta.contentId).equal(result[0].contentId);
-				expect(result[0].safeSender).equal(safeSender);
-				expect(result[0].safeRecipients).deep.equal(safeRecipients);
+				expect(result.kind).equal(ContractType.SAFE);
+				if (result.kind === ContractType.SAFE) {
+					expect(result.data.length).equal(1);
+					expect(message.$$meta.contentId).equal(result.data[0].contentId);
+					expect(result.data[0].safeSender).equal(safeSender);
+					expect(result.data[0].safeRecipients).deep.equal(safeRecipients);
+				}
 			}
 		}
 	});
@@ -209,13 +212,16 @@ describe('YlideSafeV1', () => {
 		const message = await blockchainController.getMessageByMsgId(msgId);
 		expect(message).not.equal(null);
 		if (message) {
-			const result = await blockchainController.getSafeMails(message);
+			const result = await blockchainController.getSupplement(message);
 			expect(result).not.equal(null);
 			if (result) {
-				expect(result.length).equal(1);
-				expect(message.$$meta.contentId).equal(result[0].contentId);
-				expect(result[0].safeSender).equal(safeSender);
-				expect(result[0].safeRecipients).deep.equal(safeRecipients);
+				expect(result.kind).equal(ContractType.SAFE);
+				expect(result.data.length).equal(1);
+				if (result.kind === ContractType.SAFE) {
+					expect(message.$$meta.contentId).equal(result.data[0].contentId);
+					expect(result.data[0].safeSender).equal(safeSender);
+					expect(result.data[0].safeRecipients).deep.equal(safeRecipients);
+				}
 			}
 		}
 	});
@@ -262,16 +268,19 @@ describe('YlideSafeV1', () => {
 		const message = await blockchainController.getMessageByMsgId(msgId);
 		expect(message).not.equal(null);
 		if (message) {
-			const result = await blockchainController.getSafeMails(message);
+			const result = await blockchainController.getSupplement(message);
 			expect(result).not.equal(null);
 			if (result) {
-				expect(result.length).equal(2);
-				expect(message.$$meta.contentId).equal(result[0].contentId);
-				expect(message.$$meta.contentId).equal(result[1].contentId);
-				expect(result[0].safeSender).equal(safeSender);
-				expect(result[0].safeRecipients.length).deep.equal(210);
-				expect(result[1].safeSender).equal(safeSender);
-				expect(result[1].safeRecipients.length).deep.equal(10);
+				expect(result.kind).equal(ContractType.SAFE);
+				if (result.kind === ContractType.SAFE) {
+					expect(result.data.length).equal(2);
+					expect(message.$$meta.contentId).equal(result.data[0].contentId);
+					expect(message.$$meta.contentId).equal(result.data[1].contentId);
+					expect(result.data[0].safeSender).equal(safeSender);
+					expect(result.data[0].safeRecipients.length).deep.equal(210);
+					expect(result.data[1].safeSender).equal(safeSender);
+					expect(result.data[1].safeRecipients.length).deep.equal(10);
+				}
 			}
 		}
 	});
