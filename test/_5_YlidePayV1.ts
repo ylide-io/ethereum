@@ -5,7 +5,6 @@ import { MessageKey, Uint256 } from '@ylide/sdk';
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
-import crypto from 'crypto';
 import {
 	ContractType,
 	EVMContracts,
@@ -251,7 +250,7 @@ describe('YlidePayV1', () => {
 
 		const deadline = await currentTimestamp().then(t => t + 1000);
 
-		const content = crypto.getRandomValues(new Uint8Array(32));
+		const content = new Uint8Array(32);
 
 		const { pushes } = await walletController.sendMail(
 			{
@@ -335,7 +334,7 @@ describe('YlidePayV1', () => {
 
 		const deadline = await currentTimestamp().then(t => t + 1000);
 
-		const content = crypto.getRandomValues(new Uint8Array(32));
+		const content = new Uint8Array(32);
 
 		const { pushes } = await walletController.sendMail(
 			{

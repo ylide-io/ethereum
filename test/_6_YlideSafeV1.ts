@@ -2,7 +2,6 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { MockSafe, MockSafe__factory } from '@ylide/ethereum-contracts';
 import { MessageKey, Uint256 } from '@ylide/sdk';
 import { expect } from 'chai';
-import crypto from 'crypto';
 import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 import { describe } from 'mocha';
@@ -170,7 +169,7 @@ describe('YlideSafeV1', () => {
 		const safeSender = mockSafe1.address;
 		const safeRecipients = [mockSafe2.address, ethers.constants.AddressZero];
 
-		const content = crypto.getRandomValues(new Uint8Array(32));
+		const content = new Uint8Array(32);
 
 		const { pushes } = await walletController.sendMail(
 			{
@@ -229,7 +228,7 @@ describe('YlideSafeV1', () => {
 		const safeSender = mockSafe1.address;
 		const safeRecipients = new Array(220).fill(ethers.constants.AddressZero);
 
-		const content = crypto.getRandomValues(new Uint8Array(32));
+		const content = new Uint8Array(32);
 
 		const { pushes } = await walletController.sendMail(
 			{
