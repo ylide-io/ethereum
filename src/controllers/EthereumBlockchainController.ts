@@ -1,6 +1,7 @@
 import {
 	AbstractBlockchainController,
 	AbstractNameService,
+	BlockchainControllerFactory,
 	BlockchainSourceType,
 	ExternalYlidePublicKey,
 	hexToUint256,
@@ -565,3 +566,32 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 	};
 }
+
+const getBlockchainFactory = (network: EVMNetwork): BlockchainControllerFactory => {
+	return {
+		create: async (options?: any) => new EthereumBlockchainController(Object.assign({ network }, options || {})),
+		blockchain: EVM_NAMES[network],
+		blockchainGroup: 'evm',
+	};
+};
+
+export const evmBlockchainFactories: Record<EVMNetwork, BlockchainControllerFactory> = {
+	[EVMNetwork.LOCAL_HARDHAT]: getBlockchainFactory(EVMNetwork.LOCAL_HARDHAT),
+
+	[EVMNetwork.ETHEREUM]: getBlockchainFactory(EVMNetwork.ETHEREUM),
+	[EVMNetwork.BNBCHAIN]: getBlockchainFactory(EVMNetwork.BNBCHAIN),
+	[EVMNetwork.POLYGON]: getBlockchainFactory(EVMNetwork.POLYGON),
+	[EVMNetwork.AVALANCHE]: getBlockchainFactory(EVMNetwork.AVALANCHE),
+	[EVMNetwork.OPTIMISM]: getBlockchainFactory(EVMNetwork.OPTIMISM),
+	[EVMNetwork.ARBITRUM]: getBlockchainFactory(EVMNetwork.ARBITRUM),
+	[EVMNetwork.CRONOS]: getBlockchainFactory(EVMNetwork.CRONOS),
+	[EVMNetwork.FANTOM]: getBlockchainFactory(EVMNetwork.FANTOM),
+	[EVMNetwork.KLAYTN]: getBlockchainFactory(EVMNetwork.KLAYTN),
+	[EVMNetwork.GNOSIS]: getBlockchainFactory(EVMNetwork.GNOSIS),
+	[EVMNetwork.AURORA]: getBlockchainFactory(EVMNetwork.AURORA),
+	[EVMNetwork.CELO]: getBlockchainFactory(EVMNetwork.CELO),
+	[EVMNetwork.MOONBEAM]: getBlockchainFactory(EVMNetwork.MOONBEAM),
+	[EVMNetwork.MOONRIVER]: getBlockchainFactory(EVMNetwork.MOONRIVER),
+	[EVMNetwork.METIS]: getBlockchainFactory(EVMNetwork.METIS),
+	[EVMNetwork.ASTAR]: getBlockchainFactory(EVMNetwork.ASTAR),
+};

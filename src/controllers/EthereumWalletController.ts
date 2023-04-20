@@ -947,15 +947,27 @@ export class EthereumWalletController extends AbstractWalletController {
 		await this.ensureNetworkOptions('Deploy MailerV9', options);
 		return await EthereumMailerV9Wrapper.deploy(this.signer, me.address);
 	}
-}
 
-// export const ethereumWalletFactory: WalletControllerFactory = {
-// 	create: async (options?: { network?: EVMNetwork; value?: BigNumber }) => new EthereumWalletController(options),
-// 	// @ts-ignore
-// 	isWalletAvailable: async () => !!(window['ethereum'] || window['web3']), // tslint:disable-line
-// 	blockchainGroup: 'evm',
-// 	wallet: 'web3',
-// };
+	async deployPayV1(me: IGenericAccount, options: { network: EVMNetwork }): Promise<string> {
+		await this.ensureAccount(me);
+		await this.ensureNetworkOptions('Deploy MailerV9', options);
+		const mailer = this.getMailerByNetwork(options.network);
+		if (mailer.wrapper instanceof EthereumMailerV9Wrapper) {
+			return await EthereumPayV1Wrapper.deploy(this.signer, mailer.link.address);
+		}
+		throw new Error("Can't deploy PayV1 on this network");
+	}
+
+	async deploySafeV1(me: IGenericAccount, options: { network: EVMNetwork }): Promise<string> {
+		await this.ensureAccount(me);
+		await this.ensureNetworkOptions('Deploy MailerV9', options);
+		const mailer = this.getMailerByNetwork(options.network);
+		if (mailer.wrapper instanceof EthereumMailerV9Wrapper) {
+			return await EthereumSafeV1Wrapper.deploy(this.signer, mailer.link.address);
+		}
+		throw new Error("Can't deploy SafeV1 on this network");
+	}
+}
 
 const getWalletFactory = (
 	wallet: string,
