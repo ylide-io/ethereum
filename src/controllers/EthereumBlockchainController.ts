@@ -1,7 +1,6 @@
 import {
 	AbstractBlockchainController,
 	AbstractNameService,
-	BlockchainControllerFactory,
 	BlockchainSourceType,
 	ExternalYlidePublicKey,
 	hexToUint256,

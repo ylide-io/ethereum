@@ -1,289 +1,391 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
-import {
-	MockERC20,
-	MockERC20__factory,
-	MockERC721,
-	MockERC721__factory,
-	YlideMailerV9,
-	YlideMailerV9__factory,
-	YlidePayV1,
-	YlidePayV1__factory,
-} from '@ylide/ethereum-contracts';
-import { Uint256, YlideCore } from '@ylide/sdk';
+import { MockERC20__factory, MockERC721__factory } from '@ylide/ethereum-contracts';
+import { MessageKey, Uint256 } from '@ylide/sdk';
 import { expect } from 'chai';
-import { BigNumber, providers } from 'ethers';
-import { ethers, network } from 'hardhat';
+import { BigNumber } from 'ethers';
+import { ethers } from 'hardhat';
+import crypto from 'crypto';
 import {
 	ContractType,
+	EVMContracts,
 	EVMMailerContractType,
+	EVMNetwork,
+	EVMRegistryContractType,
 	EVMYlidePayContractType,
+	EthereumBlockchainController,
 	EthereumBlockchainReader,
-	IEVMMailerContractLink,
-	IEVMYlidePayContractLink,
+	EthereumRegistryV6Wrapper,
 	bnToUint256,
-	hexPrefix,
 } from '../src';
 import { EthereumPayV1Wrapper } from '../src/contract-wrappers/EthereumPayV1Wrapper';
 import { EthereumMailerV9Wrapper } from '../src/contract-wrappers/v9';
-import { currentTimestamp } from './test-utils';
+import { currentTimestamp, getBlockchainController, getEvmContractsTest, getWalletController } from './test-utils';
 
 describe('YlidePayV1', () => {
+	let feedId: Uint256;
 	let owner: SignerWithAddress;
 	let user1: SignerWithAddress;
 	let user2: SignerWithAddress;
-	let ylideMailer: YlideMailerV9;
-	let ylidePay: YlidePayV1;
-	let erc20: MockERC20;
-	let erc721: MockERC721;
-	let feedId: Uint256;
-	const uniqueId = 123;
-	const keys = [new Uint8Array([1, 2, 3, 4, 5, 6]), new Uint8Array([6, 5, 4, 3, 2, 1])];
-	const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
+	let evmContractsTest: EVMContracts;
+	let mailerAddress: string;
+	let payAddress: string;
+	let registryAddress: string;
 
-	let domain: {
-		name: string;
-		version: string;
-		chainId: number;
-		verifyingContract: string;
-	};
+	let blockchainController: EthereumBlockchainController;
 
-	let firstBlockNumber: number;
-	const partsCount = 4;
-	const blockCountLock = 20;
-
-	let readerForOwner: EthereumBlockchainReader;
-
-	let mailerDesc: IEVMMailerContractLink;
-
-	let payDesc: IEVMYlidePayContractLink;
-
-	before(async () => {
+	it('Deploy and config', async () => {
 		[owner, user1, user2] = await ethers.getSigners();
-
-		ylideMailer = await new YlideMailerV9__factory(owner).deploy();
-		ylidePay = await new YlidePayV1__factory(owner).deploy(ylideMailer.address);
-
-		erc20 = await new MockERC20__factory(owner).deploy('Test', 'TST');
-		erc721 = await new MockERC721__factory(owner).deploy('Test', 'TST');
-
-		const tx = await ylideMailer.createMailingFeed('768768768768121341');
-		const receipt = await tx.wait();
-		feedId = bnToUint256(BigNumber.from(receipt.events?.[0].args?.[0] || 0));
-		domain = {
-			name: 'YlideMailerV9',
-			version: '9',
-			chainId: network.config.chainId || 0,
-			verifyingContract: ylideMailer.address,
-		};
-		firstBlockNumber = await ethers.provider.getBlockNumber();
-
-		readerForOwner = EthereumBlockchainReader.createEthereumBlockchainReader([
+		const readerForOwner = EthereumBlockchainReader.createEthereumBlockchainReader([
 			{
 				chainId: 31337,
 				rpcUrlOrProvider: owner.provider || '',
 				blockLimit: 100,
 			},
 		]);
+		const payWrapper = new EthereumPayV1Wrapper(readerForOwner);
+		const mailerWrapper = new EthereumMailerV9Wrapper(readerForOwner);
 
-		payDesc = {
-			id: 1,
-			type: EVMYlidePayContractType.EVMYlidePayV1,
-			verified: false,
-			address: ylidePay.address,
-			creationBlock: 2,
-		};
+		mailerAddress = await EthereumMailerV9Wrapper.deploy(owner, owner.address);
+		payAddress = await EthereumPayV1Wrapper.deploy(owner, owner.address);
+		registryAddress = await EthereumRegistryV6Wrapper.deploy(owner, owner.address);
 
-		mailerDesc = {
-			id: 1,
-			type: EVMMailerContractType.EVMMailerV9,
-			verified: false,
-			address: ylideMailer.address,
-			creationBlock: 1,
-			pay: payDesc,
-		};
+		evmContractsTest = getEvmContractsTest({
+			mailer: {
+				address: mailerAddress,
+				type: EVMMailerContractType.EVMMailerV9,
+			},
+			payer: { address: payAddress, type: EVMYlidePayContractType.EVMYlidePayV1 },
+			registry: { address: registryAddress, type: EVMRegistryContractType.EVMRegistryV6 },
+		});
+
+		await ethers.provider.send('hardhat_mine', ['0x81']);
+
+		const result = await mailerWrapper.mailing.createMailingFeed(
+			evmContractsTest[EVMNetwork.LOCAL_HARDHAT].mailerContracts[0],
+			owner,
+			bnToUint256(BigNumber.from(1221365)),
+			BigNumber.from(0),
+		);
+		feedId = result.feedId || bnToUint256(BigNumber.from(0));
+
+		const pay = evmContractsTest[EVMNetwork.LOCAL_HARDHAT].payContracts[0];
+		await payWrapper.setYlideMailer(pay, owner, mailerAddress);
+		expect(await payWrapper.getYlideMailer(pay)).to.equal(mailerAddress);
+		const mailer = evmContractsTest[EVMNetwork.LOCAL_HARDHAT].mailerContracts[0];
+		await mailerWrapper.globals.setIsYlide(
+			evmContractsTest[EVMNetwork.LOCAL_HARDHAT].mailerContracts[0],
+			owner,
+			[payAddress],
+			[true],
+		);
+		expect(await mailerWrapper.globals.isYlide(mailer, payAddress));
+		blockchainController = getBlockchainController(ethers.provider, evmContractsTest);
+
+		expect(blockchainController.getMailerSupplementSupport()).deep.equal([ContractType.PAY]);
+		expect(blockchainController.isSupplementSupported(ContractType.PAY)).equal(true);
+		expect(blockchainController.isSupplementSupported(ContractType.SAFE)).equal(false);
 	});
 
-	it('Send erc20 and erc721', async () => {
-		const mailerWrapper = new EthereumMailerV9Wrapper(readerForOwner);
-		const payWrapper = new EthereumPayV1Wrapper(readerForOwner);
+	it('Send ERC20 bulkMail', async () => {
+		const erc20 = await new MockERC20__factory(owner).deploy('Test', 'TST');
+		await erc20.connect(owner).mint(2000);
 
-		await mailerWrapper.globals.setIsYlide(mailerDesc, owner, [ylidePay.address], [true]);
+		await erc20.connect(owner).approve(payAddress, 2000);
 
-		const nonce1 = await mailerWrapper.mailing.getNonce(mailerDesc, user1.address);
+		expect(await erc20.balanceOf(user1.address)).equal(0);
+		expect(await erc20.balanceOf(user2.address)).equal(0);
+
+		const walletController = await getWalletController(owner, ethers.provider, evmContractsTest);
 
 		const deadline = await currentTimestamp().then(t => t + 1000);
 
-		const sig1 = await user1._signTypedData(domain, mailerWrapper.mailing.SendBulkMailTypes, {
-			feedId: hexPrefix(feedId),
-			uniqueId,
-			nonce: nonce1,
-			deadline,
-			recipients: [
-				...[user2.address, owner.address].map(r => BigNumber.from(r)),
-				BigNumber.from(`0x${YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address)))}`),
-			],
-			keys: ethers.utils.concat([...keys, new Uint8Array(1)]),
+		const content = new Uint8Array([1, 2, 3, 4, 5, 6]);
+
+		const { pushes } = await walletController.sendMail(
+			{
+				blockchain: 'hardhat',
+				address: owner.address.toLowerCase(),
+				publicKey: null,
+			},
+			feedId,
 			content,
-			contractAddress: ylidePay.address,
-			contractType: ContractType.PAY,
-		});
-
-		const { signature: sig2 } = await mailerWrapper.mailing.signBulkMail(
-			{
-				mailer: mailerDesc,
-				signer: user1 as unknown as providers.JsonRpcSigner,
-				deadline,
-				nonce: nonce1,
-				chainId: 31337,
-			},
-			{
-				feedId: hexPrefix(feedId),
-				uniqueId,
-				recipients: [
-					...[user2.address, owner.address].map(r => bnToUint256(BigNumber.from(r))),
-					YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
-				].map(hexPrefix),
-				keys: [...keys, new Uint8Array(1)],
-				content,
-			},
-			{ contractAddress: ylidePay.address, contractType: ContractType.PAY },
-		);
-
-		expect(sig1).equal(sig2);
-
-		await erc20.connect(user1).mint(2000);
-
-		await erc20.connect(user1).approve(ylidePay.address, 2000);
-
-		expect(await erc20.balanceOf(user2.address)).equal(0);
-
-		const { messages } = await payWrapper.sendBulkMailWithToken(
-			{ mailer: mailerDesc, signer: user1, value: BigNumber.from(0) },
-			{
-				feedId: hexPrefix(feedId),
-				uniqueId,
-				recipients: [
-					...[user2.address, owner.address].map(r => bnToUint256(BigNumber.from(r))),
-					YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
-				].map(hexPrefix),
-				keys: [...keys, new Uint8Array(1)],
-				content,
-			},
-			{
-				deadline,
-				nonce: nonce1,
-				signature: sig2,
-				sender: user1.address,
-			},
-			mailerWrapper,
-			payDesc,
 			[
-				{ amountOrTokenId: 1000, token: erc20.address, recipient: user2.address, tokenType: 0 },
-				{ amountOrTokenId: 1000, token: erc20.address, recipient: owner.address, tokenType: 0 },
-			],
-		);
-
-		for (const m of messages) {
-			const attachments = await payWrapper.getTokenAttachments(
 				{
-					id: 1,
-					address: ylidePay.address,
-					verified: false,
-					type: EVMYlidePayContractType.EVMYlidePayV1,
-					creationBlock: 2,
+					address: bnToUint256(BigNumber.from(user2.address)),
+					messageKey: MessageKey.fromBytes(new Uint8Array([2, 2, 3, 4, 5, 6])),
 				},
-				m,
-			);
-			if (m.recipientAddress === YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address)))) {
-				expect(attachments.length).equal(2);
-			} else {
-				expect(attachments.length).equal(1);
-			}
-			attachments.forEach(a => expect(a.sender).equal(user1.address));
-		}
-
-		expect(await erc20.balanceOf(user1.address)).equal(0);
-		expect(await erc20.balanceOf(user2.address)).equal(1000);
-		expect(await erc20.balanceOf(owner.address)).equal(1000);
-
-		const nonce2 = await mailerWrapper.mailing.getNonce(mailerDesc, user1.address);
-
-		const sig3 = await user1._signTypedData(domain, mailerWrapper.mailing.AddMailRecipientsTypes, {
-			feedId: hexPrefix(feedId),
-			uniqueId,
-			firstBlockNumber,
-			nonce: nonce2,
-			deadline,
-			partsCount,
-			blockCountLock,
-			recipients: [
-				BigNumber.from(user2.address),
-				BigNumber.from(`0x${YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address)))}`),
+				{
+					address: bnToUint256(BigNumber.from(user1.address)),
+					messageKey: MessageKey.fromBytes(new Uint8Array([2, 2, 3, 4, 5, 7])),
+				},
 			],
-			keys: ethers.utils.concat(keys),
-			contractAddress: ylidePay.address,
-			contractType: ContractType.PAY,
-		});
-
-		const { signature: sig4 } = await mailerWrapper.mailing.signAddMailRecipients(
 			{
-				mailer: mailerDesc,
-				signer: user1 as unknown as providers.JsonRpcSigner,
-				deadline,
-				nonce: nonce2,
-				chainId: 31337,
+				network: EVMNetwork.LOCAL_HARDHAT,
+				supplement: {
+					deadline,
+					kind: ContractType.PAY,
+					data: [
+						{ amountOrTokenId: 1500, token: erc20.address, recipient: user2.address, tokenType: 0 },
+						{ amountOrTokenId: 500, token: erc20.address, recipient: user1.address, tokenType: 0 },
+					],
+				},
 			},
-			{
-				feedId: hexPrefix(feedId),
-				uniqueId,
-				firstBlockNumber,
-				partsCount,
-				blockCountLock,
-				recipients: [
-					bnToUint256(BigNumber.from(user2.address)),
-					YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
-				].map(hexPrefix),
-				keys,
-			},
-			{ contractAddress: ylidePay.address, contractType: ContractType.PAY },
 		);
+		for (const [index, { push }] of pushes.entries()) {
+			expect(push.$$meta.supplement.contractAddress).equal(payAddress);
+			expect(push.$$meta.supplement.contractType).equal(ContractType.PAY);
+			const msgId = push.msgId;
+			const message = await blockchainController.getMessageByMsgId(msgId);
+			expect(message).not.equal(null);
+			if (message) {
+				const result = await blockchainController.getTokenAttachments(message);
+				expect(result).not.equal(null);
+				if (result) {
+					expect(result.kind).equal(ContractType.PAY);
+					expect(result.attachments.length).equal(1);
+					if (index === 0) {
+						expect(result.attachments[0]).deep.equal({
+							contentId: message.$$meta.contentId,
+							amountOrTokenId: 1500n,
+							recipient: user2.address,
+							sender: owner.address,
+							token: erc20.address,
+							tokenType: 0,
+						});
+					} else {
+						expect(result.attachments[0]).deep.equal({
+							contentId: message.$$meta.contentId,
+							amountOrTokenId: 500n,
+							recipient: user1.address,
+							sender: owner.address,
+							token: erc20.address,
+							tokenType: 0,
+						});
+					}
+				}
+			}
+		}
+		expect(await erc20.balanceOf(owner.address)).equal(0);
+		expect(await erc20.balanceOf(user2.address)).equal(1500);
+		expect(await erc20.balanceOf(user1.address)).equal(500);
+	});
 
-		expect(sig3).equal(sig4);
+	it('Send ERC721 bulkMail', async () => {
+		const erc721 = await new MockERC721__factory(owner).deploy('Test', 'TST');
 
-		await erc721.connect(user1).mint(123);
+		await erc721.connect(owner).mint(123);
 
-		await erc721.connect(user1).approve(ylidePay.address, 123);
-
-		expect(await erc721.balanceOf(user2.address)).equal(0);
-
-		await payWrapper.addMailRecipientsWithToken(
-			{ mailer: mailerDesc, signer: user1, value: BigNumber.from(0) },
-			{
-				feedId: hexPrefix(feedId),
-				uniqueId,
-				recipients: [
-					bnToUint256(BigNumber.from(user2.address)),
-					YlideCore.getSentAddress(bnToUint256(BigNumber.from(user1.address))),
-				].map(hexPrefix),
-				keys,
-				firstBlockNumber,
-				partsCount,
-				blockCountLock,
-			},
-			{
-				deadline,
-				nonce: nonce2,
-				signature: sig3,
-				sender: user1.address,
-			},
-			mailerWrapper,
-			payDesc,
-			[{ amountOrTokenId: 123, token: erc721.address, recipient: user2.address, tokenType: 1 }],
-		);
+		await erc721.connect(owner).approve(payAddress, 123);
 
 		expect(await erc721.balanceOf(user1.address)).equal(0);
-		expect(await erc721.balanceOf(user2.address)).equal(1);
-		expect(await erc721.ownerOf(123)).equal(user2.address);
+
+		const walletController = await getWalletController(owner, ethers.provider, evmContractsTest);
+
+		const deadline = await currentTimestamp().then(t => t + 1000);
+
+		const content = new Uint8Array([1, 2, 3, 4, 5, 6]);
+
+		const { pushes } = await walletController.sendMail(
+			{
+				blockchain: 'hardhat',
+				address: owner.address.toLowerCase(),
+				publicKey: null,
+			},
+			feedId,
+			content,
+			[
+				{
+					address: bnToUint256(BigNumber.from(user1.address)),
+					messageKey: MessageKey.fromBytes(new Uint8Array([2, 2, 3, 4, 5, 7])),
+				},
+			],
+			{
+				network: EVMNetwork.LOCAL_HARDHAT,
+				supplement: {
+					deadline,
+					kind: ContractType.PAY,
+					data: [{ amountOrTokenId: 123, token: erc721.address, recipient: user1.address, tokenType: 1 }],
+				},
+			},
+		);
+		expect(pushes.length).equal(1);
+		const push = pushes[0].push;
+		expect(push.$$meta.supplement.contractAddress).equal(payAddress);
+		expect(push.$$meta.supplement.contractType).equal(ContractType.PAY);
+		const msgId = push.msgId;
+		const message = await blockchainController.getMessageByMsgId(msgId);
+		expect(message).not.equal(null);
+		if (message) {
+			const result = await blockchainController.getTokenAttachments(message);
+			expect(result).not.equal(null);
+			if (result) {
+				expect(result.kind).equal(ContractType.PAY);
+				expect(result.attachments.length).equal(1);
+				expect(result.attachments[0]).deep.equal({
+					contentId: message.$$meta.contentId,
+					amountOrTokenId: 123n,
+					recipient: user1.address,
+					sender: owner.address,
+					token: erc721.address,
+					tokenType: 1,
+				});
+			}
+		}
+
+		expect(await erc721.balanceOf(owner.address)).equal(0);
+		expect(await erc721.balanceOf(user1.address)).equal(1);
+		expect(await erc721.ownerOf(123)).equal(user1.address);
+	});
+
+	it('Send ERC20 addMailRecipients', async () => {
+		const erc20 = await new MockERC20__factory(owner).deploy('Test', 'TST');
+		await erc20.connect(owner).mint(2000);
+
+		await erc20.connect(owner).approve(payAddress, 2000);
+
+		expect(await erc20.balanceOf(user1.address)).equal(0);
+		expect(await erc20.balanceOf(user2.address)).equal(0);
+
+		const walletController = await getWalletController(owner, ethers.provider, evmContractsTest);
+
+		const deadline = await currentTimestamp().then(t => t + 1000);
+
+		const content = crypto.getRandomValues(new Uint8Array(32));
+
+		const { pushes } = await walletController.sendMail(
+			{
+				blockchain: 'hardhat',
+				address: owner.address.toLowerCase(),
+				publicKey: null,
+			},
+			feedId,
+			content,
+			[
+				{
+					address: bnToUint256(BigNumber.from(user2.address)),
+					messageKey: MessageKey.fromBytes(new Uint8Array([2, 2, 3, 4, 5, 6])),
+				},
+				{
+					address: bnToUint256(BigNumber.from(user1.address)),
+					messageKey: MessageKey.fromBytes(new Uint8Array([2, 2, 3, 4, 5, 7])),
+				},
+			],
+			{
+				network: EVMNetwork.LOCAL_HARDHAT,
+				supplement: {
+					deadline,
+					kind: ContractType.PAY,
+					data: [
+						{ amountOrTokenId: 1500, token: erc20.address, recipient: user2.address, tokenType: 0 },
+						{ amountOrTokenId: 500, token: erc20.address, recipient: user1.address, tokenType: 0 },
+					],
+				},
+			},
+		);
+		for (const [index, { push }] of pushes.entries()) {
+			expect(push.$$meta.supplement.contractAddress).equal(payAddress);
+			expect(push.$$meta.supplement.contractType).equal(ContractType.PAY);
+			const msgId = push.msgId;
+			const message = await blockchainController.getMessageByMsgId(msgId);
+			expect(message).not.equal(null);
+			if (message) {
+				const result = await blockchainController.getTokenAttachments(message);
+				expect(result).not.equal(null);
+				if (result) {
+					expect(result.kind).equal(ContractType.PAY);
+					expect(result.attachments.length).equal(1);
+					if (index === 0) {
+						expect(result.attachments[0]).deep.equal({
+							contentId: message.$$meta.contentId,
+							amountOrTokenId: 1500n,
+							recipient: user2.address,
+							sender: owner.address,
+							token: erc20.address,
+							tokenType: 0,
+						});
+					} else {
+						expect(result.attachments[0]).deep.equal({
+							contentId: message.$$meta.contentId,
+							amountOrTokenId: 500n,
+							recipient: user1.address,
+							sender: owner.address,
+							token: erc20.address,
+							tokenType: 0,
+						});
+					}
+				}
+			}
+		}
+		expect(await erc20.balanceOf(owner.address)).equal(0);
+		expect(await erc20.balanceOf(user2.address)).equal(1500);
+		expect(await erc20.balanceOf(user1.address)).equal(500);
+	});
+
+	it('Send ERC721 addMailRecipients', async () => {
+		const erc721 = await new MockERC721__factory(owner).deploy('Test', 'TST');
+
+		await erc721.connect(owner).mint(123);
+
+		await erc721.connect(owner).approve(payAddress, 123);
+
+		expect(await erc721.balanceOf(user1.address)).equal(0);
+
+		const walletController = await getWalletController(owner, ethers.provider, evmContractsTest);
+
+		const deadline = await currentTimestamp().then(t => t + 1000);
+
+		const content = crypto.getRandomValues(new Uint8Array(32));
+
+		const { pushes } = await walletController.sendMail(
+			{
+				blockchain: 'hardhat',
+				address: owner.address.toLowerCase(),
+				publicKey: null,
+			},
+			feedId,
+			content,
+			[
+				{
+					address: bnToUint256(BigNumber.from(user1.address)),
+					messageKey: MessageKey.fromBytes(new Uint8Array([2, 2, 3, 4, 5, 7])),
+				},
+			],
+			{
+				network: EVMNetwork.LOCAL_HARDHAT,
+				supplement: {
+					deadline,
+					kind: ContractType.PAY,
+					data: [{ amountOrTokenId: 123, token: erc721.address, recipient: user1.address, tokenType: 1 }],
+				},
+			},
+		);
+		expect(pushes.length).equal(1);
+		const push = pushes[0].push;
+		expect(push.$$meta.supplement.contractAddress).equal(payAddress);
+		expect(push.$$meta.supplement.contractType).equal(ContractType.PAY);
+		const msgId = push.msgId;
+		const message = await blockchainController.getMessageByMsgId(msgId);
+		expect(message).not.equal(null);
+		if (message) {
+			const result = await blockchainController.getTokenAttachments(message);
+			expect(result).not.equal(null);
+			if (result) {
+				expect(result.kind).equal(ContractType.PAY);
+				expect(result.attachments.length).equal(1);
+				expect(result.attachments[0]).deep.equal({
+					contentId: message.$$meta.contentId,
+					amountOrTokenId: 123n,
+					recipient: user1.address,
+					sender: owner.address,
+					token: erc721.address,
+					tokenType: 1,
+				});
+			}
+		}
+
+		expect(await erc721.balanceOf(owner.address)).equal(0);
+		expect(await erc721.balanceOf(user1.address)).equal(1);
+		expect(await erc721.ownerOf(123)).equal(user1.address);
 	});
 });
