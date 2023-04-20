@@ -123,7 +123,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 	readonly currentMailer: {
 		link: IEVMMailerContractLink;
-		wrapper: EthereumMailerV8Wrapper;
+		wrapper: EthereumMailerV9Wrapper;
 	};
 	readonly currentRegistry: { link: IEVMRegistryContractLink; wrapper: EthereumRegistryV5Wrapper };
 
@@ -196,7 +196,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			link: currentMailerLink,
 			wrapper: new EthereumBlockchainController.mailerWrappers[currentMailerLink.type](
 				this.blockchainReader,
-			) as EthereumMailerV8Wrapper,
+			) as EthereumMailerV9Wrapper,
 		};
 
 		this.currentRegistry = {
@@ -256,16 +256,6 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		} catch (err) {
 			return false;
 		}
-	}
-
-	async getUserNonceMailer(userAddress: string) {
-		if (
-			this.currentMailer.link.type === EVMMailerContractType.EVMMailerV9 &&
-			this.currentMailer.wrapper instanceof EthereumMailerV9Wrapper
-		) {
-			return this.currentMailer.wrapper.mailing.getNonce(this.currentMailer.link, userAddress);
-		}
-		throw new Error('Unsupported mailer version');
 	}
 
 	async getMessageByMsgId(msgId: string): Promise<IEVMMessage | null> {
@@ -541,6 +531,27 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return safe.wrapper.getSafeOwners(safeAddress);
 	}
 
+	getMailerSupplementSupport() {
+		const supported = [];
+		if (this.currentMailer.link.pay) {
+			supported.push(ContractType.PAY);
+		}
+		if (this.currentMailer.link.safe) {
+			supported.push(ContractType.SAFE);
+		}
+		return supported;
+	}
+
+	isSupplementSupported(contractType: ContractType): boolean {
+		if (contractType === ContractType.PAY) {
+			return !!this.currentMailer.link.pay;
+		}
+		if (contractType === ContractType.SAFE) {
+			return !!this.currentMailer.link.safe;
+		}
+		return false;
+	}
+
 	prepareExtraEncryptionStrategyBulk(
 		entries: IExtraEncryptionStrateryEntry[],
 	): Promise<IExtraEncryptionStrateryBulk> {
@@ -564,32 +575,3 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 	};
 }
-
-const getBlockchainFactory = (network: EVMNetwork): BlockchainControllerFactory => {
-	return {
-		create: async (options?: any) => new EthereumBlockchainController(Object.assign({ network }, options || {})),
-		blockchain: EVM_NAMES[network],
-		blockchainGroup: 'evm',
-	};
-};
-
-export const evmBlockchainFactories: Record<EVMNetwork, BlockchainControllerFactory> = {
-	[EVMNetwork.LOCAL_HARDHAT]: getBlockchainFactory(EVMNetwork.LOCAL_HARDHAT),
-
-	[EVMNetwork.ETHEREUM]: getBlockchainFactory(EVMNetwork.ETHEREUM),
-	[EVMNetwork.BNBCHAIN]: getBlockchainFactory(EVMNetwork.BNBCHAIN),
-	[EVMNetwork.POLYGON]: getBlockchainFactory(EVMNetwork.POLYGON),
-	[EVMNetwork.AVALANCHE]: getBlockchainFactory(EVMNetwork.AVALANCHE),
-	[EVMNetwork.OPTIMISM]: getBlockchainFactory(EVMNetwork.OPTIMISM),
-	[EVMNetwork.ARBITRUM]: getBlockchainFactory(EVMNetwork.ARBITRUM),
-	[EVMNetwork.CRONOS]: getBlockchainFactory(EVMNetwork.CRONOS),
-	[EVMNetwork.FANTOM]: getBlockchainFactory(EVMNetwork.FANTOM),
-	[EVMNetwork.KLAYTN]: getBlockchainFactory(EVMNetwork.KLAYTN),
-	[EVMNetwork.GNOSIS]: getBlockchainFactory(EVMNetwork.GNOSIS),
-	[EVMNetwork.AURORA]: getBlockchainFactory(EVMNetwork.AURORA),
-	[EVMNetwork.CELO]: getBlockchainFactory(EVMNetwork.CELO),
-	[EVMNetwork.MOONBEAM]: getBlockchainFactory(EVMNetwork.MOONBEAM),
-	[EVMNetwork.MOONRIVER]: getBlockchainFactory(EVMNetwork.MOONRIVER),
-	[EVMNetwork.METIS]: getBlockchainFactory(EVMNetwork.METIS),
-	[EVMNetwork.ASTAR]: getBlockchainFactory(EVMNetwork.ASTAR),
-};

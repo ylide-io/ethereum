@@ -1,6 +1,6 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { MockSafe, MockSafe__factory } from '@ylide/ethereum-contracts';
-import { Uint256 } from '@ylide/sdk';
+import { MessageKey, Uint256 } from '@ylide/sdk';
 import { expect } from 'chai';
 import crypto from 'crypto';
 import { BigNumber } from 'ethers';
@@ -21,22 +21,6 @@ import {
 import { EthereumSafeV1Wrapper } from '../src/contract-wrappers/EthereumSafeV1Wrapper.ts';
 import { EthereumMailerV9Wrapper } from '../src/contract-wrappers/v9';
 import { currentTimestamp, getBlockchainController, getEvmContractsTest, getWalletController } from './test-utils';
-
-class MessageKey {
-	constructor(
-		public readonly publicKeyIndex: number,
-		public readonly decryptingPublicKeySignature: number | undefined,
-		public readonly encryptedMessageKey: Uint8Array,
-	) {}
-
-	toBytes() {
-		return new Uint8Array([1, 2, 3, 4, 5, 6]);
-	}
-
-	static fromBytes(bytes: Uint8Array) {
-		return new MessageKey(1, undefined, bytes);
-	}
-}
 
 describe('YlideSafeV1', () => {
 	let feedId: Uint256;
@@ -114,6 +98,10 @@ describe('YlideSafeV1', () => {
 		expect(await blockchainController.isSafeOwner(mockSafe2.address, user2.address)).equal(true);
 		expect(await blockchainController.getSafeOwners(mockSafe1.address)).deep.equal([owner.address]);
 		expect(await blockchainController.getSafeOwners(mockSafe2.address)).deep.equal([user2.address]);
+
+		expect(blockchainController.getMailerSupplementSupport()).deep.equal([ContractType.SAFE]);
+		expect(blockchainController.isSupplementSupported(ContractType.PAY)).equal(false);
+		expect(blockchainController.isSupplementSupported(ContractType.SAFE)).equal(true);
 	});
 
 	it('sendBulkMail with Safe', async () => {
@@ -136,11 +124,11 @@ describe('YlideSafeV1', () => {
 			[
 				{
 					address: bnToUint256(BigNumber.from(user2.address)),
-					messageKey: MessageKey.fromBytes(new Uint8Array([1, 2, 3, 4, 5, 6])),
+					messageKey: MessageKey.fromBytes(new Uint8Array([2, 2, 3, 4, 5, 6])),
 				},
 				{
 					address: bnToUint256(BigNumber.from(user1.address)),
-					messageKey: MessageKey.fromBytes(new Uint8Array([1, 2, 3, 4, 5, 7])),
+					messageKey: MessageKey.fromBytes(new Uint8Array([2, 2, 3, 4, 5, 7])),
 				},
 			],
 			{
@@ -195,11 +183,11 @@ describe('YlideSafeV1', () => {
 			[
 				{
 					address: bnToUint256(BigNumber.from(user2.address)),
-					messageKey: MessageKey.fromBytes(new Uint8Array([1, 2, 3, 4, 5, 6])),
+					messageKey: MessageKey.fromBytes(new Uint8Array([2, 2, 3, 4, 5, 6])),
 				},
 				{
 					address: bnToUint256(BigNumber.from(user1.address)),
-					messageKey: MessageKey.fromBytes(new Uint8Array([1, 2, 3, 4, 5, 7])),
+					messageKey: MessageKey.fromBytes(new Uint8Array([2, 2, 3, 4, 5, 7])),
 				},
 			],
 			{
@@ -229,6 +217,62 @@ describe('YlideSafeV1', () => {
 				expect(message.$$meta.contentId).equal(result[0].contentId);
 				expect(result[0].safeSender).equal(safeSender);
 				expect(result[0].safeRecipients).deep.equal(safeRecipients);
+			}
+		}
+	});
+
+	it('addMailRecipients with Safe (two MessageContents and two MailPushes)', async () => {
+		const walletController = await getWalletController(owner, ethers.provider, evmContractsTest);
+
+		const deadline = await currentTimestamp().then(t => t + 1000);
+
+		const safeSender = mockSafe1.address;
+		const safeRecipients = new Array(220).fill(ethers.constants.AddressZero);
+
+		const content = crypto.getRandomValues(new Uint8Array(32));
+
+		const { pushes } = await walletController.sendMail(
+			{
+				blockchain: 'hardhat',
+				address: owner.address.toLowerCase(),
+				publicKey: null,
+			},
+			feedId,
+			content,
+			new Array(220).fill({
+				address: bnToUint256(BigNumber.from(ethers.Wallet.createRandom().address)),
+				messageKey: MessageKey.fromBytes(new Uint8Array([2, 2, 3, 4, 5, 6])),
+			}),
+			{
+				network: EVMNetwork.LOCAL_HARDHAT,
+				supplement: {
+					deadline,
+					kind: ContractType.SAFE,
+					data: {
+						safeSender,
+						safeRecipients,
+					},
+				},
+			},
+		);
+		for (const { push } of pushes) {
+			expect(push.$$meta.supplement.contractAddress).equal(safeAddress);
+			expect(push.$$meta.supplement.contractType).equal(ContractType.SAFE);
+		}
+		const msgId = pushes[0].push.msgId;
+		const message = await blockchainController.getMessageByMsgId(msgId);
+		expect(message).not.equal(null);
+		if (message) {
+			const result = await blockchainController.getSafeMails(message);
+			expect(result).not.equal(null);
+			if (result) {
+				expect(result.length).equal(2);
+				expect(message.$$meta.contentId).equal(result[0].contentId);
+				expect(message.$$meta.contentId).equal(result[1].contentId);
+				expect(result[0].safeSender).equal(safeSender);
+				expect(result[0].safeRecipients.length).deep.equal(210);
+				expect(result[1].safeSender).equal(safeSender);
+				expect(result[1].safeRecipients.length).deep.equal(10);
 			}
 		}
 	});

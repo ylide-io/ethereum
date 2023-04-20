@@ -476,7 +476,6 @@ export class EthereumWalletController extends AbstractWalletController {
 				options,
 			});
 		}
-		console.log(2);
 		return this.#sendLargeMail({
 			link,
 			wrapper,
@@ -730,7 +729,6 @@ export class EthereumWalletController extends AbstractWalletController {
 						}
 					} else if (options.supplement.kind === ContractType.SAFE) {
 						const ylideSafe = this.getYlideSafeByMailerLinkAndNetwork(link, network);
-						console.log(recipients.length);
 						for (let i = 0; i < recipients.length; i += 210) {
 							console.log('Signing message');
 							const nonce = await wrapper.mailing.getNonce(link, from);
