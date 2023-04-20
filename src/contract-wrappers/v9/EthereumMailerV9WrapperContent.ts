@@ -1,20 +1,16 @@
 import { LogDescription } from '@ethersproject/abi';
-import type {
-	MessageContentEvent,
-	MessageContentEventObject,
-} from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV8';
+import { MessageContentEvent, MessageContentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
 import type { IMessageContent, IMessageCorruptedContent } from '@ylide/sdk';
 import { ethers } from 'ethers';
 import type { GenericMessageContentEventObject } from '../../controllers/helpers/EthereumContentReader';
 import { EthereumContentReader } from '../../controllers/helpers/EthereumContentReader';
 import { ethersEventToInternalEvent } from '../../controllers/helpers/ethersHelper';
 import { getMultipleEvents } from '../../misc';
-import { decodeContentId } from '../../misc/contentId';
 import type { IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
-import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
+import type { EthereumMailerV9Wrapper } from './EthereumMailerV9Wrapper';
 
-export class EthereumMailerV8WrapperContent {
-	constructor(public readonly wrapper: EthereumMailerV8Wrapper) {
+export class EthereumMailerV9WrapperContent {
+	constructor(public readonly wrapper: EthereumMailerV9Wrapper) {
 		//
 	}
 
@@ -72,7 +68,6 @@ export class EthereumMailerV8WrapperContent {
 		message: IEVMMessage,
 	): Promise<IMessageContent | IMessageCorruptedContent | null> {
 		return await this.wrapper.cache.contractOperation(mailer, async (contract, provider, blockLimit) => {
-			const decodedContentId = decodeContentId(message.$$meta.contentId);
 			const events = await getMultipleEvents<MessageContentEvent>(
 				contract,
 				contract.filters.MessageContent('0x' + message.$$meta.contentId),

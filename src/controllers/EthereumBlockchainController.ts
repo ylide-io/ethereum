@@ -17,10 +17,21 @@ import {
 	Uint256,
 	YlideCore,
 } from '@ylide/sdk';
-import { EVMMailerContractType, EVMNetwork, EVMRegistryContractType } from '../misc/types';
 import { EVM_CHAINS, EVM_CONTRACT_TO_NETWORK, EVM_ENS, EVM_NAMES, EVM_RPCS } from '../misc/constants';
 import { decodeEvmMsgId } from '../misc/evmMsgId';
-import type { IEVMMailerContractLink, IEVMMessage, IEVMRegistryContractLink } from '../misc/types';
+import {
+	ContractType,
+	EVMMailerContractType,
+	EVMNetwork,
+	EVMRegistryContractType,
+	EVMYlidePayContractType,
+	IEVMMailerContractLink,
+	IEVMMessage,
+	IEVMRegistryContractLink,
+	IEVMYlidePayContractLink,
+	TokenAttachmentContractType,
+	YlideTokenAttachment,
+} from '../misc/types';
 
 import { EthereumBlockchainReader, IRPCDescriptor } from './helpers/EthereumBlockchainReader';
 import { EthereumContentReader } from './helpers/EthereumContentReader';
@@ -34,9 +45,13 @@ import { EthereumMailerV6Wrapper } from '../contract-wrappers/EthereumMailerV6Wr
 import { EthereumMailerV7Wrapper } from '../contract-wrappers/EthereumMailerV7Wrapper';
 import { EthereumMailerV8Wrapper } from '../contract-wrappers/v8/EthereumMailerV8Wrapper';
 
+import { ethers } from 'ethers';
+import { EthereumPayV1Wrapper } from '../contract-wrappers/EthereumPayV1Wrapper';
+import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9';
 import { EVMMailerV6Source } from '../messages-sources/EVMMailerV6Source';
 import { EVMMailerV7Source } from '../messages-sources/EVMMailerV7Source';
 import { EVMMailerV8Source } from '../messages-sources/EVMMailerV8Source';
+import { EVMMailerV9Source } from '../messages-sources/EVMMailerV9Source';
 import { EVM_CONTRACTS } from '../misc/contractConstants';
 import { EthereumNameService } from './EthereumNameService';
 
@@ -49,11 +64,15 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 	static readonly mailerWrappers: Record<
 		EVMMailerContractType,
-		typeof EthereumMailerV8Wrapper | typeof EthereumMailerV7Wrapper | typeof EthereumMailerV6Wrapper
+		| typeof EthereumMailerV8Wrapper
+		| typeof EthereumMailerV7Wrapper
+		| typeof EthereumMailerV6Wrapper
+		| typeof EthereumMailerV9Wrapper
 	> = {
 		[EVMMailerContractType.EVMMailerV6]: EthereumMailerV6Wrapper,
 		[EVMMailerContractType.EVMMailerV7]: EthereumMailerV7Wrapper,
 		[EVMMailerContractType.EVMMailerV8]: EthereumMailerV8Wrapper,
+		[EVMMailerContractType.EVMMailerV9]: EthereumMailerV9Wrapper,
 	};
 
 	static readonly registryWrappers: Record<
@@ -69,9 +88,13 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		[EVMRegistryContractType.EVMRegistryV6]: EthereumRegistryV6Wrapper,
 	};
 
+	static readonly payWrappers: Record<EVMYlidePayContractType, typeof EthereumPayV1Wrapper> = {
+		[EVMYlidePayContractType.EVMYlidePayV1]: EthereumPayV1Wrapper,
+	};
+
 	readonly mailers: {
 		link: IEVMMailerContractLink;
-		wrapper: EthereumMailerV8Wrapper | EthereumMailerV7Wrapper | EthereumMailerV6Wrapper;
+		wrapper: EthereumMailerV8Wrapper | EthereumMailerV7Wrapper | EthereumMailerV6Wrapper | EthereumMailerV9Wrapper;
 	}[] = [];
 	readonly registries: {
 		link: IEVMRegistryContractLink;
@@ -80,6 +103,10 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			| EthereumRegistryV4Wrapper
 			| EthereumRegistryV5Wrapper
 			| EthereumRegistryV6Wrapper;
+	}[] = [];
+	readonly payers: {
+		link: IEVMYlidePayContractLink;
+		wrapper: EthereumPayV1Wrapper;
 	}[] = [];
 
 	readonly currentMailer: {
@@ -127,6 +154,11 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		this.registries = contracts.registryContracts.map(link => ({
 			link,
 			wrapper: new EthereumBlockchainController.registryWrappers[link.type](this.blockchainReader),
+		}));
+
+		this.payers = contracts.payContracts.map(link => ({
+			link,
+			wrapper: new EthereumBlockchainController.payWrappers[link.type](this.blockchainReader),
 		}));
 
 		const currentMailerLink = contracts.mailerContracts.find(c => c.id === contracts.currentMailerId);
@@ -200,6 +232,22 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 	}
 
+	async getUserNonceMailer(userAddress: string) {
+		const mailer = this.mailers.find(m => m.link.id === EVM_CONTRACTS[this.network].currentMailerId);
+		if (!mailer) {
+			throw new Error(
+				`Unknown contract ${EVM_CONTRACTS[this.network].currentMailerId} for network ${this.network}`,
+			);
+		}
+		if (
+			mailer.link.type === EVMMailerContractType.EVMMailerV9 &&
+			mailer.wrapper instanceof EthereumMailerV9Wrapper
+		) {
+			return mailer.wrapper.mailing.getNonce(mailer.link, userAddress);
+		}
+		throw new Error('Unsupported mailer version');
+	}
+
 	async getMessageByMsgId(msgId: string): Promise<IEVMMessage | null> {
 		const parsed = decodeEvmMsgId(msgId);
 		const network = EVM_CONTRACT_TO_NETWORK[parsed.contractId];
@@ -229,7 +277,10 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				parsed.logIndex,
 			);
 		} else {
-			if (!(mailer.wrapper instanceof EthereumMailerV8Wrapper)) {
+			if (
+				!(mailer.wrapper instanceof EthereumMailerV8Wrapper) &&
+				!(mailer.wrapper instanceof EthereumMailerV9Wrapper)
+			) {
 				return await mailer.wrapper.getMailPushEvent(
 					mailer.link,
 					parsed.blockNumber,
@@ -276,7 +327,23 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			throw new Error('Sender is not supported for direct messages request in EVM');
 		}
 
-		if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+		if (mailer.wrapper instanceof EthereumMailerV9Wrapper) {
+			return new EVMMailerV9Source(
+				this,
+				mailer.link,
+				mailer.wrapper,
+				subject.type === BlockchainSourceType.BROADCAST
+					? {
+							type: 'broadcast',
+							feedId: subject.feedId,
+					  }
+					: {
+							type: 'recipient',
+							feedId: subject.feedId,
+							recipient: subject.recipient,
+					  },
+			);
+		} else if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
 			return new EVMMailerV8Source(
 				this,
 				mailer.link,
@@ -333,7 +400,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		if (!mailer) {
 			throw new Error('This message does not belongs to this blockchain controller');
 		}
-		if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+		if (mailer.wrapper instanceof EthereumMailerV8Wrapper || mailer.wrapper instanceof EthereumMailerV9Wrapper) {
 			return await mailer.wrapper.content.retrieveMessageContent(mailer.link, msg);
 		} else {
 			return mailer.wrapper.retrieveMessageContent(mailer.link, msg);
@@ -367,13 +434,20 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return [];
 	}
 
-	async getMessageRecipients(msg: IEVMMessage, filterOutSent: true) {
+	async getMessageRecipients(
+		msg: IEVMMessage,
+		filterOutSent = true,
+	): Promise<{
+		contentId: Uint256;
+		sender: string;
+		recipients: Uint256[];
+	} | null> {
 		const decodedMsgId = decodeEvmMsgId(msg.msgId);
 		const mailer = this.mailers.find(m => m.link.id === decodedMsgId.contractId);
 		if (!mailer) {
 			throw new Error('This message does not belongs to this blockchain controller');
 		}
-		if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+		if (mailer.wrapper instanceof EthereumMailerV8Wrapper || mailer.wrapper instanceof EthereumMailerV9Wrapper) {
 			const result = await mailer.wrapper.mailing.getMessageRecipients(mailer.link, msg);
 			if (filterOutSent) {
 				const sender = YlideCore.getSentAddress(this.addressToUint256(result.sender));
@@ -384,7 +458,32 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			}
 			return result;
 		}
-		throw new Error('Method not implemented.');
+		return null;
+	}
+
+	async getTokenAttachments(msg: IEVMMessage): Promise<YlideTokenAttachment | null> {
+		const decodedMsgId = decodeEvmMsgId(msg.msgId);
+		const mailer = this.mailers.find(m => m.link.id === decodedMsgId.contractId);
+		if (!mailer) {
+			throw new Error('This message does not belongs to this blockchain controller');
+		}
+		const supplement = msg.$$meta.supplement;
+		if (!supplement || supplement.contractAddress === ethers.constants.AddressZero) {
+			return null;
+		}
+		if (mailer.wrapper instanceof EthereumMailerV9Wrapper) {
+			if (supplement.contractType === TokenAttachmentContractType.Pay) {
+				const payer = this.payers.find(p => p.link.address === supplement.contractAddress);
+				if (payer) {
+					const attachments = await payer.wrapper.getTokenAttachments(payer.link, msg);
+					return {
+						kind: TokenAttachmentContractType.Pay,
+						attachments,
+					};
+				}
+			}
+		}
+		return null;
 	}
 
 	prepareExtraEncryptionStrategyBulk(

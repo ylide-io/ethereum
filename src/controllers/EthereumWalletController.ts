@@ -1,42 +1,54 @@
-import { BigNumber, ethers } from 'ethers';
 import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers';
 import {
+	AbstractWalletController,
+	IGenericAccount,
+	MessageChunks,
+	MessageKey,
+	PublicKey,
 	PublicKeyType,
 	SendBroadcastResult,
 	SendMailResult,
 	ServiceCode,
 	SwitchAccountCallback,
-	YlidePublicKeyVersion,
-	IGenericAccount,
-	AbstractWalletController,
-	PublicKey,
-	MessageKey,
-	MessageChunks,
-	WalletControllerFactory,
-	sha256,
 	Uint256,
-	hexToUint256,
+	WalletControllerFactory,
 	WalletEvent,
+	YLIDE_MAIN_FEED_ID,
 	YlideError,
 	YlideErrorType,
-	YLIDE_MAIN_FEED_ID,
+	YlidePublicKeyVersion,
+	hexToUint256,
+	sha256,
 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
+import { BigNumber, ethers } from 'ethers';
 
 import { EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CHUNK_SIZES, EVM_NAMES } from '../misc/constants';
-import type { IEVMMailerContractLink, IEVMMessage, IEVMRegistryContractLink } from '../misc/types';
-import { EVMNetwork } from '../misc/types';
+import {
+	ContractType,
+	EVMNetwork,
+	GenerateSignatureCallback,
+	IEVMMailerContractLink,
+	IEVMMessage,
+	IEVMRegistryContractLink,
+	IEVMYlidePayContractLink,
+	TokenAttachmentContractType,
+	YlidePayment,
+} from '../misc/types';
 import { EthereumBlockchainController } from './EthereumBlockchainController';
 import { EthereumBlockchainReader } from './helpers/EthereumBlockchainReader';
 
 import { EthereumMailerV6Wrapper } from '../contract-wrappers/EthereumMailerV6Wrapper';
 import { EthereumMailerV7Wrapper } from '../contract-wrappers/EthereumMailerV7Wrapper';
 import { EthereumMailerV8Wrapper } from '../contract-wrappers/v8/EthereumMailerV8Wrapper';
+import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9';
 
+import { EthereumPayV1Wrapper } from '../contract-wrappers/EthereumPayV1Wrapper';
 import { EthereumRegistryV3Wrapper } from '../contract-wrappers/EthereumRegistryV3Wrapper';
 import { EthereumRegistryV4Wrapper } from '../contract-wrappers/EthereumRegistryV4Wrapper';
 import { EthereumRegistryV5Wrapper } from '../contract-wrappers/EthereumRegistryV5Wrapper';
 import { EthereumRegistryV6Wrapper } from '../contract-wrappers/EthereumRegistryV6Wrapper';
+import { EVMMailerContractType } from '../misc';
 import { EVM_CONTRACTS } from '../misc/contractConstants';
 
 export type NetworkSwitchHandler = (
@@ -56,7 +68,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	readonly mailers: {
 		link: IEVMMailerContractLink;
-		wrapper: EthereumMailerV6Wrapper | EthereumMailerV7Wrapper | EthereumMailerV8Wrapper;
+		wrapper: EthereumMailerV6Wrapper | EthereumMailerV7Wrapper | EthereumMailerV8Wrapper | EthereumMailerV9Wrapper;
 	}[] = [];
 	readonly registries: {
 		link: IEVMRegistryContractLink;
@@ -65,6 +77,10 @@ export class EthereumWalletController extends AbstractWalletController {
 			| EthereumRegistryV4Wrapper
 			| EthereumRegistryV5Wrapper
 			| EthereumRegistryV6Wrapper;
+	}[] = [];
+	readonly payers: {
+		link: IEVMYlidePayContractLink;
+		wrapper: EthereumPayV1Wrapper;
 	}[] = [];
 
 	private lastCurrentAccount: IGenericAccount | null = null;
@@ -199,7 +215,7 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	private getMailerByNetwork(network: EVMNetwork): {
 		link: IEVMMailerContractLink;
-		wrapper: EthereumMailerV6Wrapper | EthereumMailerV7Wrapper | EthereumMailerV8Wrapper;
+		wrapper: EthereumMailerV6Wrapper | EthereumMailerV7Wrapper | EthereumMailerV8Wrapper | EthereumMailerV9Wrapper;
 	} {
 		const id = EVM_CONTRACTS[network].currentMailerId;
 		const existing = this.mailers.find(r => r.link.id === id);
@@ -219,33 +235,29 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 	}
 
-	// private getModernMailerByNetwork(network: EVMNetwork): {
-	// 	link: IEVMMailerContractLink;
-	// 	wrapper: EthereumMailerV8Wrapper;
-	// } {
-	// 	const id = EVM_CONTRACTS[network].currentMailerId;
-	// 	const existing = this.mailers.find(r => r.link.id === id);
-	// 	if (existing) {
-	// 		if (existing.link.type !== EVMMailerContractType.EVMMailerV8) {
-	// 			throw new Error(`Network ${network} has no modern mailer`);
-	// 		}
-	// 		return existing as any;
-	// 	} else {
-	// 		const link = EVM_CONTRACTS[network].mailerContracts.find(r => r.id === id);
-	// 		if (!link) {
-	// 			throw new Error(`Network ${network} has no current mailer`);
-	// 		}
-	// 		if (link.type !== EVMMailerContractType.EVMMailerV8) {
-	// 			throw new Error(`Network ${network} has no modern mailer`);
-	// 		}
-	// 		const wrapper = new EthereumBlockchainController.mailerWrappers[link.type](this.blockchainReader);
-	// 		this.mailers.push({
-	// 			link,
-	// 			wrapper,
-	// 		});
-	// 		return { link, wrapper: wrapper as any };
-	// 	}
-	// }
+	private getPayerByMailerLinkAndNetwork(
+		mailerLink: IEVMMailerContractLink,
+		network: EVMNetwork,
+	): {
+		link: IEVMYlidePayContractLink;
+		wrapper: EthereumPayV1Wrapper;
+	} {
+		const existing = this.payers.find(r => r.link.id === mailerLink.pay?.id);
+		if (existing) {
+			return existing;
+		} else {
+			const link = EVM_CONTRACTS[network].payContracts?.find(r => r.id === mailerLink.pay?.id);
+			if (!link) {
+				throw new Error(`Network ${network} has no current pay contract`);
+			}
+			const wrapper = new EthereumBlockchainController.payWrappers[link.type](this.blockchainReader);
+			this.payers.push({
+				link,
+				wrapper,
+			});
+			return { link, wrapper };
+		}
+	}
 
 	async setBonucer(network: EVMNetwork, from: string, newBonucer: string, val: boolean) {
 		const registry = this.getRegistryByNetwork(network);
@@ -405,6 +417,8 @@ export class EthereumWalletController extends AbstractWalletController {
 		contentData: Uint8Array,
 		recipients: { address: Uint256; messageKey: MessageKey }[],
 		options?: { network?: EVMNetwork; value?: BigNumber },
+		generateSignature?: GenerateSignatureCallback,
+		payments?: YlidePayment,
 	): Promise<SendMailResult> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Publish message', options);
@@ -414,7 +428,12 @@ export class EthereumWalletController extends AbstractWalletController {
 		const chunkSize = EVM_CHUNK_SIZES[network];
 		const chunks = MessageChunks.splitMessageChunks(contentData, chunkSize);
 
-		if (chunks.length === 1 && recipients.length === 1 && !(mailer.wrapper instanceof EthereumMailerV8Wrapper)) {
+		if (
+			chunks.length === 1 &&
+			recipients.length === 1 &&
+			!(mailer.wrapper instanceof EthereumMailerV8Wrapper) &&
+			!(mailer.wrapper instanceof EthereumMailerV9Wrapper)
+		) {
 			if (feedId !== YLIDE_MAIN_FEED_ID) {
 				throw new Error('FeedId is not supported');
 			}
@@ -430,20 +449,51 @@ export class EthereumWalletController extends AbstractWalletController {
 			);
 			return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 		} else if (chunks.length === 1 && recipients.length < Math.ceil((15.5 * 1024 - chunks[0].byteLength) / 70)) {
-			if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
-				console.log(`Sending bulk mail, chunk length: ${chunks[0].length} bytes`);
-				const { messages } = await mailer.wrapper.mailing.sendBulkMail(
-					mailer.link,
-					this.signer,
-					me.address,
-					feedId,
-					uniqueId,
-					recipients.map(r => r.address),
-					recipients.map(r => r.messageKey.toBytes()),
-					chunks[0],
-					options?.value || BigNumber.from(0),
-				);
-				return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
+			if (
+				mailer.wrapper instanceof EthereumMailerV8Wrapper ||
+				mailer.wrapper instanceof EthereumMailerV9Wrapper
+			) {
+				let msgs: IEVMMessage[] = [];
+				if (generateSignature && payments && mailer.wrapper instanceof EthereumMailerV9Wrapper) {
+					if (payments.kind === TokenAttachmentContractType.Pay) {
+						console.log('Signing message for bulk mail with token (Pay)');
+						const signatureArgs = await generateSignature(uniqueId);
+						const payer = this.getPayerByMailerLinkAndNetwork(mailer.link, network);
+						console.log(`Sending bulk mail with token (Pay), chunk length: ${chunks[0].length} bytes`);
+						const { messages } = await payer.wrapper.sendBulkMailWithToken(
+							mailer.link,
+							mailer.wrapper.cache.getContract(mailer.link.address, this.signer),
+							payer.link,
+							this.signer,
+							me.address,
+							feedId,
+							uniqueId,
+							recipients.map(r => r.address),
+							recipients.map(r => r.messageKey.toBytes()),
+							chunks[0],
+							options?.value || BigNumber.from(0),
+							signatureArgs,
+							payments.args,
+						);
+						msgs = messages;
+					}
+					throw new Error('Unsupported payment type');
+				} else {
+					console.log(`Sending bulk mail, chunk length: ${chunks[0].length} bytes`);
+					const { messages } = await mailer.wrapper.mailing.sendBulkMail(
+						mailer.link,
+						this.signer,
+						me.address,
+						feedId,
+						uniqueId,
+						recipients.map(r => r.address),
+						recipients.map(r => r.messageKey.toBytes()),
+						chunks[0],
+						options?.value || BigNumber.from(0),
+					);
+					msgs = messages;
+				}
+				return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 			} else {
 				if (feedId !== YLIDE_MAIN_FEED_ID) {
 					throw new Error('FeedId is not supported');
@@ -461,7 +511,10 @@ export class EthereumWalletController extends AbstractWalletController {
 				return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 			}
 		} else {
-			if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
+			if (
+				mailer.wrapper instanceof EthereumMailerV8Wrapper ||
+				mailer.wrapper instanceof EthereumMailerV9Wrapper
+			) {
 				const firstBlockNumber = await this.signer.provider.getBlockNumber();
 				const blockLock = 600;
 				// const msgId = await mailer.buildHash(me.address, uniqueId, firstBlockNumber);
@@ -481,22 +534,60 @@ export class EthereumWalletController extends AbstractWalletController {
 					);
 				}
 				const msgs: IEVMMessage[] = [];
-				for (let i = 0; i < recipients.length; i += 210) {
-					const recs = recipients.slice(i, i + 210);
-					const { messages } = await mailer.wrapper.mailing.addMailRecipients(
-						mailer.link,
-						this.signer,
-						me.address,
-						feedId,
-						uniqueId,
-						firstBlockNumber,
-						chunks.length,
-						blockLock,
-						recs.map(r => r.address),
-						recs.map(r => r.messageKey.toBytes()),
-						options?.value || BigNumber.from(0),
-					);
-					msgs.push(...messages);
+				if (generateSignature && payments && mailer.wrapper instanceof EthereumMailerV9Wrapper) {
+					if (payments.kind === TokenAttachmentContractType.Pay) {
+						for (let i = 0; i < recipients.length; i += 210) {
+							const recs = recipients.slice(i, i + 210);
+							const paymentArgs = payments.args.slice(i, i + 210);
+							const signatureArgs = await generateSignature(
+								uniqueId,
+								firstBlockNumber,
+								chunks.length,
+								blockLock,
+								recs.map(r => `0x${r.address}`),
+								ethers.utils.concat(recs.map(r => r.messageKey.toBytes())),
+							);
+							const payer = this.getPayerByMailerLinkAndNetwork(mailer.link, network);
+							console.log(`Sending bulk mail with token (Pay), chunk length: ${chunks[0].length} bytes`);
+							const { messages } = await payer.wrapper.addMailRecipientsWithToken(
+								mailer.link,
+								mailer.wrapper.cache.getContract(mailer.link.address, this.signer),
+								payer.link,
+								this.signer,
+								me.address,
+								feedId,
+								uniqueId,
+								firstBlockNumber,
+								chunks.length,
+								blockLock,
+								recs.map(r => r.address),
+								recs.map(r => r.messageKey.toBytes()),
+								options?.value || BigNumber.from(0),
+								signatureArgs,
+								paymentArgs,
+							);
+							msgs.push(...messages);
+						}
+					}
+					throw new Error('Unsupported payment type');
+				} else {
+					for (let i = 0; i < recipients.length; i += 210) {
+						const recs = recipients.slice(i, i + 210);
+						const { messages } = await mailer.wrapper.mailing.addMailRecipients(
+							mailer.link,
+							this.signer,
+							me.address,
+							feedId,
+							uniqueId,
+							firstBlockNumber,
+							chunks.length,
+							blockLock,
+							recs.map(r => r.address),
+							recs.map(r => r.messageKey.toBytes()),
+							options?.value || BigNumber.from(0),
+						);
+						msgs.push(...messages);
+					}
 				}
 
 				return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
@@ -600,6 +691,88 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 	}
 
+	async signBulkMail(
+		me: IGenericAccount,
+		signer: ethers.providers.JsonRpcSigner,
+		feedId: Uint256,
+		uniqueId: number,
+		recipients: Uint256[],
+		keys: Uint8Array[],
+		content: Uint8Array,
+		deadline: number,
+		nonce: number,
+		contractAddress: string,
+		contractType: ContractType,
+		options?: { network?: EVMNetwork; value?: BigNumber },
+	) {
+		await this.ensureAccount(me);
+		const network = await this.ensureNetworkOptions('Sign bulk mail', options);
+		const mailer = this.getMailerByNetwork(network);
+		if (
+			mailer.link.type === EVMMailerContractType.EVMMailerV9 &&
+			mailer.wrapper instanceof EthereumMailerV9Wrapper
+		) {
+			return mailer.wrapper.mailing.signBulkMail(
+				mailer.link,
+				signer,
+				feedId,
+				uniqueId,
+				recipients,
+				keys,
+				content,
+				deadline,
+				nonce,
+				await this.getCurrentChainId(),
+				contractAddress,
+				contractType,
+			);
+		}
+		throw new Error('Delegated call signatures are only supported in MailerV9');
+	}
+
+	async signAddMailRecipients(
+		me: IGenericAccount,
+		signer: ethers.providers.JsonRpcSigner,
+		feedId: Uint256,
+		uniqueId: number,
+		firstBlockNumber: number,
+		partsCount: number,
+		blockCountLock: number,
+		recipients: Uint256[],
+		keys: Uint8Array[],
+		deadline: number,
+		nonce: number,
+		contractAddress: string,
+		contractType: ContractType,
+		options?: { network?: EVMNetwork; value?: BigNumber },
+	) {
+		await this.ensureAccount(me);
+		const network = await this.ensureNetworkOptions('Sign add mail recipients', options);
+		const mailer = this.getMailerByNetwork(network);
+		if (
+			mailer.link.type === EVMMailerContractType.EVMMailerV9 &&
+			mailer.wrapper instanceof EthereumMailerV9Wrapper
+		) {
+			return mailer.wrapper.mailing.signAddMailRecipients(
+				mailer.link,
+				signer,
+				feedId,
+				uniqueId,
+				firstBlockNumber,
+				partsCount,
+				blockCountLock,
+				recipients,
+				keys,
+				deadline,
+				nonce,
+				await this.getCurrentChainId(),
+				contractAddress,
+				contractType,
+			);
+		}
+		throw new Error('Delegated call signatures are only supported in MailerV9');
+	}
+
 	decryptMessageKey(
 		recipientAccount: IGenericAccount,
 		senderPublicKey: PublicKey,
@@ -665,6 +838,12 @@ export class EthereumWalletController extends AbstractWalletController {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Deploy MailerV8', options);
 		return await EthereumMailerV8Wrapper.deploy(this.signer, me.address);
+	}
+
+	async deployMailerV9(me: IGenericAccount, options?: { network?: EVMNetwork; value?: BigNumber }): Promise<string> {
+		await this.ensureAccount(me);
+		await this.ensureNetworkOptions('Deploy MailerV9', options);
+		return await EthereumMailerV9Wrapper.deploy(this.signer, me.address);
 	}
 }
 

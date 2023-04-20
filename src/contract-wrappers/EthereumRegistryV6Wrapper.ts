@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { YlideRegistryV6, YlideRegistryV6__factory } from '@ylide/ethereum-contracts';
-import { KeyAttachedEvent, KeyAttachedEventObject } from '@ylide/ethereum-contracts/lib/YlideRegistryV6';
+import { KeyAttachedEvent, KeyAttachedEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideRegistryV6';
 import { ExternalYlidePublicKey, PublicKey, PublicKeyType, Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';

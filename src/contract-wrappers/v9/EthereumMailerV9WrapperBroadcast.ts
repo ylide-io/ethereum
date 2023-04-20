@@ -1,5 +1,5 @@
-import { YlideMailerV8 } from '@ylide/ethereum-contracts';
-import { BroadcastPushEvent, BroadcastPushEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV8';
+import { YlideMailerV9 } from '@ylide/ethereum-contracts';
+import { BroadcastPushEvent, BroadcastPushEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
 import { Uint256 } from '@ylide/sdk';
 import { BigNumber, ethers } from 'ethers';
 import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers/helpers/ethersHelper';
@@ -8,10 +8,10 @@ import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../../misc/constants';
 import { encodeEvmMsgId } from '../../misc/evmMsgId';
 import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
 import { bnToUint256, parseOutLogs } from '../../misc/utils';
-import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
+import type { EthereumMailerV9Wrapper } from './EthereumMailerV9Wrapper';
 
-export class EthereumMailerV8WrapperBroadcast {
-	constructor(public readonly wrapper: EthereumMailerV8Wrapper) {
+export class EthereumMailerV9WrapperBroadcast {
+	constructor(public readonly wrapper: EthereumMailerV9Wrapper) {
 		//
 	}
 
@@ -189,7 +189,7 @@ export class EthereumMailerV8WrapperBroadcast {
 	): Promise<IEVMMessage[]> {
 		const getBaseIndex: () => Promise<number[]> = async () =>
 			(await this.getBroadcastFeedParams(mailer, feedId)).messagesIndex;
-		const getFilter = (contract: YlideMailerV8) => contract.filters.BroadcastPush(null, `0x${feedId}`);
+		const getFilter = (contract: YlideMailerV9) => contract.filters.BroadcastPush(null, `0x${feedId}`);
 		const processEvent = (event: IEVMEnrichedEvent<BroadcastPushEventObject>) =>
 			this.processBroadcastPushEvent(mailer, event);
 		return await this.wrapper.retrieveHistoryDesc<BroadcastPushEvent>(
@@ -257,7 +257,7 @@ export class EthereumMailerV8WrapperBroadcast {
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<BroadcastPushEventObject>(
 			broadcastPushEvents,
 		);
-		const messages = enriched.map(e => this.processBroadcastPushEvent(mailer, e));
+		const messages = await Promise.all(enriched.map(e => this.processBroadcastPushEvent(mailer, e)));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
 	}
 
@@ -298,7 +298,7 @@ export class EthereumMailerV8WrapperBroadcast {
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<BroadcastPushEventObject>(
 			broadcastPushEvents,
 		);
-		const messages = enriched.map(e => this.processBroadcastPushEvent(mailer, e));
+		const messages = await Promise.all(enriched.map(e => this.processBroadcastPushEvent(mailer, e)));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
 	}
 }
