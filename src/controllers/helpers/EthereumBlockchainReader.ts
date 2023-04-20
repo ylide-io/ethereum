@@ -63,14 +63,6 @@ export class EthereumBlockchainReader {
 		//
 	}
 
-	async init() {
-		for (const rpc of this.rpcs) {
-			if (rpc.rpcUrl === 'http://localhost:8545/') {
-				await (rpc.provider as ethers.providers.JsonRpcProvider).send('hardhat_mine', ['0x81']);
-			}
-		}
-	}
-
 	async retryableOperation<T>(
 		callback: (
 			provider: ethers.providers.Provider,

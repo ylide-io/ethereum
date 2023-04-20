@@ -6,13 +6,13 @@
 import { LogDescription } from '@ethersproject/abi';
 import { mine } from '@nomicfoundation/hardhat-network-helpers';
 import { YlideMailerV9, YlideMailerV9__factory } from '@ylide/ethereum-contracts';
-import { bigIntToUint256, Uint256, YLIDE_MAIN_FEED_ID } from '@ylide/sdk';
+import { Uint256, YLIDE_MAIN_FEED_ID, bigIntToUint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { expect } from 'chai';
 import { BigNumber, ContractReceipt, ContractTransaction, Signer } from 'ethers';
 import hre from 'hardhat';
 import { before, describe, it } from 'mocha';
-import { EVMMailerContractType, IEVMMailerContractLink, IEVMMessage } from '../src';
+import { EVMMailerContractType, IEVMMailerContractLink, IEVMMessage, hexPrefix } from '../src';
 import { EthereumMailerV9Wrapper } from '../src/contract-wrappers/v9/EthereumMailerV9Wrapper';
 import { EthereumBlockchainReader } from '../src/controllers/helpers/EthereumBlockchainReader';
 import { constructPersonalFeedId } from '../src/misc/constructFeedId';
@@ -206,7 +206,6 @@ describe('YlideMailerV9', function () {
 					const { feedId } = await userMailerV9Wrapper.mailing.createMailingFeed(
 						mailerDesc,
 						userSigner,
-						await userSigner.getAddress(),
 						'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 						BigNumber.from(0),
 					);
@@ -224,7 +223,6 @@ describe('YlideMailerV9', function () {
 					await userMailerV9Wrapper.mailing.setMailingFeedOwner(
 						mailerDesc,
 						userSigner,
-						await userSigner.getAddress(),
 						feedId!,
 						await ownerSigner.getAddress(),
 					);
@@ -233,15 +231,9 @@ describe('YlideMailerV9', function () {
 
 					expect(feed2.owner, 'Feed owner must be owner address').to.equal(await ownerSigner.getAddress());
 
-					await userMailerV9Wrapper.mailing.setMailingFeedFees(
-						mailerDesc,
-						ownerSigner,
-						await ownerSigner.getAddress(),
-						feedId!,
-						{
-							recipientFee: BigNumber.from(1),
-						},
-					);
+					await userMailerV9Wrapper.mailing.setMailingFeedFees(mailerDesc, ownerSigner, feedId!, {
+						recipientFee: BigNumber.from(1),
+					});
 
 					const feed3 = await userMailerV9Wrapper.mailing.getMailingFeedParams(mailerDesc, feedId!);
 
@@ -250,7 +242,6 @@ describe('YlideMailerV9', function () {
 					await userMailerV9Wrapper.mailing.setMailingFeedBeneficiary(
 						mailerDesc,
 						ownerSigner,
-						await ownerSigner.getAddress(),
 						feedId!,
 						await beneficiarySigner.getAddress(),
 					);
@@ -268,7 +259,6 @@ describe('YlideMailerV9', function () {
 					const { feedId } = await userMailerV9Wrapper.mailing.createMailingFeed(
 						mailerDesc,
 						userSigner,
-						await userSigner.getAddress(),
 						'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 						BigNumber.from(0),
 					);
@@ -281,15 +271,18 @@ describe('YlideMailerV9', function () {
 					await mine(129);
 
 					const { tx, receipt, logs } = await userMailerV9Wrapper.mailing.sendBulkMail(
-						mailerDesc,
-						userSigner,
-						await userSigner.getAddress(),
-						feedId!,
-						uniqueId,
-						[recipientHex],
-						[key],
-						content,
-						BigNumber.from(0),
+						{
+							mailer: mailerDesc,
+							signer: userSigner,
+							value: BigNumber.from(0),
+						},
+						{
+							feedId: hexPrefix(feedId!),
+							uniqueId,
+							recipients: [hexPrefix(recipientHex)],
+							keys: [key],
+							content,
+						},
 					);
 
 					expect(receipt, 'Receipt must be present').to.not.be.undefined;
@@ -747,7 +740,6 @@ describe('YlideMailerV9', function () {
 						await ownerMailerV9Wrapper.mailing.createMailingFeed(
 							mailerDesc,
 							ownerSigner,
-							await ownerSigner.getAddress(),
 							'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 							BigNumber.from(0),
 						);
@@ -767,7 +759,6 @@ describe('YlideMailerV9', function () {
 						await ownerMailerV9Wrapper.mailing.createMailingFeed(
 							mailerDesc,
 							ownerSigner,
-							await ownerSigner.getAddress(),
 							'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 							BigNumber.from(15),
 						);
@@ -784,7 +775,6 @@ describe('YlideMailerV9', function () {
 					await ownerMailerV9Wrapper.mailing.createMailingFeed(
 						mailerDesc,
 						ownerSigner,
-						await ownerSigner.getAddress(),
 						'0000000000000000000000000000000000000000000000000000000000000001' as Uint256,
 						BigNumber.from(20),
 					);
@@ -825,15 +815,18 @@ describe('YlideMailerV9', function () {
 							receipt: receipt2,
 							logs: logs2,
 						} = await mailerV9Wrapper.mailing.sendBulkMail(
-							mailerDesc,
-							senderSigner,
-							await senderSigner.getAddress(),
-							feedId,
-							uniqueId,
-							[recipientHex],
-							[key],
-							content,
-							BigNumber.from(value),
+							{
+								mailer: mailerDesc,
+								signer: userSigner,
+								value: BigNumber.from(value),
+							},
+							{
+								feedId: hexPrefix(feedId),
+								uniqueId,
+								recipients: [hexPrefix(recipientHex)],
+								keys: [key],
+								content,
+							},
 						);
 						tx = tx2;
 						receipt = receipt2;
@@ -1021,7 +1014,6 @@ describe('YlideMailerV9', function () {
 					await userMailerV9Wrapper.mailing.setMailingFeedBeneficiary(
 						mailerDesc,
 						ownerSigner,
-						await ownerSigner.getAddress(),
 						feedId,
 						randomZoneBeneficiary,
 					);
@@ -1086,7 +1078,6 @@ describe('YlideMailerV9', function () {
 					await userMailerV9Wrapper.mailing.setMailingFeedBeneficiary(
 						mailerDesc,
 						ownerSigner,
-						await ownerSigner.getAddress(),
 						feedId,
 						randomZoneBeneficiary,
 					);
@@ -1099,15 +1090,9 @@ describe('YlideMailerV9', function () {
 
 					await sendAndVerifySmallMail(userMailerV9Wrapper, userSigner, feedId, 0);
 
-					await userMailerV9Wrapper.mailing.setMailingFeedFees(
-						mailerDesc,
-						ownerSigner,
-						await ownerSigner.getAddress(),
-						feedId,
-						{
-							recipientFee: BigNumber.from(7),
-						},
-					);
+					await userMailerV9Wrapper.mailing.setMailingFeedFees(mailerDesc, ownerSigner, feedId, {
+						recipientFee: BigNumber.from(7),
+					});
 
 					// should be ok
 					await sendAndVerifySmallMail(userMailerV9Wrapper, userSigner, feedId, 7);
@@ -1155,7 +1140,6 @@ describe('YlideMailerV9', function () {
 					await userMailerV9Wrapper.mailing.setMailingFeedBeneficiary(
 						mailerDesc,
 						ownerSigner,
-						await ownerSigner.getAddress(),
 						feedId,
 						randomZoneBeneficiary,
 					);
@@ -1174,15 +1158,9 @@ describe('YlideMailerV9', function () {
 						broadcastFee: BigNumber.from(11),
 					});
 
-					await userMailerV9Wrapper.mailing.setMailingFeedFees(
-						mailerDesc,
-						ownerSigner,
-						await ownerSigner.getAddress(),
-						feedId,
-						{
-							recipientFee: BigNumber.from(17),
-						},
-					);
+					await userMailerV9Wrapper.mailing.setMailingFeedFees(mailerDesc, ownerSigner, feedId, {
+						recipientFee: BigNumber.from(17),
+					});
 
 					// should be ok
 					await sendAndVerifySmallMail(userMailerV9Wrapper, userSigner, feedId, 3 + 7 + 17);
@@ -1213,15 +1191,18 @@ describe('YlideMailerV9', function () {
 					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
 
 					const { tx, receipt, logs } = await userMailerV9Wrapper.mailing.sendBulkMail(
-						mailerDesc,
-						userSigner,
-						await userSigner.getAddress(),
-						YLIDE_MAIN_FEED_ID,
-						uniqueId,
-						[recipient1Hex, recipient2Hex],
-						[key1, key2],
-						content,
-						BigNumber.from(0),
+						{
+							mailer: mailerDesc,
+							signer: userSigner,
+							value: BigNumber.from(0),
+						},
+						{
+							feedId: hexPrefix(YLIDE_MAIN_FEED_ID),
+							uniqueId,
+							recipients: [recipient1Hex, recipient2Hex].map(hexPrefix),
+							keys: [key1, key2],
+							content,
+						},
 					);
 
 					expect(receipt, 'Receipt must be present').to.not.be.undefined;
@@ -1353,17 +1334,20 @@ describe('YlideMailerV9', function () {
 						logs: logs3,
 						messages,
 					} = await userMailerV9Wrapper.mailing.addMailRecipients(
-						mailerDesc,
-						userSigner,
-						await userSigner.getAddress(),
-						YLIDE_MAIN_FEED_ID,
-						uniqueId,
-						currentBlock,
-						2,
-						100,
-						[recipient1Hex, recipient2Hex],
-						[key1, key2],
-						BigNumber.from(0),
+						{
+							mailer: mailerDesc,
+							signer: userSigner,
+							value: BigNumber.from(0),
+						},
+						{
+							feedId: hexPrefix(YLIDE_MAIN_FEED_ID),
+							uniqueId,
+							firstBlockNumber: currentBlock,
+							partsCount: 2,
+							blockCountLock: 100,
+							recipients: [recipient1Hex, recipient2Hex].map(hexPrefix),
+							keys: [key1, key2],
+						},
 					);
 
 					expect(receipt3, 'Receipt must be present').to.not.be.undefined;
@@ -1921,7 +1905,21 @@ describe('YlideMailerV9', function () {
 						await mine(skipBefore);
 					}
 					for (const event of events) {
-						await m.mailing.sendBulkMail(...event.args);
+						const [_mailer, signer, from, fId, uId, rs, ks, c, v] = event.args;
+						await m.mailing.sendBulkMail(
+							{
+								mailer: _mailer,
+								signer,
+								value: v,
+							},
+							{
+								feedId: hexPrefix(fId),
+								uniqueId: uId,
+								recipients: rs.map(hexPrefix),
+								keys: ks,
+								content: c,
+							},
+						);
 						if (skipBetween) {
 							await mine(skipBetween);
 						}
@@ -2274,15 +2272,18 @@ describe('YlideMailerV9', function () {
 					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
 
 					const { tx, receipt, logs } = await userMailerV9Wrapper.mailing.sendBulkMail(
-						mailerDesc,
-						userSigner,
-						await userSigner.getAddress(),
-						YLIDE_MAIN_FEED_ID,
-						uniqueId,
-						[recipientHex],
-						[key],
-						content,
-						BigNumber.from(0),
+						{
+							mailer: mailerDesc,
+							signer: userSigner,
+							value: BigNumber.from(0),
+						},
+						{
+							feedId: hexPrefix(YLIDE_MAIN_FEED_ID),
+							uniqueId,
+							recipients: [recipientHex],
+							keys: [key],
+							content,
+						},
 					);
 
 					expect(receipt, 'Receipt must be present').to.not.be.undefined;
@@ -2316,15 +2317,18 @@ describe('YlideMailerV9', function () {
 					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
 
 					const { tx, receipt, logs } = await userMailerV9Wrapper.mailing.sendBulkMail(
-						mailerDesc,
-						userSigner,
-						await userSigner.getAddress(),
-						YLIDE_MAIN_FEED_ID,
-						uniqueId,
-						[recipient1Hex, recipient2Hex],
-						[key1, key2],
-						content,
-						BigNumber.from(0),
+						{
+							mailer: mailerDesc,
+							signer: userSigner,
+							value: BigNumber.from(0),
+						},
+						{
+							feedId: hexPrefix(YLIDE_MAIN_FEED_ID),
+							uniqueId,
+							recipients: [recipient1Hex, recipient2Hex].map(hexPrefix),
+							keys: [key1, key2],
+							content,
+						},
 					);
 
 					expect(receipt, 'Receipt must be present').to.not.be.undefined;
@@ -2456,17 +2460,20 @@ describe('YlideMailerV9', function () {
 						logs: logs3,
 						messages,
 					} = await userMailerV9Wrapper.mailing.addMailRecipients(
-						mailerDesc,
-						userSigner,
-						await userSigner.getAddress(),
-						YLIDE_MAIN_FEED_ID,
-						uniqueId,
-						currentBlock,
-						2,
-						100,
-						[recipient1Hex, recipient2Hex],
-						[key1, key2],
-						BigNumber.from(0),
+						{
+							mailer: mailerDesc,
+							signer: userSigner,
+							value: BigNumber.from(0),
+						},
+						{
+							feedId: hexPrefix(YLIDE_MAIN_FEED_ID),
+							uniqueId,
+							firstBlockNumber: currentBlock,
+							partsCount: 2,
+							blockCountLock: 100,
+							recipients: [recipient1Hex, recipient2Hex].map(hexPrefix),
+							keys: [key1, key2],
+						},
 					);
 
 					expect(receipt3, 'Receipt must be present').to.not.be.undefined;

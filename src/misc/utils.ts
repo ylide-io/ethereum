@@ -1,13 +1,14 @@
+import { IYlideMailer } from '@ylide/ethereum-contracts';
 import { TypedEvent } from '@ylide/ethereum-contracts/lib/common';
 import { MailPushEventObject as MailPushEventObjectV9 } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
-import { Uint256, YlideCore } from '@ylide/sdk';
+import { SendMailResult, Uint256, YlideCore } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { BigNumber, Contract, ethers } from 'ethers';
-import { BlockNumberRingBufferIndex } from '../controllers';
+import { BlockNumberRingBufferIndex, ethersLogToInternalEvent } from '../controllers';
 import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from './constants';
 import { decodeContentId } from './contentId';
 import { encodeEvmMsgId } from './evmMsgId';
-import { IEVMEnrichedEvent, IEVMMailerContractLink, IEVMMessage, LogInternal } from './types';
+import { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage, LogInternal, Recipient } from './types';
 
 export interface IEventPosition {
 	blockNumber: number;
@@ -98,6 +99,24 @@ export const getMultipleEvents = async <T extends TypedEvent>(
 	return events;
 };
 
+export const processSendMailTxV9 = async (
+	tx: ethers.ContractTransaction,
+	contract: ethers.Contract,
+	mailer: IEVMMailerContractLink,
+	enrichEvents: (msgs: IEVMEvent<MailPushEventObjectV9>[]) => Promise<IEVMEnrichedEvent<MailPushEventObjectV9>[]>,
+) => {
+	const receipt = await tx.wait();
+	const {
+		logs,
+		byName: { MailPush },
+	} = parseOutLogs(contract, receipt.logs);
+
+	const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObjectV9>(l));
+	const enriched = await enrichEvents(mailPushEvents);
+	const messages = enriched.map(e => processMailPushEvent(mailer, e));
+	return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
+};
+
 export const processMailPushEvent = (
 	mailer: IEVMMailerContractLink,
 	event: IEVMEnrichedEvent<MailPushEventObjectV9>,
@@ -119,6 +138,7 @@ export const processMailPushEvent = (
 		key: SmartBuffer.ofHexString(event.event.parsed.key.replace('0x', '')).bytes,
 		$$meta: {
 			contentId: bnToUint256(event.event.parsed.contentId),
+			supplement: parseSupplement(event.event.parsed.supplement),
 			index: BlockNumberRingBufferIndex.decodeIndexValue(bnToUint256(event.event.parsed.previousFeedEventsIndex)),
 			...event,
 		},
@@ -128,3 +148,25 @@ export const processMailPushEvent = (
 export const isSentSender = (sender: string, recipient: Uint256) => {
 	return YlideCore.getSentAddress(bnToUint256(BigNumber.from(sender))) === recipient;
 };
+
+export const hexPrefix = (num: Uint256) => `0x${num}`;
+
+export const processMailResponse = async (result: Promise<{ messages: IEVMMessage[] }>): Promise<SendMailResult> => {
+	const { messages } = await result;
+	return {
+		pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })),
+	};
+};
+
+export const formatRecipientsToObj = (recipients: Recipient[]) => ({
+	recipients: recipients.map(r => hexPrefix(r.address)),
+	keys: recipients.map(r => r.messageKey.toBytes()),
+});
+
+export const formatRecipientsToTuple = (recipients: Recipient[]) =>
+	[recipients.map(r => r.address), recipients.map(r => r.messageKey.toBytes())] as const;
+
+export const parseSupplement = (supplement: IYlideMailer.SupplementStructOutput): IYlideMailer.SupplementStruct => ({
+	contractAddress: supplement.contractAddress,
+	contractType: supplement.contractType,
+});

@@ -21,16 +21,18 @@ import { EVM_CHAINS, EVM_CONTRACT_TO_NETWORK, EVM_ENS, EVM_NAMES, EVM_RPCS } fro
 import { decodeEvmMsgId } from '../misc/evmMsgId';
 import {
 	ContractType,
+	EVMContracts,
 	EVMMailerContractType,
 	EVMNetwork,
 	EVMRegistryContractType,
 	EVMYlidePayContractType,
+	EVMYlideSafeContractType,
 	IEVMMailerContractLink,
 	IEVMMessage,
 	IEVMRegistryContractLink,
 	IEVMYlidePayContractLink,
-	TokenAttachmentContractType,
-	YlideTokenAttachment,
+	IEVMYlideSafeContractLink,
+	Supplement,
 } from '../misc/types';
 
 import { EthereumBlockchainReader, IRPCDescriptor } from './helpers/EthereumBlockchainReader';
@@ -47,6 +49,7 @@ import { EthereumMailerV8Wrapper } from '../contract-wrappers/v8/EthereumMailerV
 
 import { ethers } from 'ethers';
 import { EthereumPayV1Wrapper } from '../contract-wrappers/EthereumPayV1Wrapper';
+import { EthereumSafeV1Wrapper } from '../contract-wrappers/EthereumSafeV1Wrapper.ts';
 import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9';
 import { EVMMailerV6Source } from '../messages-sources/EVMMailerV6Source';
 import { EVMMailerV7Source } from '../messages-sources/EVMMailerV7Source';
@@ -92,6 +95,10 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		[EVMYlidePayContractType.EVMYlidePayV1]: EthereumPayV1Wrapper,
 	};
 
+	static readonly safeWrappers: Record<EVMYlideSafeContractType, typeof EthereumSafeV1Wrapper> = {
+		[EVMYlideSafeContractType.EVMYlideSafeV1]: EthereumSafeV1Wrapper,
+	};
+
 	readonly mailers: {
 		link: IEVMMailerContractLink;
 		wrapper: EthereumMailerV8Wrapper | EthereumMailerV7Wrapper | EthereumMailerV6Wrapper | EthereumMailerV9Wrapper;
@@ -108,17 +115,24 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		link: IEVMYlidePayContractLink;
 		wrapper: EthereumPayV1Wrapper;
 	}[] = [];
+	readonly safes: {
+		link: IEVMYlideSafeContractLink;
+		wrapper: EthereumSafeV1Wrapper;
+	}[] = [];
 
 	readonly currentMailer: {
 		link: IEVMMailerContractLink;
-		wrapper: EthereumMailerV8Wrapper;
+		wrapper: EthereumMailerV9Wrapper;
 	};
 	readonly currentRegistry: { link: IEVMRegistryContractLink; wrapper: EthereumRegistryV5Wrapper };
+
+	private readonly evmContractsTest: EVMContracts | null;
 
 	constructor(
 		private readonly options: {
 			network?: EVMNetwork;
 			rpcs?: IRPCDescriptor[];
+			evmContractsTest?: EVMContracts;
 		} = {},
 	) {
 		super();
@@ -129,6 +143,8 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 
 		this.network = options.network;
 		this.chainId = EVM_CHAINS[options.network];
+
+		this.evmContractsTest = options.evmContractsTest || null;
 
 		this.blockchainReader = EthereumBlockchainReader.createEthereumBlockchainReader(
 			options.rpcs ||
@@ -144,7 +160,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 				})),
 		);
 
-		const contracts = EVM_CONTRACTS[this.network];
+		const contracts = this.evmContracts()[this.network];
 
 		this.mailers = contracts.mailerContracts.map(link => ({
 			link,
@@ -161,6 +177,11 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			wrapper: new EthereumBlockchainController.payWrappers[link.type](this.blockchainReader),
 		}));
 
+		this.safes = contracts.safeContracts.map(link => ({
+			link,
+			wrapper: new EthereumBlockchainController.safeWrappers[link.type](this.blockchainReader),
+		}));
+
 		const currentMailerLink = contracts.mailerContracts.find(c => c.id === contracts.currentMailerId);
 		if (!currentMailerLink) {
 			throw new Error('Current mailer not found');
@@ -174,7 +195,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			link: currentMailerLink,
 			wrapper: new EthereumBlockchainController.mailerWrappers[currentMailerLink.type](
 				this.blockchainReader,
-			) as EthereumMailerV8Wrapper,
+			) as EthereumMailerV9Wrapper,
 		};
 
 		this.currentRegistry = {
@@ -187,6 +208,10 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		this.contentReader = new EthereumContentReader(this.blockchainReader);
 	}
 
+	private evmContracts() {
+		return this.evmContractsTest || EVM_CONTRACTS;
+	}
+
 	blockchain(): string {
 		return EVM_NAMES[this.network];
 	}
@@ -196,7 +221,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	async init(): Promise<void> {
-		await this.blockchainReader.init();
+		console.log('Deprecated');
 	}
 
 	private tryGetNameService(): EthereumNameService | null {
@@ -232,22 +257,6 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 	}
 
-	async getUserNonceMailer(userAddress: string) {
-		const mailer = this.mailers.find(m => m.link.id === EVM_CONTRACTS[this.network].currentMailerId);
-		if (!mailer) {
-			throw new Error(
-				`Unknown contract ${EVM_CONTRACTS[this.network].currentMailerId} for network ${this.network}`,
-			);
-		}
-		if (
-			mailer.link.type === EVMMailerContractType.EVMMailerV9 &&
-			mailer.wrapper instanceof EthereumMailerV9Wrapper
-		) {
-			return mailer.wrapper.mailing.getNonce(mailer.link, userAddress);
-		}
-		throw new Error('Unsupported mailer version');
-	}
-
 	async getMessageByMsgId(msgId: string): Promise<IEVMMessage | null> {
 		const parsed = decodeEvmMsgId(msgId);
 		const network = EVM_CONTRACT_TO_NETWORK[parsed.contractId];
@@ -255,7 +264,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 			throw new Error(`Message ${msgId} is not from ${this.network} network`);
 		}
 
-		const contract = EVM_CONTRACTS[this.network].mailerContracts.find(c => c.id === parsed.contractId);
+		const contract = this.evmContracts()[this.network].mailerContracts.find(c => c.id === parsed.contractId);
 		if (!contract) {
 			throw new Error(`Unknown contract ${parsed.contractId} for network ${this.network}`);
 		}
@@ -461,29 +470,77 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return null;
 	}
 
-	async getTokenAttachments(msg: IEVMMessage): Promise<YlideTokenAttachment | null> {
+	async getSupplement(msg: IEVMMessage): Promise<Supplement | null> {
 		const decodedMsgId = decodeEvmMsgId(msg.msgId);
 		const mailer = this.mailers.find(m => m.link.id === decodedMsgId.contractId);
 		if (!mailer) {
 			throw new Error('This message does not belongs to this blockchain controller');
 		}
 		const supplement = msg.$$meta.supplement;
-		if (!supplement || supplement.contractAddress === ethers.constants.AddressZero) {
+		if (
+			!supplement ||
+			supplement.contractAddress === ethers.constants.AddressZero ||
+			supplement.contractType === ContractType.NONE
+		) {
 			return null;
 		}
-		if (mailer.wrapper instanceof EthereumMailerV9Wrapper) {
-			if (supplement.contractType === TokenAttachmentContractType.Pay) {
-				const payer = this.payers.find(p => p.link.address === supplement.contractAddress);
-				if (payer) {
-					const attachments = await payer.wrapper.getTokenAttachments(payer.link, msg);
-					return {
-						kind: TokenAttachmentContractType.Pay,
-						attachments,
-					};
-				}
+		if (supplement.contractType === ContractType.PAY) {
+			const payer = this.payers.find(p => p.link.address === supplement.contractAddress);
+			if (payer) {
+				const data = await payer.wrapper.getTokenAttachments(payer.link, msg);
+				return {
+					kind: ContractType.PAY,
+					data,
+				};
+			}
+		} else if (supplement.contractType === ContractType.SAFE) {
+			const safe = this.safes.find(p => p.link.address === supplement.contractAddress);
+			if (safe) {
+				const data = await safe.wrapper.getSafeMailsEvent(safe.link, msg);
+				return {
+					kind: ContractType.SAFE,
+					data,
+				};
 			}
 		}
 		return null;
+	}
+
+	async isSafeOwner(safeAddress: string, userAddress: string) {
+		const safe = this.safes[0];
+		if (!safe) {
+			throw new Error('No safe wrapper found');
+		}
+		return safe.wrapper.isSafeOwner(safeAddress, userAddress);
+	}
+
+	async getSafeOwners(safeAddress: string) {
+		const safe = this.safes[0];
+		if (!safe) {
+			throw new Error('No safe wrapper found');
+		}
+		return safe.wrapper.getSafeOwners(safeAddress);
+	}
+
+	getMailerSupplementSupport() {
+		const supported = [];
+		if (this.currentMailer.link.pay) {
+			supported.push(ContractType.PAY);
+		}
+		if (this.currentMailer.link.safe) {
+			supported.push(ContractType.SAFE);
+		}
+		return supported;
+	}
+
+	isSupplementSupported(contractType: ContractType): boolean {
+		if (contractType === ContractType.PAY) {
+			return !!this.currentMailer.link.pay;
+		}
+		if (contractType === ContractType.SAFE) {
+			return !!this.currentMailer.link.safe;
+		}
+		return false;
 	}
 
 	prepareExtraEncryptionStrategyBulk(
