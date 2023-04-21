@@ -476,7 +476,7 @@ export class EthereumWalletController extends AbstractWalletController {
 				options,
 			});
 		}
-		return this.#sendLargeMail({
+		return this.#sendMultiPartMail({
 			link,
 			wrapper,
 			feedId,
@@ -634,7 +634,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		);
 	}
 
-	async #sendLargeMail({
+	async #sendMultiPartMail({
 		link,
 		wrapper,
 		feedId,

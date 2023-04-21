@@ -220,9 +220,8 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		return 'evm';
 	}
 
-	async init(): Promise<void> {
-		console.log('Deprecated');
-	}
+	// eslint-disable-next-line @typescript-eslint/no-empty-function
+	async init(): Promise<void> {}
 
 	private tryGetNameService(): EthereumNameService | null {
 		const ens = EVM_ENS[this.network];
