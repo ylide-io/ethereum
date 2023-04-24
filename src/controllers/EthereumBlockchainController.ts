@@ -455,7 +455,7 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		if (!mailer) {
 			throw new Error('This message does not belongs to this blockchain controller');
 		}
-		if (mailer.wrapper instanceof EthereumMailerV8Wrapper || mailer.wrapper instanceof EthereumMailerV9Wrapper) {
+		if (mailer.wrapper instanceof EthereumMailerV8Wrapper) {
 			const result = await mailer.wrapper.mailing.getMessageRecipients(mailer.link, msg);
 			if (filterOutSent) {
 				const sender = YlideCore.getSentAddress(this.addressToUint256(result.sender));
