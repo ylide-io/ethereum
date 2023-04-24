@@ -153,6 +153,7 @@ export type MailWrapperArgs = {
 	mailer: IEVMMailerContractLink;
 	signer: ethers.Signer;
 	value: ethers.BigNumber;
+	from: string;
 };
 
 export type Recipient = { address: Uint256; messageKey: MessageKey };

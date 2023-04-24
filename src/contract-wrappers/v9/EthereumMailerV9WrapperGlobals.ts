@@ -117,11 +117,12 @@ export class EthereumMailerV9WrapperGlobals {
 	async setIsYlide(
 		mailer: IEVMMailerContractLink,
 		signer: ethers.Signer,
+		from: string,
 		contractAddresses: string[],
 		isSet: boolean[],
 	) {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.setIsYlide(contractAddresses, isSet);
+		const tx = await contract.setIsYlide(contractAddresses, isSet, { from });
 		const receipt = await tx.wait();
 		return { tx, receipt };
 	}

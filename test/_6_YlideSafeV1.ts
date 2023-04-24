@@ -68,6 +68,7 @@ describe('YlideSafeV1', () => {
 		const result = await mailerWrapper.mailing.createMailingFeed(
 			evmContractsTest[EVMNetwork.LOCAL_HARDHAT].mailerContracts[0],
 			owner,
+			await owner.getAddress(),
 			bnToUint256(BigNumber.from(1221365)),
 			BigNumber.from(0),
 		);
@@ -84,6 +85,7 @@ describe('YlideSafeV1', () => {
 		await mailerWrapper.globals.setIsYlide(
 			evmContractsTest[EVMNetwork.LOCAL_HARDHAT].mailerContracts[0],
 			owner,
+			owner.address,
 			[safeAddress],
 			[true],
 		);
