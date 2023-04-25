@@ -1,6 +1,5 @@
 import { IYlideMailer, YlideMailerV9 } from '@ylide/ethereum-contracts';
 import {
-	ContentRecipientsEvent,
 	MailPushEvent,
 	MailPushEventObject,
 	MailingFeedJoinedEvent,
