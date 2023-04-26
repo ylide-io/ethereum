@@ -3,16 +3,18 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable prefer-arrow/prefer-arrow-functions */
-import { Signer } from 'ethers';
+import type { Signer } from 'ethers';
 import { describe, it, before } from 'mocha';
-import { YlideRegistryV5, YlideRegistryV5__factory } from '@ylide/ethereum-contracts';
+import type { YlideRegistryV5 } from '@ylide/ethereum-contracts';
+import { YlideRegistryV5__factory } from '@ylide/ethereum-contracts';
 import hre from 'hardhat';
 import SmartBuffer from '@ylide/smart-buffer';
 import nacl from 'tweetnacl';
 import { EthereumBlockchainReader } from '../src/controllers/helpers/EthereumBlockchainReader';
 import { EthereumRegistryV5Wrapper } from '../src/contract-wrappers/EthereumRegistryV5Wrapper';
 import { PublicKey, PublicKeyType, YlidePublicKeyVersion } from '@ylide/sdk';
-import { EVMRegistryContractType, IEVMRegistryContractLink } from '../src';
+import type { IEVMRegistryContractLink } from '../src';
+import { EVMRegistryContractType } from '../src';
 import { expect } from 'chai';
 
 describe('YlideRegistryV5', function () {

@@ -1,20 +1,17 @@
-import { IYlideMailer, YlidePayV1, YlidePayV1__factory } from '@ylide/ethereum-contracts';
-import { MailPushEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
-import { TokenAttachmentEvent, TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
-import { Uint256 } from '@ylide/sdk';
-import { BigNumber, Contract, ethers } from 'ethers';
+import type { IYlideMailer, YlidePayV1 } from '@ylide/ethereum-contracts';
+import { YlidePayV1__factory } from '@ylide/ethereum-contracts';
+import type { MailPushEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
+import type {
+	TokenAttachmentEvent,
+	TokenAttachmentEventObject,
+} from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
+import type { Uint256 } from '@ylide/sdk';
+import type { Contract, ethers } from 'ethers';
+import { BigNumber } from 'ethers';
 import { ethersLogToInternalEvent } from '../controllers';
 import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
-import {
-	IEVMEvent,
-	IEVMMailerContractLink,
-	IEVMMessage,
-	IEVMYlidePayContractLink,
-	getMultipleEvents,
-	isSentSender,
-	parseOutLogs,
-	processMailPushEvent,
-} from '../misc';
+import type { IEVMEvent, IEVMMailerContractLink, IEVMMessage, IEVMYlidePayContractLink } from '../misc';
+import { getMultipleEvents, isSentSender, parseOutLogs, processMailPushEvent } from '../misc';
 import { ContractCache } from './ContractCache';
 
 export class EthereumPayV1Wrapper {

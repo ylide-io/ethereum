@@ -1,26 +1,24 @@
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
+import type { MockERC20, MockERC721, YlideMailerV9, YlidePayV1 } from '@ylide/ethereum-contracts';
 import {
-	MockERC20,
 	MockERC20__factory,
-	MockERC721,
 	MockERC721__factory,
-	YlideMailerV9,
 	YlideMailerV9__factory,
-	YlidePayV1,
 	YlidePayV1__factory,
 } from '@ylide/ethereum-contracts';
-import { Uint256, YlideCore } from '@ylide/sdk';
+import type { Uint256 } from '@ylide/sdk';
+import { YlideCore } from '@ylide/sdk';
 import { expect } from 'chai';
-import { BigNumber, providers } from 'ethers';
+import type { providers } from 'ethers';
+import { BigNumber } from 'ethers';
 import { ethers, network } from 'hardhat';
+import type { IEVMMailerContractLink, IEVMYlidePayContractLink } from '../src';
 import {
 	ContractType,
 	EVMMailerContractType,
 	EVMYlidePayContractType,
 	EthereumBlockchainReader,
-	IEVMMailerContractLink,
-	IEVMYlidePayContractLink,
 	bnToUint256,
 } from '../src';
 import { EthereumPayV1Wrapper } from '../src/contract-wrappers/EthereumPayV1Wrapper';

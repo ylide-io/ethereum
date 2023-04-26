@@ -9,7 +9,8 @@
 // 	return blockNumberMask | partsCountMask | blockCountLockMask | hashMask;
 // }
 
-import { BitPackReader, Uint256 } from '@ylide/sdk';
+import type { Uint256 } from '@ylide/sdk';
+import { BitPackReader } from '@ylide/sdk';
 
 export const decodeContentId = (contentIdHex: Uint256) => {
 	const bitsReader = BitPackReader.fromHex(contentIdHex, false);

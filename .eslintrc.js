@@ -24,6 +24,7 @@ module.exports = {
 				default: 'array',
 			},
 		],
+		'@typescript-eslint/consistent-type-imports': 'error',
 		'@typescript-eslint/ban-types': [
 			'error',
 			{

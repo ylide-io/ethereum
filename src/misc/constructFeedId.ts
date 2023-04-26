@@ -1,4 +1,5 @@
-import { sha256, Uint256 } from '@ylide/sdk';
+import type { Uint256 } from '@ylide/sdk';
+import { sha256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 
 export const constructFeedId = (senderAddress: string, isPersonal: boolean, uniqueId: Uint256) => {

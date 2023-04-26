@@ -1,13 +1,15 @@
-import { TypedEvent } from '@ylide/ethereum-contracts/lib/common';
-import { MailPushEventObject as MailPushEventObjectV9 } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
-import { Uint256, YlideCore } from '@ylide/sdk';
+import type { TypedEvent } from '@ylide/ethereum-contracts/lib/common';
+import type { MailPushEventObject as MailPushEventObjectV9 } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
+import type { Uint256 } from '@ylide/sdk';
+import { YlideCore } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
-import { BigNumber, Contract, ethers } from 'ethers';
-import { BlockNumberRingBufferIndex } from '../controllers';
+import type { Contract, ethers } from 'ethers';
+import { BigNumber } from 'ethers';
+import { BlockNumberRingBufferIndex } from '../controllers/misc/BlockNumberRingBufferIndex';
 import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from './constants';
 import { decodeContentId } from './contentId';
 import { encodeEvmMsgId } from './evmMsgId';
-import { IEVMEnrichedEvent, IEVMMailerContractLink, IEVMMessage, LogInternal } from './types';
+import type { IEVMEnrichedEvent, IEVMMailerContractLink, IEVMMessage, LogInternal } from './types';
 
 export interface IEventPosition {
 	blockNumber: number;

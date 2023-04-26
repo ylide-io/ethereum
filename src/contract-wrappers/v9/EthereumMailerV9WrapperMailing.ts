@@ -1,17 +1,19 @@
-import { YlideMailerV9 } from '@ylide/ethereum-contracts';
-import {
+import type { YlideMailerV9 } from '@ylide/ethereum-contracts';
+import type {
 	ContentRecipientsEvent,
 	MailPushEvent,
 	MailPushEventObject,
 	MailingFeedJoinedEvent,
 	MailingFeedJoinedEventObject,
 } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
-import { Uint256 } from '@ylide/sdk';
-import { BigNumber, BigNumberish, TypedDataDomain, ethers } from 'ethers';
+import type { Uint256 } from '@ylide/sdk';
+import type { BigNumber, BigNumberish, TypedDataDomain } from 'ethers';
+import { ethers } from 'ethers';
 import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers/helpers/ethersHelper';
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
-import { ContractType, IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
-import { IEventPosition, bnToUint256, getMultipleEvents, parseOutLogs, processMailPushEvent } from '../../misc/utils';
+import type { ContractType, IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
+import type { IEventPosition } from '../../misc/utils';
+import { bnToUint256, getMultipleEvents, parseOutLogs, processMailPushEvent } from '../../misc/utils';
 import type { EthereumMailerV9Wrapper } from './EthereumMailerV9Wrapper';
 
 export class EthereumMailerV9WrapperMailing {

@@ -1,8 +1,10 @@
 import { ethers } from 'ethers';
-import { YlideRegistryV5, YlideRegistryV5__factory } from '@ylide/ethereum-contracts';
-import { ExternalYlidePublicKey, PublicKey, PublicKeyType } from '@ylide/sdk';
+import type { YlideRegistryV5 } from '@ylide/ethereum-contracts';
+import { YlideRegistryV5__factory } from '@ylide/ethereum-contracts';
+import type { ExternalYlidePublicKey } from '@ylide/sdk';
+import { PublicKey, PublicKeyType } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
-import { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
+import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
 import type { IEVMEnrichedEvent, IEVMRegistryContractLink } from '../misc/types';
 import { ContractCache } from './ContractCache';
 import type { KeyAttachedEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideRegistryV5';

@@ -1,5 +1,5 @@
 import { AbstractNameService } from '@ylide/sdk';
-import { EthereumBlockchainController } from './EthereumBlockchainController';
+import type { EthereumBlockchainController } from './EthereumBlockchainController';
 
 // Why we use this? Because we want to be able to change ENS contract address, which is not possible in ethers.js
 import { ENS } from '@ensdomains/ensjs';

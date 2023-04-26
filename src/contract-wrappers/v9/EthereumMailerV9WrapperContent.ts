@@ -1,7 +1,10 @@
-import { LogDescription } from '@ethersproject/abi';
-import { MessageContentEvent, MessageContentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
+import type { LogDescription } from '@ethersproject/abi';
+import type {
+	MessageContentEvent,
+	MessageContentEventObject,
+} from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
 import type { IMessageContent, IMessageCorruptedContent } from '@ylide/sdk';
-import { ethers } from 'ethers';
+import type { ethers } from 'ethers';
 import type { GenericMessageContentEventObject } from '../../controllers/helpers/EthereumContentReader';
 import { EthereumContentReader } from '../../controllers/helpers/EthereumContentReader';
 import { ethersEventToInternalEvent } from '../../controllers/helpers/ethersHelper';

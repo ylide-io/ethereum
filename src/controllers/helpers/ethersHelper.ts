@@ -1,8 +1,8 @@
 import type { BlockWithTransactions } from '@ethersproject/abstract-provider';
 import type { Block } from '@ethersproject/providers';
-import { Event, Transaction } from 'ethers';
+import type { Event, Transaction } from 'ethers';
 
-import { TypedEvent } from '@ylide/ethereum-contracts/lib/common';
+import type { TypedEvent } from '@ylide/ethereum-contracts/lib/common';
 import type { IEVMBlock, IEVMEvent, IEVMTransaction, LogInternal } from '../../misc/types';
 
 export type EventParsed<T> = T extends TypedEvent<infer Arr, infer Obj> ? Obj : never;

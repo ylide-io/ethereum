@@ -1,4 +1,5 @@
-import { BigNumber, ethers } from 'ethers';
+import type { ethers } from 'ethers';
+import { BigNumber } from 'ethers';
 import type { IEVMMailerContractLink } from '../../misc/types';
 import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
 

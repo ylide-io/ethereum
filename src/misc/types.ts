@@ -1,7 +1,7 @@
-import { IYlideMailer, YlidePayV1 } from '@ylide/ethereum-contracts';
-import { TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
+import type { IYlideMailer, YlidePayV1 } from '@ylide/ethereum-contracts';
+import type { TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
 import type { IMessage, Uint256 } from '@ylide/sdk';
-import { BigNumberish, ethers } from 'ethers';
+import type { BigNumberish, ethers } from 'ethers';
 
 export enum EVMNetwork {
 	LOCAL_HARDHAT, //  = 'LOCAL_HARDHAT',

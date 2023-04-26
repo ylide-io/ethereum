@@ -3,16 +3,20 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable prefer-arrow/prefer-arrow-functions */
 /* eslint-disable @typescript-eslint/prefer-for-of */
-import { LogDescription } from '@ethersproject/abi';
+import type { LogDescription } from '@ethersproject/abi';
 import { mine } from '@nomicfoundation/hardhat-network-helpers';
-import { YlideMailerV8, YlideMailerV8__factory } from '@ylide/ethereum-contracts';
-import { bigIntToUint256, Uint256, YLIDE_MAIN_FEED_ID } from '@ylide/sdk';
+import type { YlideMailerV8 } from '@ylide/ethereum-contracts';
+import { YlideMailerV8__factory } from '@ylide/ethereum-contracts';
+import type { Uint256 } from '@ylide/sdk';
+import { bigIntToUint256, YLIDE_MAIN_FEED_ID } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { expect } from 'chai';
-import { BigNumber, ContractReceipt, ContractTransaction, Signer } from 'ethers';
+import type { ContractReceipt, ContractTransaction, Signer } from 'ethers';
+import { BigNumber } from 'ethers';
 import hre from 'hardhat';
 import { before, describe, it } from 'mocha';
-import { EVMMailerContractType, IEVMMailerContractLink, IEVMMessage } from '../src';
+import type { IEVMMailerContractLink, IEVMMessage } from '../src';
+import { EVMMailerContractType } from '../src';
 import { EthereumMailerV8Wrapper } from '../src/contract-wrappers/v8/EthereumMailerV8Wrapper';
 import { EthereumBlockchainReader } from '../src/controllers/helpers/EthereumBlockchainReader';
 import { constructPersonalFeedId } from '../src/misc/constructFeedId';

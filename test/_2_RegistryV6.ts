@@ -3,16 +3,18 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable prefer-arrow/prefer-arrow-functions */
-import { Signer } from 'ethers';
+import type { Signer } from 'ethers';
 import { describe, it, before } from 'mocha';
-import { YlideRegistryV6, YlideRegistryV6__factory } from '@ylide/ethereum-contracts';
+import type { YlideRegistryV6 } from '@ylide/ethereum-contracts';
+import { YlideRegistryV6__factory } from '@ylide/ethereum-contracts';
 import hre from 'hardhat';
 import SmartBuffer from '@ylide/smart-buffer';
 import nacl from 'tweetnacl';
 import { EthereumBlockchainReader } from '../src/controllers/helpers/EthereumBlockchainReader';
 import { EthereumRegistryV6Wrapper } from '../src/contract-wrappers/EthereumRegistryV6Wrapper';
 import { PublicKey, PublicKeyType, YlidePublicKeyVersion } from '@ylide/sdk';
-import { EVMRegistryContractType, IEVMRegistryContractLink } from '../src';
+import type { IEVMRegistryContractLink } from '../src';
+import { EVMRegistryContractType } from '../src';
 import { expect } from 'chai';
 import { mine, time } from '@nomicfoundation/hardhat-network-helpers';
 import { constructFaucetMsg } from '../src/misc/constructFaucetMsg';

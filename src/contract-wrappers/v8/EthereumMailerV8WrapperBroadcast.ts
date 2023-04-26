@@ -1,7 +1,10 @@
-import { YlideMailerV8 } from '@ylide/ethereum-contracts';
-import { BroadcastPushEvent, BroadcastPushEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV8';
-import { Uint256 } from '@ylide/sdk';
-import { BigNumber, ethers } from 'ethers';
+import type { YlideMailerV8 } from '@ylide/ethereum-contracts';
+import type {
+	BroadcastPushEvent,
+	BroadcastPushEventObject,
+} from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV8';
+import type { Uint256 } from '@ylide/sdk';
+import type { BigNumber, ethers } from 'ethers';
 import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers/helpers/ethersHelper';
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
 import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../../misc/constants';

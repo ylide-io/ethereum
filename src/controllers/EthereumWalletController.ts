@@ -1,17 +1,20 @@
-import { JsonRpcSigner, Web3Provider } from '@ethersproject/providers';
-import {
-	AbstractWalletController,
+import type { JsonRpcSigner } from '@ethersproject/providers';
+import { Web3Provider } from '@ethersproject/providers';
+import type {
 	IGenericAccount,
-	MessageChunks,
 	MessageKey,
-	PublicKey,
-	PublicKeyType,
 	SendBroadcastResult,
 	SendMailResult,
-	ServiceCode,
 	SwitchAccountCallback,
 	Uint256,
 	WalletControllerFactory,
+} from '@ylide/sdk';
+import {
+	AbstractWalletController,
+	MessageChunks,
+	PublicKey,
+	PublicKeyType,
+	ServiceCode,
 	WalletEvent,
 	YLIDE_MAIN_FEED_ID,
 	YlideError,
@@ -24,7 +27,7 @@ import SmartBuffer from '@ylide/smart-buffer';
 import { BigNumber, ethers } from 'ethers';
 
 import { EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CHUNK_SIZES, EVM_NAMES } from '../misc/constants';
-import {
+import type {
 	ContractType,
 	EVMNetwork,
 	GenerateSignatureCallback,
@@ -32,9 +35,9 @@ import {
 	IEVMMessage,
 	IEVMRegistryContractLink,
 	IEVMYlidePayContractLink,
-	TokenAttachmentContractType,
 	YlidePayment,
 } from '../misc/types';
+import { TokenAttachmentContractType } from '../misc/types';
 import { EthereumBlockchainController } from './EthereumBlockchainController';
 import { EthereumBlockchainReader } from './helpers/EthereumBlockchainReader';
 
@@ -43,7 +46,7 @@ import { EthereumMailerV7Wrapper } from '../contract-wrappers/EthereumMailerV7Wr
 import { EthereumMailerV8Wrapper } from '../contract-wrappers/v8/EthereumMailerV8Wrapper';
 import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9';
 
-import { EthereumPayV1Wrapper } from '../contract-wrappers/EthereumPayV1Wrapper';
+import type { EthereumPayV1Wrapper } from '../contract-wrappers/EthereumPayV1Wrapper';
 import { EthereumRegistryV3Wrapper } from '../contract-wrappers/EthereumRegistryV3Wrapper';
 import { EthereumRegistryV4Wrapper } from '../contract-wrappers/EthereumRegistryV4Wrapper';
 import { EthereumRegistryV5Wrapper } from '../contract-wrappers/EthereumRegistryV5Wrapper';

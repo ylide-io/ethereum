@@ -1,4 +1,4 @@
-import { YlideMailerV8 } from '@ylide/ethereum-contracts';
+import type { YlideMailerV8 } from '@ylide/ethereum-contracts';
 import type {
 	ContentRecipientsEvent,
 	MailingFeedJoinedEvent,
@@ -8,13 +8,15 @@ import type {
 } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV8';
 import type { Uint256 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
-import { BigNumber, ethers } from 'ethers';
+import type { BigNumber } from 'ethers';
+import { ethers } from 'ethers';
 import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers/helpers/ethersHelper';
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
 import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../../misc/constants';
 import { encodeEvmMsgId } from '../../misc/evmMsgId';
 import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
-import { bnToUint256, getMultipleEvents, IEventPosition, parseOutLogs } from '../../misc/utils';
+import type { IEventPosition } from '../../misc/utils';
+import { bnToUint256, getMultipleEvents, parseOutLogs } from '../../misc/utils';
 import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
 
 export class EthereumMailerV8WrapperMailing {

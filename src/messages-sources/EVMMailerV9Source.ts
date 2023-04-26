@@ -1,5 +1,5 @@
 import { GenericMessagesSource } from '@ylide/sdk';
-import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9';
+import type { EthereumMailerV9Wrapper } from '../contract-wrappers/v9/EthereumMailerV9Wrapper';
 import type { EthereumBlockchainController } from '../controllers/EthereumBlockchainController';
 import type { IEVMMailerContractLink, IHistorySource } from '../misc/types';
 

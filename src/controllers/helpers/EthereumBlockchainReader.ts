@@ -1,5 +1,6 @@
 import type { BlockWithTransactions } from '@ethersproject/abstract-provider';
-import { ethers, Transaction } from 'ethers';
+import type { Transaction } from 'ethers';
+import { ethers } from 'ethers';
 import Semaphore from 'semaphore-promise';
 import type { IEVMEnrichedEvent, IEVMEvent } from '../../misc/types';
 import { BetterWebSocketProvider } from './BetterWebSocketProvider';

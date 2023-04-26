@@ -1,10 +1,7 @@
-import {
-	AbstractBlockchainController,
+import type {
 	AbstractNameService,
 	BlockchainControllerFactory,
-	BlockchainSourceType,
 	ExternalYlidePublicKey,
-	hexToUint256,
 	IBlockchainSourceSubject,
 	IExtraEncryptionStrateryBulk,
 	IExtraEncryptionStrateryEntry,
@@ -15,25 +12,28 @@ import {
 	LowLevelMessagesSource,
 	MessageKey,
 	Uint256,
-	YlideCore,
 } from '@ylide/sdk';
+import { AbstractBlockchainController, BlockchainSourceType, hexToUint256, YlideCore } from '@ylide/sdk';
+import { ethers } from 'ethers';
 import { EVM_CHAINS, EVM_CONTRACT_TO_NETWORK, EVM_ENS, EVM_NAMES, EVM_RPCS } from '../misc/constants';
 import { decodeEvmMsgId } from '../misc/evmMsgId';
-import {
-	ContractType,
-	EVMMailerContractType,
-	EVMNetwork,
-	EVMRegistryContractType,
-	EVMYlidePayContractType,
+import type {
 	IEVMMailerContractLink,
 	IEVMMessage,
 	IEVMRegistryContractLink,
 	IEVMYlidePayContractLink,
-	TokenAttachmentContractType,
 	YlideTokenAttachment,
 } from '../misc/types';
+import {
+	EVMMailerContractType,
+	EVMNetwork,
+	EVMRegistryContractType,
+	EVMYlidePayContractType,
+	TokenAttachmentContractType,
+} from '../misc/types';
 
-import { EthereumBlockchainReader, IRPCDescriptor } from './helpers/EthereumBlockchainReader';
+import type { IRPCDescriptor } from './helpers/EthereumBlockchainReader';
+import { EthereumBlockchainReader } from './helpers/EthereumBlockchainReader';
 import { EthereumContentReader } from './helpers/EthereumContentReader';
 
 import { EthereumRegistryV3Wrapper } from '../contract-wrappers/EthereumRegistryV3Wrapper';
@@ -44,10 +44,9 @@ import { EthereumRegistryV6Wrapper } from '../contract-wrappers/EthereumRegistry
 import { EthereumMailerV6Wrapper } from '../contract-wrappers/EthereumMailerV6Wrapper';
 import { EthereumMailerV7Wrapper } from '../contract-wrappers/EthereumMailerV7Wrapper';
 import { EthereumMailerV8Wrapper } from '../contract-wrappers/v8/EthereumMailerV8Wrapper';
-
-import { ethers } from 'ethers';
+import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9/EthereumMailerV9Wrapper';
 import { EthereumPayV1Wrapper } from '../contract-wrappers/EthereumPayV1Wrapper';
-import { EthereumMailerV9Wrapper } from '../contract-wrappers/v9';
+
 import { EVMMailerV6Source } from '../messages-sources/EVMMailerV6Source';
 import { EVMMailerV7Source } from '../messages-sources/EVMMailerV7Source';
 import { EVMMailerV8Source } from '../messages-sources/EVMMailerV8Source';
