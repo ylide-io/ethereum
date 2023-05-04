@@ -504,7 +504,6 @@ export class EthereumWalletController extends AbstractWalletController {
 			) {
 				const firstBlockNumber = await this.signer.provider.getBlockNumber();
 				const blockLock = 600;
-				let nonce = await this.signer.getTransactionCount();
 				const promises = [];
 				for (let i = 0; i < chunks.length; i++) {
 					console.log(`Sending multi mail, current chunk length: ${chunks[i].length} bytes`);
@@ -526,7 +525,6 @@ export class EthereumWalletController extends AbstractWalletController {
 									current: i + 1,
 									total: chunks.length,
 								},
-								nonce: ++nonce,
 							},
 						),
 					);
@@ -555,7 +553,6 @@ export class EthereumWalletController extends AbstractWalletController {
 										current: i + 1,
 										total: recipientsChunks.length,
 									},
-									nonce: ++nonce,
 								},
 							)
 							.then(({ messages }) => msgs.push(...messages)),
@@ -565,7 +562,6 @@ export class EthereumWalletController extends AbstractWalletController {
 				return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 			} else {
 				const initTime = Math.floor(Date.now() / 1000) - 60;
-				let nonce = await this.signer.getTransactionCount();
 				const promises = [];
 				for (let i = 0; i < chunks.length; i++) {
 					console.log(`Sending multi mail, current chunk length: ${chunks[i].length} bytes`);
@@ -585,7 +581,6 @@ export class EthereumWalletController extends AbstractWalletController {
 									current: i + 1,
 									total: chunks.length,
 								},
-								nonce: ++nonce,
 							},
 						),
 					);
@@ -609,7 +604,6 @@ export class EthereumWalletController extends AbstractWalletController {
 										current: i + 1,
 										total: recipientChunks.length,
 									},
-									nonce: ++nonce,
 								},
 							)
 							.then(({ messages }) => msgs.push(...messages)),
@@ -665,7 +659,6 @@ export class EthereumWalletController extends AbstractWalletController {
 		} else {
 			const firstBlockNumber = await this.signer.provider.getBlockNumber();
 			const blockLock = 600;
-			let nonce = await this.signer.getTransactionCount();
 			const promises = [];
 			for (let i = 0; i < chunks.length; i++) {
 				promises.push(
@@ -686,7 +679,6 @@ export class EthereumWalletController extends AbstractWalletController {
 								current: i + 1,
 								total: chunks.length,
 							},
-							nonce: ++nonce,
 						},
 					),
 				);
@@ -707,7 +699,6 @@ export class EthereumWalletController extends AbstractWalletController {
 						options?.value || BigNumber.from(0),
 						{
 							cb: options?.eventsCallback,
-							nonce: ++nonce,
 						},
 					)
 					.then(({ messages }) => msgs.push(...messages)),

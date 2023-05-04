@@ -251,7 +251,6 @@ export class EthereumMailerV8WrapperBroadcast {
 		value: ethers.BigNumber,
 		options: {
 			cb?: ConnectorEventCallback;
-			nonce?: number;
 		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
@@ -300,7 +299,6 @@ export class EthereumMailerV8WrapperBroadcast {
 		value: ethers.BigNumber,
 		options: {
 			cb?: ConnectorEventCallback;
-			nonce?: number;
 		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
@@ -321,7 +319,7 @@ export class EthereumMailerV8WrapperBroadcast {
 			firstBlockNumber,
 			partsCount,
 			blockCountLock,
-			{ from, value, nonce: options.nonce },
+			{ from, value },
 		);
 		const tx = await signer.sendTransaction(populatedTx);
 		options.cb?.({

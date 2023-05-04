@@ -231,7 +231,6 @@ export class EthereumMailerV9WrapperMailing {
 		options: {
 			cb?: ConnectorEventCallback;
 			info?: ConnectorEventInfo;
-			nonce?: number;
 		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
@@ -258,7 +257,7 @@ export class EthereumMailerV9WrapperMailing {
 				recipients: recipients.map(r => `0x${r}`),
 				keys,
 			},
-			{ from, value, nonce: options.nonce },
+			{ from, value },
 		);
 		const tx = await signer.sendTransaction(populatedTx);
 		options.cb?.({

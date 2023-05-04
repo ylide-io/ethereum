@@ -33,7 +33,6 @@ export class EthereumMailerV8WrapperContent {
 		options: {
 			cb?: ConnectorEventCallback;
 			info?: ConnectorEventInfo;
-			nonce?: number;
 		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
@@ -53,7 +52,7 @@ export class EthereumMailerV8WrapperContent {
 			parts,
 			partIdx,
 			content,
-			{ from, value, nonce: options.nonce },
+			{ from, value },
 		);
 		const tx = await signer.sendTransaction(populatedTx);
 		options.cb?.({

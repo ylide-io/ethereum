@@ -405,7 +405,6 @@ export class EthereumMailerV7Wrapper {
 		options: {
 			cb?: ConnectorEventCallback;
 			info?: ConnectorEventInfo;
-			nonce?: number;
 		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
@@ -425,7 +424,7 @@ export class EthereumMailerV7Wrapper {
 			initTime,
 			recipients.map(r => `0x${r}`),
 			keys,
-			{ from, nonce: options.nonce },
+			{ from },
 		);
 		const tx = await signer.sendTransaction(populatedTx);
 		options.cb?.({
@@ -482,7 +481,6 @@ export class EthereumMailerV7Wrapper {
 		options: {
 			cb?: ConnectorEventCallback;
 			info?: ConnectorEventInfo;
-			nonce?: number;
 		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
@@ -501,7 +499,7 @@ export class EthereumMailerV7Wrapper {
 			parts,
 			partIdx,
 			content,
-			{ from, nonce: options.nonce },
+			{ from },
 		);
 		const tx = await signer.sendTransaction(populatedTx);
 		options.cb?.({
