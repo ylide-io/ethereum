@@ -9,7 +9,8 @@ import type { GenericMessageContentEventObject } from '../../controllers/helpers
 import { EthereumContentReader } from '../../controllers/helpers/EthereumContentReader';
 import { ethersEventToInternalEvent } from '../../controllers/helpers/ethersHelper';
 import { getMultipleEvents } from '../../misc';
-import type { IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
+import type { ConnectorEventCallback, ConnectorEventInfo, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
+import { ConnectorEventEnum, ConnectorEventState } from '../../misc/types';
 import type { EthereumMailerV9Wrapper } from './EthereumMailerV9Wrapper';
 
 export class EthereumMailerV9WrapperContent {
@@ -28,22 +29,43 @@ export class EthereumMailerV9WrapperContent {
 		partIdx: number,
 		content: Uint8Array,
 		value: ethers.BigNumber,
+		options: {
+			cb?: ConnectorEventCallback;
+			info?: ConnectorEventInfo;
+			nonce?: number;
+		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
 		logs: ethers.utils.LogDescription[];
 	}> {
+		options.cb?.({
+			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
+			state: ConnectorEventState.SIGNING,
+			info: options.info,
+		});
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.sendMessageContentPart(
+		const populatedTx = await contract.populateTransaction.sendMessageContentPart(
 			uniqueId,
 			firstBlockNumber,
 			blockCountLock,
 			parts,
 			partIdx,
 			content,
-			{ from, value },
+			{ from, value, nonce: options.nonce },
 		);
+		options.cb?.({
+			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
+			state: ConnectorEventState.PENDING,
+			info: options.info,
+		});
+		const tx = await signer.sendTransaction(populatedTx);
 		const receipt = await tx.wait();
+		options.cb?.({
+			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
+			state: ConnectorEventState.MINED,
+			info: options.info,
+		});
 		const logs = receipt.logs
 			.map(l => {
 				try {
@@ -53,6 +75,11 @@ export class EthereumMailerV9WrapperContent {
 				}
 			})
 			.filter(l => !!l) as LogDescription[];
+		options.cb?.({
+			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
+			state: ConnectorEventState.READY,
+			info: options.info,
+		});
 		return { tx, receipt, logs };
 	}
 

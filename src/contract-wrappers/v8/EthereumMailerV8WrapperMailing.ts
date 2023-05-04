@@ -14,7 +14,15 @@ import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../cont
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
 import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../../misc/constants';
 import { encodeEvmMsgId } from '../../misc/evmMsgId';
-import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
+import type {
+	ConnectorEventCallback,
+	ConnectorEventInfo,
+	IEVMEnrichedEvent,
+	IEVMEvent,
+	IEVMMailerContractLink,
+	IEVMMessage,
+} from '../../misc/types';
+import { ConnectorEventEnum, ConnectorEventState } from '../../misc/types';
 import type { IEventPosition } from '../../misc/utils';
 import { bnToUint256, getMultipleEvents, parseOutLogs } from '../../misc/utils';
 import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
@@ -168,6 +176,10 @@ export class EthereumMailerV8WrapperMailing {
 		keys: Uint8Array[],
 		content: Uint8Array,
 		value: ethers.BigNumber,
+		options: {
+			cb?: ConnectorEventCallback;
+			info?: ConnectorEventInfo;
+		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
@@ -175,6 +187,10 @@ export class EthereumMailerV8WrapperMailing {
 		mailPushEvents: IEVMEvent<MailPushEventObject>[];
 		messages: IEVMMessage[];
 	}> {
+		options.cb?.({
+			kind: ConnectorEventEnum.BULK_MAIL,
+			state: ConnectorEventState.SIGNING,
+		});
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
 		const tx = await contract.sendBulkMail(
 			`0x${feedId}`,
@@ -184,7 +200,19 @@ export class EthereumMailerV8WrapperMailing {
 			content,
 			{ from, value },
 		);
+		options.cb?.({
+			kind: ConnectorEventEnum.BULK_MAIL,
+			state: ConnectorEventState.PENDING,
+		});
 		const receipt = await tx.wait();
+		options.cb?.({
+			kind: ConnectorEventEnum.BULK_MAIL,
+			state: ConnectorEventState.MINED,
+		});
+		options.cb?.({
+			kind: ConnectorEventEnum.BULK_MAIL,
+			state: ConnectorEventState.FETCHING,
+		});
 		const {
 			logs,
 			byName: { MailPush },
@@ -192,6 +220,10 @@ export class EthereumMailerV8WrapperMailing {
 		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
+		options.cb?.({
+			kind: ConnectorEventEnum.BULK_MAIL,
+			state: ConnectorEventState.READY,
+		});
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
@@ -207,6 +239,11 @@ export class EthereumMailerV8WrapperMailing {
 		recipients: Uint256[],
 		keys: Uint8Array[],
 		value: ethers.BigNumber,
+		options: {
+			cb?: ConnectorEventCallback;
+			info?: ConnectorEventInfo;
+			nonce?: number;
+		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
@@ -214,8 +251,13 @@ export class EthereumMailerV8WrapperMailing {
 		mailPushEvents: IEVMEvent<MailPushEventObject>[];
 		messages: IEVMMessage[];
 	}> {
+		options.cb?.({
+			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
+			state: ConnectorEventState.SIGNING,
+			info: options.info,
+		});
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.addMailRecipients(
+		const populatedTx = await contract.populateTransaction.addMailRecipients(
 			`0x${feedId}`,
 			uniqueId,
 			firstBlockNumber,
@@ -223,9 +265,25 @@ export class EthereumMailerV8WrapperMailing {
 			blockCountLock,
 			recipients.map(r => `0x${r}`),
 			keys,
-			{ from, value },
+			{ from, value, nonce: options.nonce },
 		);
+		options.cb?.({
+			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
+			state: ConnectorEventState.PENDING,
+			info: options.info,
+		});
+		const tx = await signer.sendTransaction(populatedTx);
 		const receipt = await tx.wait();
+		options.cb?.({
+			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
+			state: ConnectorEventState.MINED,
+			info: options.info,
+		});
+		options.cb?.({
+			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
+			state: ConnectorEventState.FETCHING,
+			info: options.info,
+		});
 		const {
 			logs,
 			byName: { MailPush },
@@ -233,6 +291,11 @@ export class EthereumMailerV8WrapperMailing {
 		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
+		options.cb?.({
+			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
+			state: ConnectorEventState.READY,
+			info: options.info,
+		});
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 

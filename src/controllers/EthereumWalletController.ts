@@ -25,9 +25,11 @@ import {
 } from '@ylide/sdk';
 import SmartBuffer from '@ylide/smart-buffer';
 import { BigNumber, ethers } from 'ethers';
+import chunk from 'lodash.chunk';
 
 import { EVM_CHAINS, EVM_CHAIN_ID_TO_NETWORK, EVM_CHUNK_SIZES, EVM_NAMES } from '../misc/constants';
 import type {
+	ConnectorEventCallback,
 	ContractType,
 	EVMNetwork,
 	GenerateSignatureCallback,
@@ -419,7 +421,7 @@ export class EthereumWalletController extends AbstractWalletController {
 		feedId: Uint256,
 		contentData: Uint8Array,
 		recipients: { address: Uint256; messageKey: MessageKey }[],
-		options?: { network?: EVMNetwork; value?: BigNumber },
+		options?: { network?: EVMNetwork; value?: BigNumber; eventsCallback?: ConnectorEventCallback },
 		generateSignature?: GenerateSignatureCallback,
 		payments?: YlidePayment,
 	): Promise<SendMailResult> {
@@ -449,6 +451,9 @@ export class EthereumWalletController extends AbstractWalletController {
 				recipients[0].address,
 				recipients[0].messageKey.toBytes(),
 				chunks[0],
+				{
+					cb: options?.eventsCallback,
+				},
 			);
 			return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 		} else if (chunks.length === 1 && recipients.length < Math.ceil((15.5 * 1024 - chunks[0].byteLength) / 70)) {
@@ -493,6 +498,9 @@ export class EthereumWalletController extends AbstractWalletController {
 						recipients.map(r => r.messageKey.toBytes()),
 						chunks[0],
 						options?.value || BigNumber.from(0),
+						{
+							cb: options?.eventsCallback,
+						},
 					);
 					msgs = messages;
 				}
@@ -510,6 +518,9 @@ export class EthereumWalletController extends AbstractWalletController {
 					recipients.map(r => r.address),
 					recipients.map(r => r.messageKey.toBytes()),
 					chunks[0],
+					{
+						cb: options?.eventsCallback,
+					},
 				);
 				return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 			}
@@ -520,10 +531,10 @@ export class EthereumWalletController extends AbstractWalletController {
 			) {
 				const firstBlockNumber = await this.signer.provider.getBlockNumber();
 				const blockLock = 600;
-				// const msgId = await mailer.buildHash(me.address, uniqueId, firstBlockNumber);
+				let nonce = await this.signer.getTransactionCount();
 				for (let i = 0; i < chunks.length; i++) {
 					console.log(`Sending multi mail, current chunk length: ${chunks[i].length} bytes`);
-					const { tx, receipt, logs } = await mailer.wrapper.content.sendMessageContentPart(
+					await mailer.wrapper.content.sendMessageContentPart(
 						mailer.link,
 						this.signer,
 						me.address,
@@ -534,6 +545,14 @@ export class EthereumWalletController extends AbstractWalletController {
 						i,
 						chunks[i],
 						options?.value || BigNumber.from(0),
+						{
+							cb: options?.eventsCallback,
+							info: {
+								current: i,
+								total: chunks.length,
+							},
+							nonce: ++nonce,
+						},
 					);
 				}
 				const msgs: IEVMMessage[] = [];
@@ -574,8 +593,9 @@ export class EthereumWalletController extends AbstractWalletController {
 					}
 					throw new Error('Unsupported payment type');
 				} else {
-					for (let i = 0; i < recipients.length; i += 210) {
-						const recs = recipients.slice(i, i + 210);
+					const recipientsChunks = chunk(recipients, 210);
+					for (let i = 0; i < recipientsChunks.length; i++) {
+						console.log(`Sending bulk mail, chunk length: ${chunks[0].length} bytes`);
 						const { messages } = await mailer.wrapper.mailing.addMailRecipients(
 							mailer.link,
 							this.signer,
@@ -585,9 +605,17 @@ export class EthereumWalletController extends AbstractWalletController {
 							firstBlockNumber,
 							chunks.length,
 							blockLock,
-							recs.map(r => r.address),
-							recs.map(r => r.messageKey.toBytes()),
+							recipientsChunks[i].map(r => r.address),
+							recipientsChunks[i].map(r => r.messageKey.toBytes()),
 							options?.value || BigNumber.from(0),
+							{
+								cb: options?.eventsCallback,
+								info: {
+									current: i,
+									total: recipientsChunks.length,
+								},
+								nonce: ++nonce,
+							},
 						);
 						msgs.push(...messages);
 					}
@@ -596,7 +624,7 @@ export class EthereumWalletController extends AbstractWalletController {
 				return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 			} else {
 				const initTime = Math.floor(Date.now() / 1000) - 60;
-
+				let nonce = await this.signer.getTransactionCount();
 				for (let i = 0; i < chunks.length; i++) {
 					console.log(`Sending multi mail, current chunk length: ${chunks[i].length} bytes`);
 					await mailer.wrapper.sendMessageContentPart(
@@ -608,19 +636,35 @@ export class EthereumWalletController extends AbstractWalletController {
 						chunks.length,
 						i,
 						chunks[i],
+						{
+							cb: options?.eventsCallback,
+							info: {
+								current: i,
+								total: chunks.length,
+							},
+							nonce: ++nonce,
+						},
 					);
 				}
 				const msgs: IEVMMessage[] = [];
-				for (let i = 0; i < recipients.length; i += 210) {
-					const recs = recipients.slice(i, i + 210);
+				const recipientChunks = chunk(recipients, 210);
+				for (let i = 0; i < recipientChunks.length; i++) {
 					const { messages } = await mailer.wrapper.addMailRecipients(
 						mailer.link,
 						this.signer,
 						me.address,
 						uniqueId,
 						initTime,
-						recs.map(r => r.address),
-						recs.map(r => r.messageKey.toBytes()),
+						recipientChunks[i].map(r => r.address),
+						recipientChunks[i].map(r => r.messageKey.toBytes()),
+						{
+							cb: options?.eventsCallback,
+							info: {
+								current: i,
+								total: recipientChunks.length,
+							},
+							nonce: ++nonce,
+						},
 					);
 					msgs.push(...messages);
 				}

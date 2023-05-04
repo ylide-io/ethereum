@@ -1,27 +1,35 @@
-import type { ethers } from 'ethers';
-import { BigNumber } from 'ethers';
-import SmartBuffer from '@ylide/smart-buffer';
-import type { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
+import type { LogDescription } from '@ethersproject/abi';
 import type { YlideMailerV6 } from '@ylide/ethereum-contracts';
 import { YlideMailerV6__factory } from '@ylide/ethereum-contracts';
-import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
-import type { IMessageContent, IMessageCorruptedContent, Uint256 } from '@ylide/sdk';
+import type { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
 import type {
 	MailContentEvent,
+	MailContentEventObject,
 	MailPushEvent,
 	MailPushEventObject,
-	MailContentEventObject,
 } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV6';
-import type { LogDescription } from '@ethersproject/abi';
-import { BlockNumberRingBufferIndex } from '../controllers/misc/BlockNumberRingBufferIndex';
-import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../misc/types';
-import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../misc/constants';
-import type { IEventPosition } from '../misc/utils';
-import { decodeEvmMsgId, encodeEvmMsgId } from '../misc/evmMsgId';
-import type { EventParsed } from '../controllers/helpers/ethersHelper';
-import { ethersEventToInternalEvent } from '../controllers/helpers/ethersHelper';
+import type { IMessageContent, IMessageCorruptedContent, Uint256 } from '@ylide/sdk';
+import SmartBuffer from '@ylide/smart-buffer';
+import type { ethers } from 'ethers';
+import { BigNumber } from 'ethers';
+import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
 import type { GenericMessageContentEventObject } from '../controllers/helpers/EthereumContentReader';
 import { EthereumContentReader } from '../controllers/helpers/EthereumContentReader';
+import type { EventParsed } from '../controllers/helpers/ethersHelper';
+import { ethersEventToInternalEvent } from '../controllers/helpers/ethersHelper';
+import { BlockNumberRingBufferIndex } from '../controllers/misc/BlockNumberRingBufferIndex';
+import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../misc/constants';
+import { decodeEvmMsgId, encodeEvmMsgId } from '../misc/evmMsgId';
+import type {
+	ConnectorEventCallback,
+	ConnectorEventInfo,
+	IEVMEnrichedEvent,
+	IEVMEvent,
+	IEVMMailerContractLink,
+	IEVMMessage,
+} from '../misc/types';
+import { ConnectorEventEnum, ConnectorEventState } from '../misc/types';
+import type { IEventPosition } from '../misc/utils';
 import { ContractCache } from './ContractCache';
 
 export class EthereumMailerV6Wrapper {
@@ -244,6 +252,10 @@ export class EthereumMailerV6Wrapper {
 		recipient: Uint256,
 		key: Uint8Array,
 		content: Uint8Array,
+		options: {
+			cb?: ConnectorEventCallback;
+			info?: ConnectorEventInfo;
+		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
@@ -252,8 +264,24 @@ export class EthereumMailerV6Wrapper {
 		messages: IEVMMessage[];
 	}> {
 		const contract = this.cache.getContract(mailer.address, signer);
+		options.cb?.({
+			kind: ConnectorEventEnum.SMALL_MAIL,
+			state: ConnectorEventState.SIGNING,
+		});
 		const tx = await contract.sendSmallMail(uniqueId, `0x${recipient}`, key, content, { from });
+		options.cb?.({
+			kind: ConnectorEventEnum.SMALL_MAIL,
+			state: ConnectorEventState.PENDING,
+		});
 		const receipt = await tx.wait();
+		options.cb?.({
+			kind: ConnectorEventEnum.SMALL_MAIL,
+			state: ConnectorEventState.MINED,
+		});
+		options.cb?.({
+			kind: ConnectorEventEnum.SMALL_MAIL,
+			state: ConnectorEventState.FETCHING,
+		});
 		const logs = receipt.logs
 			.map(l => {
 				try {
@@ -282,6 +310,10 @@ export class EthereumMailerV6Wrapper {
 			);
 		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
+		options.cb?.({
+			kind: ConnectorEventEnum.SMALL_MAIL,
+			state: ConnectorEventState.READY,
+		});
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
@@ -293,6 +325,10 @@ export class EthereumMailerV6Wrapper {
 		recipients: Uint256[],
 		keys: Uint8Array[],
 		content: Uint8Array,
+		options: {
+			cb?: ConnectorEventCallback;
+			info?: ConnectorEventInfo;
+		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
@@ -300,6 +336,10 @@ export class EthereumMailerV6Wrapper {
 		mailPushEvents: IEVMEvent<MailPushEventObject>[];
 		messages: IEVMMessage[];
 	}> {
+		options.cb?.({
+			kind: ConnectorEventEnum.BULK_MAIL,
+			state: ConnectorEventState.SIGNING,
+		});
 		const contract = this.cache.getContract(mailer.address, signer);
 		const tx = await contract.sendBulkMail(
 			uniqueId,
@@ -308,7 +348,19 @@ export class EthereumMailerV6Wrapper {
 			content,
 			{ from },
 		);
+		options.cb?.({
+			kind: ConnectorEventEnum.BULK_MAIL,
+			state: ConnectorEventState.PENDING,
+		});
 		const receipt = await tx.wait();
+		options.cb?.({
+			kind: ConnectorEventEnum.BULK_MAIL,
+			state: ConnectorEventState.MINED,
+		});
+		options.cb?.({
+			kind: ConnectorEventEnum.BULK_MAIL,
+			state: ConnectorEventState.FETCHING,
+		});
 		const logs = receipt.logs
 			.map(l => {
 				try {
@@ -337,6 +389,10 @@ export class EthereumMailerV6Wrapper {
 			);
 		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
+		options.cb?.({
+			kind: ConnectorEventEnum.BULK_MAIL,
+			state: ConnectorEventState.READY,
+		});
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
@@ -348,6 +404,11 @@ export class EthereumMailerV6Wrapper {
 		initTime: number,
 		recipients: Uint256[],
 		keys: Uint8Array[],
+		options: {
+			cb?: ConnectorEventCallback;
+			info?: ConnectorEventInfo;
+			nonce?: number;
+		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
@@ -355,15 +416,36 @@ export class EthereumMailerV6Wrapper {
 		mailPushEvents: IEVMEvent<MailPushEventObject>[];
 		messages: IEVMMessage[];
 	}> {
+		options.cb?.({
+			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
+			state: ConnectorEventState.SIGNING,
+			info: options.info,
+		});
 		const contract = this.cache.getContract(mailer.address, signer);
-		const tx = await contract.addRecipients(
+		const populatedTx = await contract.populateTransaction.addRecipients(
 			uniqueId,
 			initTime,
 			recipients.map(r => `0x${r}`),
 			keys,
-			{ from },
+			{ from, nonce: options.nonce },
 		);
+		options.cb?.({
+			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
+			state: ConnectorEventState.PENDING,
+			info: options.info,
+		});
+		const tx = await signer.sendTransaction(populatedTx);
 		const receipt = await tx.wait();
+		options.cb?.({
+			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
+			state: ConnectorEventState.MINED,
+			info: options.info,
+		});
+		options.cb?.({
+			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
+			state: ConnectorEventState.FETCHING,
+			info: options.info,
+		});
 		const logs = receipt.logs
 			.map(l => {
 				try {
@@ -392,6 +474,11 @@ export class EthereumMailerV6Wrapper {
 			);
 		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
 		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
+		options.cb?.({
+			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
+			state: ConnectorEventState.READY,
+			info: options.info,
+		});
 		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
@@ -404,14 +491,42 @@ export class EthereumMailerV6Wrapper {
 		parts: number,
 		partIdx: number,
 		content: Uint8Array,
+		options: {
+			cb?: ConnectorEventCallback;
+			info?: ConnectorEventInfo;
+			nonce?: number;
+		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
 		logs: ethers.utils.LogDescription[];
 	}> {
+		options.cb?.({
+			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
+			state: ConnectorEventState.SIGNING,
+			info: options.info,
+		});
 		const contract = this.cache.getContract(mailer.address, signer);
-		const tx = await contract.sendMultipartMailPart(uniqueId, initTime, parts, partIdx, content, { from });
+		const populatedTx = await contract.populateTransaction.sendMultipartMailPart(
+			uniqueId,
+			initTime,
+			parts,
+			partIdx,
+			content,
+			{ from, nonce: options.nonce },
+		);
+		options.cb?.({
+			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
+			state: ConnectorEventState.PENDING,
+			info: options.info,
+		});
+		const tx = await signer.sendTransaction(populatedTx);
 		const receipt = await tx.wait();
+		options.cb?.({
+			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
+			state: ConnectorEventState.MINED,
+			info: options.info,
+		});
 		const logs = receipt.logs
 			.map(l => {
 				try {
@@ -421,6 +536,11 @@ export class EthereumMailerV6Wrapper {
 				}
 			})
 			.filter(l => !!l) as LogDescription[];
+		options.cb?.({
+			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
+			state: ConnectorEventState.READY,
+			info: options.info,
+		});
 		return { tx, receipt, logs };
 	}
 

@@ -168,3 +168,32 @@ export enum ContractType {
 	NONE,
 	PAY,
 }
+
+export enum ConnectorEventEnum {
+	SMALL_MAIL = 'SMALL_MAIL',
+	BULK_MAIL = 'BULK_MAIL',
+	CONTENT_PART = 'CONTENT_PART',
+	ADD_MAIL_RECIPIENTS = 'ADD_MAIL_RECIPIENTS',
+	MESSAGE_CONTENT_PART = 'MESSAGE_CONTENT_PART',
+}
+
+export enum ConnectorEventState {
+	SIGNING = 'SIGNING',
+	PENDING = 'PENDING',
+	MINED = 'MINED',
+	FETCHING = 'FETCHING',
+	READY = 'READY',
+}
+
+export type ConnectorEvent = {
+	kind: ConnectorEventEnum;
+	state: ConnectorEventState;
+	info?: ConnectorEventInfo;
+};
+
+export type ConnectorEventInfo = {
+	current: number;
+	total: number;
+};
+
+export type ConnectorEventCallback = (event: ConnectorEvent) => void;

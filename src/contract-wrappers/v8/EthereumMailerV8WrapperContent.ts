@@ -10,7 +10,8 @@ import { EthereumContentReader } from '../../controllers/helpers/EthereumContent
 import { ethersEventToInternalEvent } from '../../controllers/helpers/ethersHelper';
 import { getMultipleEvents } from '../../misc';
 import { decodeContentId } from '../../misc/contentId';
-import type { IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
+import type { ConnectorEventCallback, ConnectorEventInfo, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
+import { ConnectorEventEnum, ConnectorEventState } from '../../misc/types';
 import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
 
 export class EthereumMailerV8WrapperContent {
@@ -29,22 +30,43 @@ export class EthereumMailerV8WrapperContent {
 		partIdx: number,
 		content: Uint8Array,
 		value: ethers.BigNumber,
+		options: {
+			cb?: ConnectorEventCallback;
+			info?: ConnectorEventInfo;
+			nonce?: number;
+		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
 		logs: ethers.utils.LogDescription[];
 	}> {
+		options.cb?.({
+			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
+			state: ConnectorEventState.SIGNING,
+			info: options.info,
+		});
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.sendMessageContentPart(
+		const populatedTx = await contract.populateTransaction.sendMessageContentPart(
 			uniqueId,
 			firstBlockNumber,
 			blockCountLock,
 			parts,
 			partIdx,
 			content,
-			{ from, value },
+			{ from, value, nonce: options.nonce },
 		);
+		options.cb?.({
+			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
+			state: ConnectorEventState.PENDING,
+			info: options.info,
+		});
+		const tx = await signer.sendTransaction(populatedTx);
 		const receipt = await tx.wait();
+		options.cb?.({
+			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
+			state: ConnectorEventState.MINED,
+			info: options.info,
+		});
 		const logs = receipt.logs
 			.map(l => {
 				try {
@@ -54,6 +76,11 @@ export class EthereumMailerV8WrapperContent {
 				}
 			})
 			.filter(l => !!l) as LogDescription[];
+		options.cb?.({
+			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
+			state: ConnectorEventState.READY,
+			info: options.info,
+		});
 		return { tx, receipt, logs };
 	}
 
