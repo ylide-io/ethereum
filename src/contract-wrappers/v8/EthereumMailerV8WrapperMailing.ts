@@ -248,7 +248,7 @@ export class EthereumMailerV8WrapperMailing {
 			info: options.info,
 		});
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const populatedTx = await contract.populateTransaction.addMailRecipients(
+		const tx = await contract.addMailRecipients(
 			`0x${feedId}`,
 			uniqueId,
 			firstBlockNumber,
@@ -258,7 +258,6 @@ export class EthereumMailerV8WrapperMailing {
 			keys,
 			{ from, value },
 		);
-		const tx = await signer.sendTransaction(populatedTx);
 		options.cb?.({
 			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
 			state: ConnectorEventState.PENDING,

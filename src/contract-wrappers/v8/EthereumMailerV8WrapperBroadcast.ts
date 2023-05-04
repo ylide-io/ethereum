@@ -312,7 +312,7 @@ export class EthereumMailerV8WrapperBroadcast {
 			state: ConnectorEventState.SIGNING,
 		});
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const populatedTx = await contract.populateTransaction.sendBroadcastHeader(
+		const tx = await contract.sendBroadcastHeader(
 			isPersonal,
 			`0x${feedId}`,
 			uniqueId,
@@ -321,7 +321,6 @@ export class EthereumMailerV8WrapperBroadcast {
 			blockCountLock,
 			{ from, value },
 		);
-		const tx = await signer.sendTransaction(populatedTx);
 		options.cb?.({
 			kind: ConnectorEventEnum.BROADCAST_HEADER,
 			state: ConnectorEventState.PENDING,

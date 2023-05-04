@@ -44,7 +44,7 @@ export class EthereumMailerV9WrapperContent {
 			info: options.info,
 		});
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const populatedTx = await contract.populateTransaction.sendMessageContentPart(
+		const tx = await contract.sendMessageContentPart(
 			uniqueId,
 			firstBlockNumber,
 			blockCountLock,
@@ -53,7 +53,6 @@ export class EthereumMailerV9WrapperContent {
 			content,
 			{ from, value },
 		);
-		const tx = await signer.sendTransaction(populatedTx);
 		options.cb?.({
 			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
 			state: ConnectorEventState.PENDING,

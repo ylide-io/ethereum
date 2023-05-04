@@ -405,14 +405,13 @@ export class EthereumMailerV6Wrapper {
 			info: options.info,
 		});
 		const contract = this.cache.getContract(mailer.address, signer);
-		const populatedTx = await contract.populateTransaction.addRecipients(
+		const tx = await contract.addRecipients(
 			uniqueId,
 			initTime,
 			recipients.map(r => `0x${r}`),
 			keys,
 			{ from },
 		);
-		const tx = await signer.sendTransaction(populatedTx);
 		options.cb?.({
 			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
 			state: ConnectorEventState.PENDING,
@@ -479,15 +478,7 @@ export class EthereumMailerV6Wrapper {
 			info: options.info,
 		});
 		const contract = this.cache.getContract(mailer.address, signer);
-		const populatedTx = await contract.populateTransaction.sendMultipartMailPart(
-			uniqueId,
-			initTime,
-			parts,
-			partIdx,
-			content,
-			{ from },
-		);
-		const tx = await signer.sendTransaction(populatedTx);
+		const tx = await contract.sendMultipartMailPart(uniqueId, initTime, parts, partIdx, content, { from });
 		options.cb?.({
 			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
 			state: ConnectorEventState.PENDING,
