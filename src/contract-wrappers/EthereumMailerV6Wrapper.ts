@@ -429,12 +429,12 @@ export class EthereumMailerV6Wrapper {
 			keys,
 			{ from, nonce: options.nonce },
 		);
+		const tx = await signer.sendTransaction(populatedTx);
 		options.cb?.({
 			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
 			state: ConnectorEventState.PENDING,
 			info: options.info,
 		});
-		const tx = await signer.sendTransaction(populatedTx);
 		const receipt = await tx.wait();
 		options.cb?.({
 			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
@@ -515,12 +515,12 @@ export class EthereumMailerV6Wrapper {
 			content,
 			{ from, nonce: options.nonce },
 		);
+		const tx = await signer.sendTransaction(populatedTx);
 		options.cb?.({
 			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
 			state: ConnectorEventState.PENDING,
 			info: options.info,
 		});
-		const tx = await signer.sendTransaction(populatedTx);
 		const receipt = await tx.wait();
 		options.cb?.({
 			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,

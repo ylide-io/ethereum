@@ -268,12 +268,12 @@ export class EthereumMailerV9WrapperMailing {
 			},
 			{ from, value, nonce: options.nonce },
 		);
+		const tx = await signer.sendTransaction(populatedTx);
 		options.cb?.({
 			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
 			state: ConnectorEventState.PENDING,
 			info: options.info,
 		});
-		const tx = await signer.sendTransaction(populatedTx);
 		const receipt = await tx.wait();
 		options.cb?.({
 			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,

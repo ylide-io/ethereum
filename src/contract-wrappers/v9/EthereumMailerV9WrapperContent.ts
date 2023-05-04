@@ -54,12 +54,12 @@ export class EthereumMailerV9WrapperContent {
 			content,
 			{ from, value, nonce: options.nonce },
 		);
+		const tx = await signer.sendTransaction(populatedTx);
 		options.cb?.({
 			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
 			state: ConnectorEventState.PENDING,
 			info: options.info,
 		});
-		const tx = await signer.sendTransaction(populatedTx);
 		const receipt = await tx.wait();
 		options.cb?.({
 			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
