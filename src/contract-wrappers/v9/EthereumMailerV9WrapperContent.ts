@@ -61,11 +61,6 @@ export class EthereumMailerV9WrapperContent {
 			info: options.info,
 		});
 		const receipt = await tx.wait();
-		options.cb?.({
-			kind: ConnectorEventEnum.MESSAGE_CONTENT_PART,
-			state: ConnectorEventState.MINED,
-			info: options.info,
-		});
 		const logs = receipt.logs
 			.map(l => {
 				try {

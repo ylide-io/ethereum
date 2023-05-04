@@ -201,14 +201,6 @@ export class EthereumMailerV9WrapperMailing {
 			state: ConnectorEventState.PENDING,
 		});
 		const receipt = await tx.wait();
-		options.cb?.({
-			kind: ConnectorEventEnum.BULK_MAIL,
-			state: ConnectorEventState.MINED,
-		});
-		options.cb?.({
-			kind: ConnectorEventEnum.BULK_MAIL,
-			state: ConnectorEventState.FETCHING,
-		});
 		const {
 			logs,
 			byName: { MailPush },
@@ -275,16 +267,6 @@ export class EthereumMailerV9WrapperMailing {
 			info: options.info,
 		});
 		const receipt = await tx.wait();
-		options.cb?.({
-			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
-			state: ConnectorEventState.MINED,
-			info: options.info,
-		});
-		options.cb?.({
-			kind: ConnectorEventEnum.ADD_MAIL_RECIPIENTS,
-			state: ConnectorEventState.FETCHING,
-			info: options.info,
-		});
 		const {
 			logs,
 			byName: { MailPush },

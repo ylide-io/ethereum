@@ -272,14 +272,6 @@ export class EthereumMailerV9WrapperBroadcast {
 			state: ConnectorEventState.PENDING,
 		});
 		const receipt = await tx.wait();
-		options.cb?.({
-			kind: ConnectorEventEnum.BROADCAST,
-			state: ConnectorEventState.MINED,
-		});
-		options.cb?.({
-			kind: ConnectorEventEnum.BROADCAST,
-			state: ConnectorEventState.FETCHING,
-		});
 		const {
 			logs,
 			byName: { BroadcastPush: events },
@@ -338,14 +330,6 @@ export class EthereumMailerV9WrapperBroadcast {
 			state: ConnectorEventState.PENDING,
 		});
 		const receipt = await tx.wait();
-		options.cb?.({
-			kind: ConnectorEventEnum.BROADCAST_HEADER,
-			state: ConnectorEventState.MINED,
-		});
-		options.cb?.({
-			kind: ConnectorEventEnum.BROADCAST_HEADER,
-			state: ConnectorEventState.FETCHING,
-		});
 		const {
 			logs,
 			byName: { BroadcastPush: events },

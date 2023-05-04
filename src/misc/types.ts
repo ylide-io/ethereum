@@ -182,8 +182,6 @@ export enum ConnectorEventEnum {
 export enum ConnectorEventState {
 	SIGNING = 'SIGNING',
 	PENDING = 'PENDING',
-	MINED = 'MINED',
-	FETCHING = 'FETCHING',
 	READY = 'READY',
 }
 
