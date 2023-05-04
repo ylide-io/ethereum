@@ -9,7 +9,15 @@ import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../cont
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
 import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../../misc/constants';
 import { encodeEvmMsgId } from '../../misc/evmMsgId';
-import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
+import type {
+	ConnectorEventCallback,
+	IEVMEnrichedEvent,
+	IEVMEvent,
+	IEVMMailerContractLink,
+	IEVMMessage,
+} from '../../misc/types';
+import { ConnectorEventState } from '../../misc/types';
+import { ConnectorEventEnum } from '../../misc/types';
 import { bnToUint256, parseOutLogs } from '../../misc/utils';
 import type { EthereumMailerV9Wrapper } from './EthereumMailerV9Wrapper';
 
@@ -242,6 +250,10 @@ export class EthereumMailerV9WrapperBroadcast {
 		uniqueId: number,
 		content: Uint8Array,
 		value: ethers.BigNumber,
+		options: {
+			cb?: ConnectorEventCallback;
+			nonce?: number;
+		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
@@ -249,9 +261,25 @@ export class EthereumMailerV9WrapperBroadcast {
 		broadcastPushEvents: IEVMEvent<BroadcastPushEventObject>[];
 		messages: IEVMMessage[];
 	}> {
+		options.cb?.({
+			kind: ConnectorEventEnum.BROADCAST,
+			state: ConnectorEventState.SIGNING,
+		});
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
 		const tx = await contract.sendBroadcast(isPersonal, `0x${feedId}`, uniqueId, content, { from, value });
+		options.cb?.({
+			kind: ConnectorEventEnum.BROADCAST,
+			state: ConnectorEventState.PENDING,
+		});
 		const receipt = await tx.wait();
+		options.cb?.({
+			kind: ConnectorEventEnum.BROADCAST,
+			state: ConnectorEventState.MINED,
+		});
+		options.cb?.({
+			kind: ConnectorEventEnum.BROADCAST,
+			state: ConnectorEventState.FETCHING,
+		});
 		const {
 			logs,
 			byName: { BroadcastPush: events },
@@ -260,7 +288,11 @@ export class EthereumMailerV9WrapperBroadcast {
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<BroadcastPushEventObject>(
 			broadcastPushEvents,
 		);
-		const messages = await Promise.all(enriched.map(e => this.processBroadcastPushEvent(mailer, e)));
+		const messages = enriched.map(e => this.processBroadcastPushEvent(mailer, e));
+		options.cb?.({
+			kind: ConnectorEventEnum.BROADCAST,
+			state: ConnectorEventState.READY,
+		});
 		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
 	}
 
@@ -275,6 +307,10 @@ export class EthereumMailerV9WrapperBroadcast {
 		partsCount: number,
 		blockCountLock: number,
 		value: ethers.BigNumber,
+		options: {
+			cb?: ConnectorEventCallback;
+			nonce?: number;
+		} = {},
 	): Promise<{
 		tx: ethers.ContractTransaction;
 		receipt: ethers.ContractReceipt;
@@ -282,17 +318,34 @@ export class EthereumMailerV9WrapperBroadcast {
 		broadcastPushEvents: IEVMEvent<BroadcastPushEventObject>[];
 		messages: IEVMMessage[];
 	}> {
+		options.cb?.({
+			kind: ConnectorEventEnum.BROADCAST_HEADER,
+			state: ConnectorEventState.SIGNING,
+		});
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.sendBroadcastHeader(
+		const populatedTx = await contract.populateTransaction.sendBroadcastHeader(
 			isPersonal,
 			`0x${feedId}`,
 			uniqueId,
 			firstBlockNumber,
 			partsCount,
 			blockCountLock,
-			{ from, value },
+			{ from, value, nonce: options.nonce },
 		);
+		const tx = await signer.sendTransaction(populatedTx);
+		options.cb?.({
+			kind: ConnectorEventEnum.BROADCAST_HEADER,
+			state: ConnectorEventState.PENDING,
+		});
 		const receipt = await tx.wait();
+		options.cb?.({
+			kind: ConnectorEventEnum.BROADCAST_HEADER,
+			state: ConnectorEventState.MINED,
+		});
+		options.cb?.({
+			kind: ConnectorEventEnum.BROADCAST_HEADER,
+			state: ConnectorEventState.FETCHING,
+		});
 		const {
 			logs,
 			byName: { BroadcastPush: events },
@@ -301,7 +354,11 @@ export class EthereumMailerV9WrapperBroadcast {
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<BroadcastPushEventObject>(
 			broadcastPushEvents,
 		);
-		const messages = await Promise.all(enriched.map(e => this.processBroadcastPushEvent(mailer, e)));
+		const messages = enriched.map(e => this.processBroadcastPushEvent(mailer, e));
+		options.cb?.({
+			kind: ConnectorEventEnum.BROADCAST_HEADER,
+			state: ConnectorEventState.READY,
+		});
 		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
 	}
 }
