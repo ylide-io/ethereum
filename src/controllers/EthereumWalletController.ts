@@ -523,7 +523,7 @@ export class EthereumWalletController extends AbstractWalletController {
 							{
 								cb: options?.eventsCallback,
 								info: {
-									current: i,
+									current: i + 1,
 									total: chunks.length,
 								},
 								nonce: ++nonce,
@@ -552,7 +552,7 @@ export class EthereumWalletController extends AbstractWalletController {
 								{
 									cb: options?.eventsCallback,
 									info: {
-										current: i,
+										current: i + 1,
 										total: recipientsChunks.length,
 									},
 									nonce: ++nonce,
@@ -582,7 +582,7 @@ export class EthereumWalletController extends AbstractWalletController {
 							{
 								cb: options?.eventsCallback,
 								info: {
-									current: i,
+									current: i + 1,
 									total: chunks.length,
 								},
 								nonce: ++nonce,
@@ -606,7 +606,7 @@ export class EthereumWalletController extends AbstractWalletController {
 								{
 									cb: options?.eventsCallback,
 									info: {
-										current: i,
+										current: i + 1,
 										total: recipientChunks.length,
 									},
 									nonce: ++nonce,
@@ -683,7 +683,7 @@ export class EthereumWalletController extends AbstractWalletController {
 						{
 							cb: options?.eventsCallback,
 							info: {
-								current: i,
+								current: i + 1,
 								total: chunks.length,
 							},
 							nonce: ++nonce,
