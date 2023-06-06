@@ -335,10 +335,7 @@ export class EthereumWalletController extends AbstractWalletController {
 	): Promise<{ message: string; r: string; s: string; v: number }> {
 		await this.ensureAccount(account);
 		const signature = await this.signer.signMessage(message);
-		// split signature
-		const r = signature.slice(0, 66);
-		const s = '0x' + signature.slice(66, 130);
-		const v = parseInt(signature.slice(130, 132), 16);
+		const { r, s, v } = ethers.utils.splitSignature(signature);
 		return { message, r, s, v };
 	}
 
