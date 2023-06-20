@@ -1,4 +1,4 @@
-lockfileVersion: '6.1'
+lockfileVersion: '6.0'
 
 settings:
   autoInstallPeers: true
@@ -12,6 +12,12 @@ dependencies:
     specifier: 5.7.0
     version: 5.7.0
   '@ethersproject/abstract-provider':
+    specifier: 5.7.0
+    version: 5.7.0
+  '@ethersproject/logger':
+    specifier: 5.7.0
+    version: 5.7.0
+  '@ethersproject/properties':
     specifier: 5.7.0
     version: 5.7.0
   '@ethersproject/providers':

@@ -4,7 +4,7 @@
 	"publishConfig": {
 		"access": "public"
 	},
-	"version": "0.8.0-beta.35",
+	"version": "0.8.0-beta.36",
 	"description": "Ylide Protocol SDK implementation for EVM-based blockchains",
 	"main": "lib/index.js",
 	"types": "lib/index.d.ts",
@@ -37,6 +37,8 @@
 		"@ensdomains/ensjs": "3.0.0-alpha.53",
 		"@ethersproject/abi": "5.7.0",
 		"@ethersproject/abstract-provider": "5.7.0",
+		"@ethersproject/logger": "5.7.0",
+		"@ethersproject/properties": "5.7.0",
 		"@ethersproject/providers": "5.7.2",
 		"@ylide/ethereum-contracts": "0.8.0-beta.17",
 		"@ylide/sdk": "0.8.0-beta.14",

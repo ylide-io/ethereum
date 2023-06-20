@@ -1,8 +1,9 @@
-import { ethers } from 'ethers';
+import type { ethers } from 'ethers';
+import { OriginalWebSocketProvider } from './OriginalWebSocketProvider';
 
-const WebSocketProviderClass = (): new () => ethers.providers.WebSocketProvider => class {} as never;
+// const WebSocketProviderClass = (): new () => ethers.providers.WebSocketProvider => class {} as never;
 
-export class BetterWebSocketProvider extends WebSocketProviderClass() {
+export class BetterWebSocketProvider extends OriginalWebSocketProvider {
 	private provider?: ethers.providers.WebSocketProvider;
 	private events: ethers.providers.WebSocketProvider['_events'] = [];
 	private requests: ethers.providers.WebSocketProvider['_requests'] = {};
@@ -16,7 +17,7 @@ export class BetterWebSocketProvider extends WebSocketProviderClass() {
 	};
 
 	constructor(private providerUrl: string, private __network: ethers.providers.Networkish) {
-		super();
+		super(providerUrl, __network);
 		this.create(0);
 
 		return new Proxy(this, this.handler);
@@ -28,7 +29,7 @@ export class BetterWebSocketProvider extends WebSocketProviderClass() {
 			this.requests = { ...this.requests, ...this.provider._requests };
 		}
 
-		const provider = new ethers.providers.WebSocketProvider(this.providerUrl, this.__network);
+		const provider = new OriginalWebSocketProvider(this.providerUrl, this.__network);
 
 		const on = provider._websocket.on
 			? provider._websocket.on.bind(provider._websocket)
