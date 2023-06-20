@@ -236,21 +236,8 @@ export class EthereumRegistryV6Wrapper {
 		referrer: string | null,
 		payBonus: boolean,
 		value: string,
-	): Promise<{ gas: ethers.BigNumber; data: string }> {
+	): Promise<{ data: string }> {
 		const contract = this.cache.getContract(registry.address, signer);
-		const gas = await contract.estimateGas.attachPublicKeyByAdmin(
-			txSignature.v,
-			txSignature.r,
-			txSignature.s,
-			address,
-			publicKey,
-			keyVersion,
-			registrar,
-			timestampLock,
-			referrer || '0x0000000000000000000000000000000000000000',
-			payBonus,
-			{ value, from },
-		);
 		const { data } = await contract.populateTransaction.attachPublicKeyByAdmin(
 			txSignature.v,
 			txSignature.r,
@@ -267,7 +254,38 @@ export class EthereumRegistryV6Wrapper {
 		if (!data) {
 			throw new Error('No data');
 		}
-		return { gas, data };
+		return { data };
+	}
+
+	async attachPublicKeyByAdminGas(
+		registry: IEVMRegistryContractLink,
+		signer: ethers.Signer,
+		from: string,
+		txSignature: { v: number; r: string; s: string },
+		address: string,
+		publicKey: Uint8Array,
+		keyVersion: number,
+		registrar: number,
+		timestampLock: number,
+		referrer: string | null,
+		payBonus: boolean,
+		value: string,
+	): Promise<{ gas: ethers.BigNumber }> {
+		const contract = this.cache.getContract(registry.address, signer);
+		const gas = await contract.estimateGas.attachPublicKeyByAdmin(
+			txSignature.v,
+			txSignature.r,
+			txSignature.s,
+			address,
+			publicKey,
+			keyVersion,
+			registrar,
+			timestampLock,
+			referrer || '0x0000000000000000000000000000000000000000',
+			payBonus,
+			{ value, from },
+		);
+		return { gas };
 	}
 
 	async attachPublicKeyByAdmin(
