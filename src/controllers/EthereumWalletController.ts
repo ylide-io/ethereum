@@ -62,6 +62,8 @@ export type NetworkSwitchHandler = (
 ) => Promise<void>;
 
 export class EthereumWalletController extends AbstractWalletController {
+	private readonly _isVerbose: boolean;
+
 	readonly blockchainReader: EthereumBlockchainReader;
 	readonly signer: JsonRpcSigner;
 
@@ -96,11 +98,14 @@ export class EthereumWalletController extends AbstractWalletController {
 			wallet?: string;
 			signer?: JsonRpcSigner;
 			providerObject?: any;
+			verbose?: boolean;
 			onNetworkSwitchRequest?: NetworkSwitchHandler;
 			onSwitchAccountRequest?: SwitchAccountCallback;
 		} = {},
 	) {
 		super(options);
+
+		this._isVerbose = options.verbose || false;
 
 		if (!options || !options.wallet) {
 			throw new Error(
@@ -140,6 +145,25 @@ export class EthereumWalletController extends AbstractWalletController {
 		]);
 	}
 
+	private verboseLog(...args: any[]) {
+		if (this._isVerbose) {
+			console.log('[Y-SDK]', ...args);
+		}
+	}
+
+	private verboseLogTick(...args: any[]) {
+		if (this._isVerbose) {
+			console.log('[Y-ETH-SDK]', ...args);
+			const timer = setTimeout(() => {
+				console.log('[Y-ETH-SDK]', '...still working...', ...args);
+			}, 5000);
+			return () => clearTimeout(timer);
+		} else {
+			// eslint-disable-next-line @typescript-eslint/no-empty-function
+			return () => {};
+		}
+	}
+
 	private handleError(err: any) {
 		console.error(`Error in EthereumWalletController of "${this.wallet()}": `, err); // tslint:disable-line
 	}
@@ -154,7 +178,9 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	async init() {
 		try {
+			const doneGetAuthAccount = this.verboseLogTick('getAuthenticatedAccount');
 			this.lastCurrentAccount = await this.getAuthenticatedAccount();
+			doneGetAuthAccount();
 
 			if (this.providerObject) {
 				this.providerObject.on('accountsChanged', (data: string[]) => {

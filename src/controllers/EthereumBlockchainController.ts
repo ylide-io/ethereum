@@ -55,6 +55,8 @@ import { EVM_CONTRACTS } from '../misc/contractConstants';
 import { EthereumNameService } from './EthereumNameService';
 
 export class EthereumBlockchainController extends AbstractBlockchainController {
+	private readonly _isVerbose: boolean;
+
 	readonly blockchainReader: EthereumBlockchainReader;
 	readonly contentReader: EthereumContentReader;
 
@@ -118,9 +120,12 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		private readonly options: {
 			network?: EVMNetwork;
 			rpcs?: IRPCDescriptor[];
+			verbose?: boolean;
 		} = {},
 	) {
 		super();
+
+		this._isVerbose = options.verbose || false;
 
 		if (options.network === undefined) {
 			throw new Error('You must provide network for EVM controller');
@@ -186,6 +191,25 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		this.contentReader = new EthereumContentReader(this.blockchainReader);
 	}
 
+	private verboseLog(...args: any[]) {
+		if (this._isVerbose) {
+			console.log('[Y-SDK]', ...args);
+		}
+	}
+
+	private verboseLogTick(...args: any[]) {
+		if (this._isVerbose) {
+			console.log('[Y-ETH-SDK]', ...args);
+			const timer = setTimeout(() => {
+				console.log('[Y-ETH-SDK]', '...still working...', ...args);
+			}, 5000);
+			return () => clearTimeout(timer);
+		} else {
+			// eslint-disable-next-line @typescript-eslint/no-empty-function
+			return () => {};
+		}
+	}
+
 	blockchain(): string {
 		return EVM_NAMES[this.network];
 	}
@@ -195,7 +219,9 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 	}
 
 	async init(): Promise<void> {
+		const done = this.verboseLogTick(`Initializing ${this.blockchain()} blockchain reader...`);
 		await this.blockchainReader.init();
+		done();
 	}
 
 	private tryGetNameService(): EthereumNameService | null {

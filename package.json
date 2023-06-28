@@ -4,7 +4,7 @@
 	"publishConfig": {
 		"access": "public"
 	},
-	"version": "0.8.0-beta.37",
+	"version": "0.8.0-beta.38",
 	"description": "Ylide Protocol SDK implementation for EVM-based blockchains",
 	"main": "lib/index.js",
 	"types": "lib/index.d.ts",
@@ -34,14 +34,14 @@
 	"author": "Danila Simonov",
 	"license": "ISC",
 	"dependencies": {
-		"@ensdomains/ensjs": "3.0.0-alpha.53",
+		"@ensdomains/ensjs": "3.0.0-alpha.64",
 		"@ethersproject/abi": "5.7.0",
 		"@ethersproject/abstract-provider": "5.7.0",
 		"@ethersproject/logger": "5.7.0",
 		"@ethersproject/properties": "5.7.0",
 		"@ethersproject/providers": "5.7.2",
 		"@ylide/ethereum-contracts": "0.8.0-beta.17",
-		"@ylide/sdk": "0.8.0-beta.15",
+		"@ylide/sdk": "0.8.0-beta.16",
 		"@ylide/smart-buffer": "0.0.11",
 		"ethers": "5.7.2",
 		"eventemitter3": "5.0.1",
