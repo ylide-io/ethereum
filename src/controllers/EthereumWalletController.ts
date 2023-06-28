@@ -178,6 +178,12 @@ export class EthereumWalletController extends AbstractWalletController {
 
 	async init() {
 		try {
+			this.signer.provider.on('debug', (...args: any[]) => {
+				if (this._isVerbose) {
+					console.log('[Y-ETH-SDK] debug: ', args);
+				}
+			});
+
 			const doneGetAuthAccount = this.verboseLogTick('getAuthenticatedAccount');
 			this.lastCurrentAccount = await this.getAuthenticatedAccount();
 			doneGetAuthAccount();
