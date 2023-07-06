@@ -185,7 +185,32 @@ export class EthereumWalletController extends AbstractWalletController {
 			});
 
 			const doneGetAuthAccount = this.verboseLogTick('getAuthenticatedAccount');
-			this.lastCurrentAccount = await this.getAuthenticatedAccount();
+			await new Promise<void>((resolve, reject) => {
+				let doubleTry = false;
+				let firstTryDone = false;
+				this.getAuthenticatedAccount()
+					.then(account => {
+						if (!doubleTry) {
+							this.lastCurrentAccount = account;
+							console.log('[Y-ETH-SDK] getAuthenticatedAccount done in the first try');
+							firstTryDone = true;
+							resolve();
+						}
+					})
+					.catch(reject);
+				setTimeout(() => {
+					if (!firstTryDone) {
+						doubleTry = true;
+						this.getAuthenticatedAccount()
+							.then(account => {
+								this.lastCurrentAccount = account;
+								console.log('[Y-ETH-SDK] getAuthenticatedAccount done in the second try');
+								resolve();
+							})
+							.catch(reject);
+					}
+				}, 1000);
+			});
 			doneGetAuthAccount();
 
 			if (this.providerObject) {
