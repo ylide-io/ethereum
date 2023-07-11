@@ -33,6 +33,7 @@ export const EVM_NAMES: Record<EVMNetwork, string> = {
 	[EVMNetwork.MOONRIVER]: 'MOONRIVER',
 	[EVMNetwork.METIS]: 'METIS',
 	[EVMNetwork.ASTAR]: 'ASTAR',
+	[EVMNetwork.SHARDEUM]: 'SHARDEUM',
 };
 
 export const EVM_ENS: Record<EVMNetwork, string | null> = {
@@ -54,6 +55,7 @@ export const EVM_ENS: Record<EVMNetwork, string | null> = {
 	[EVMNetwork.ASTAR]: null,
 	[EVMNetwork.METIS]: null,
 	[EVMNetwork.CRONOS]: null,
+	[EVMNetwork.SHARDEUM]: null,
 };
 
 export const EVM_CHAINS: Record<EVMNetwork, number> = {
@@ -75,6 +77,7 @@ export const EVM_CHAINS: Record<EVMNetwork, number> = {
 	[EVMNetwork.MOONRIVER]: 1285,
 	[EVMNetwork.METIS]: 1088,
 	[EVMNetwork.ASTAR]: 592,
+	[EVMNetwork.SHARDEUM]: 8081,
 };
 
 export const EVM_CHAIN_ID_TO_NETWORK: Record<number, EVMNetwork> = Object.keys(EVM_CHAINS)
@@ -183,6 +186,7 @@ export const EVM_RPCS: Record<
 		},
 	],
 	[EVMNetwork.METIS]: [{ rpc: 'https://andromeda.metis.io/?owner=1088', blockLimit: 10000 }],
+	[EVMNetwork.SHARDEUM]: [{ rpc: 'https://dapps.shardeum.org	', blockLimit: 10000 }],
 };
 
 export const EVM_CHUNK_SIZES: Record<EVMNetwork, number> = {
@@ -204,4 +208,5 @@ export const EVM_CHUNK_SIZES: Record<EVMNetwork, number> = {
 	[EVMNetwork.MOONRIVER]: 15 * 1024,
 	[EVMNetwork.METIS]: 15 * 1024,
 	[EVMNetwork.ASTAR]: 15 * 1024,
+	[EVMNetwork.SHARDEUM]: 15 * 1024,
 };

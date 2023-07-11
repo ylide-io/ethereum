@@ -334,6 +334,26 @@ export class EthereumWalletController extends AbstractWalletController {
 		}
 	}
 
+	async setMailingFeedFees(network: EVMNetwork, from: string, feedId: Uint256, recipientFee: BigNumber) {
+		const mailer = this.getMailerByNetwork(network);
+		if (!(mailer.wrapper instanceof EthereumMailerV8Wrapper || mailer.wrapper instanceof EthereumMailerV9Wrapper)) {
+			throw new YlideError(YlideErrorType.NOT_SUPPORTED, { method: 'setMailingFeedFees' });
+		}
+		return await mailer.wrapper.mailing.setMailingFeedFees(mailer.link, this.signer, from, feedId, {
+			recipientFee,
+		});
+	}
+
+	async setBroadcastFeedFees(network: EVMNetwork, from: string, feedId: Uint256, broadcastFee: BigNumber) {
+		const mailer = this.getMailerByNetwork(network);
+		if (!(mailer.wrapper instanceof EthereumMailerV8Wrapper || mailer.wrapper instanceof EthereumMailerV9Wrapper)) {
+			throw new YlideError(YlideErrorType.NOT_SUPPORTED, { method: 'setBroadcastFeedFees' });
+		}
+		return await mailer.wrapper.broadcast.setBroadcastFeedFees(mailer.link, this.signer, from, feedId, {
+			broadcastFee,
+		});
+	}
+
 	async setBonuses(network: EVMNetwork, from: string, _newcomerBonus: string, _referrerBonus: string) {
 		const registry = this.getRegistryByNetwork(network);
 		if (registry.wrapper instanceof EthereumRegistryV3Wrapper) {

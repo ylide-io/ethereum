@@ -562,4 +562,5 @@ export const evmBlockchainFactories: Record<EVMNetwork, BlockchainControllerFact
 	[EVMNetwork.MOONRIVER]: getBlockchainFactory(EVMNetwork.MOONRIVER),
 	[EVMNetwork.METIS]: getBlockchainFactory(EVMNetwork.METIS),
 	[EVMNetwork.ASTAR]: getBlockchainFactory(EVMNetwork.ASTAR),
+	[EVMNetwork.SHARDEUM]: getBlockchainFactory(EVMNetwork.SHARDEUM),
 };
