@@ -24,8 +24,8 @@ dependencies:
     specifier: 5.7.2
     version: 5.7.2
   '@ylide/ethereum-contracts':
-    specifier: 0.8.0-beta.17
-    version: 0.8.0-beta.17
+    specifier: 0.8.0-beta.20
+    version: 0.8.0-beta.20
   '@ylide/sdk':
     specifier: 0.8.0-beta.16
     version: 0.8.0-beta.16
@@ -1402,8 +1402,8 @@ packages:
       eslint-visitor-keys: 3.4.1
     dev: true
 
-  /@ylide/ethereum-contracts@0.8.0-beta.17:
-    resolution: {integrity: sha512-K4fmvzvaiWgZxCNr8CZDOL65oOMQ+0e5sMfMygWZht5BeJj1mCoPWb9vJf5oGBp4XonB5cNy6ANxSJk2OLzbbg==}
+  /@ylide/ethereum-contracts@0.8.0-beta.20:
+    resolution: {integrity: sha512-om92y7tbicpoPkKYtNVxyZI1uC0o2/4HfpX+M0IbcxCVeVT3t2YgSHK6fCtidhOYuEUm5MYcW0E3UUcn9q7ITQ==}
     dependencies:
       '@ethersproject/abi': 5.7.0
       '@ethersproject/providers': 5.7.2

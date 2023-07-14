@@ -30,9 +30,9 @@ export class EthereumPayV1Wrapper {
 		return this.cache.contractOperation(contract, c => c.owner());
 	}
 
-	getContractType(contract: IEVMYlidePayContractLink): Promise<number> {
-		return this.cache.contractOperation(contract, c => c.contractType());
-	}
+	// getContractType(contract: IEVMYlidePayContractLink): Promise<number> {
+	// 	return this.cache.contractOperation(contract, c => c.contractType());
+	// }
 
 	getVersion(contract: IEVMYlidePayContractLink): Promise<number> {
 		return this.cache.contractOperation(contract, c => c.version().then(r => r.toNumber()));

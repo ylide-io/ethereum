@@ -426,10 +426,17 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 27195338,
 				verified: true,
 			},
+			{
+				id: 75,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0xffe0ee1310e173f136154545fc8a128ade897942',
+				creationBlock: 28939887,
+				verified: false,
+			},
 		],
 		payContracts: [],
 		currentRegistryId: 41,
-		currentMailerId: 58,
+		currentMailerId: 75,
 	},
 	[EVMNetwork.AURORA]: {
 		registryContracts: [

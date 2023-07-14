@@ -26,6 +26,24 @@ export class EthereumMailerV9WrapperGlobals {
 		return { tx, receipt };
 	}
 
+	async getExtraTreasury(mailer: IEVMMailerContractLink): Promise<string> {
+		return await this.wrapper.cache.contractOperation(mailer, async contract => {
+			return await contract.extraTreasury();
+		});
+	}
+
+	async setExtraTreasury(
+		mailer: IEVMMailerContractLink,
+		signer: ethers.Signer,
+		from: string,
+		newExtraTreasury: string,
+	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
+		const contract = this.wrapper.cache.getContract(mailer.address, signer);
+		const tx = await contract.setExtraTreasury(newExtraTreasury, { from });
+		const receipt = await tx.wait();
+		return { tx, receipt };
+	}
+
 	async getBeneficiary(mailer: IEVMMailerContractLink): Promise<string> {
 		return await this.wrapper.cache.contractOperation(mailer, async contract => {
 			return await contract.beneficiary();

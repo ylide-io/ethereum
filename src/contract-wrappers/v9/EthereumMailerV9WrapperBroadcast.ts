@@ -238,6 +238,8 @@ export class EthereumMailerV9WrapperBroadcast {
 		signer: ethers.Signer,
 		from: string,
 		isPersonal: boolean,
+		isGenericFeed: boolean,
+		extraPayment: ethers.BigNumber,
 		feedId: Uint256,
 		uniqueId: number,
 		content: Uint8Array,
@@ -250,7 +252,15 @@ export class EthereumMailerV9WrapperBroadcast {
 		messages: IEVMMessage[];
 	}> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.sendBroadcast(isPersonal, `0x${feedId}`, uniqueId, content, { from, value });
+		const tx = await contract.sendBroadcast(
+			isPersonal,
+			isGenericFeed,
+			extraPayment,
+			`0x${feedId}`,
+			uniqueId,
+			content,
+			{ from, value },
+		);
 		const receipt = await tx.wait();
 		const {
 			logs,
@@ -269,6 +279,8 @@ export class EthereumMailerV9WrapperBroadcast {
 		signer: ethers.Signer,
 		from: string,
 		isPersonal: boolean,
+		isGenericFeed: boolean,
+		extraPayment: ethers.BigNumber,
 		feedId: Uint256,
 		uniqueId: number,
 		firstBlockNumber: number,
@@ -285,6 +297,8 @@ export class EthereumMailerV9WrapperBroadcast {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
 		const tx = await contract.sendBroadcastHeader(
 			isPersonal,
+			isGenericFeed,
+			extraPayment,
 			`0x${feedId}`,
 			uniqueId,
 			firstBlockNumber,

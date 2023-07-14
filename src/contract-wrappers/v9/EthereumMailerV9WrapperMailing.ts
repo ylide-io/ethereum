@@ -1,6 +1,5 @@
 import type { YlideMailerV9 } from '@ylide/ethereum-contracts';
 import type {
-	ContentRecipientsEvent,
 	MailPushEvent,
 	MailPushEventObject,
 	MailingFeedJoinedEvent,
@@ -255,21 +254,21 @@ export class EthereumMailerV9WrapperMailing {
 		});
 	}
 
-	getMessageRecipients(mailer: IEVMMailerContractLink, message: IEVMMessage) {
-		return this.wrapper.cache.contractOperation(mailer, async (contract, _, blockLimit) => {
-			const events = await getMultipleEvents<ContentRecipientsEvent>(
-				contract,
-				contract.filters.ContentRecipients('0x' + message.$$meta.contentId),
-				blockLimit,
-				message.$$meta.contentId,
-			);
-			return {
-				contentId: bnToUint256(events[0]?.args.contentId),
-				sender: events[0]?.args.sender || ethers.constants.AddressZero,
-				recipients: events.flatMap(e => e.args.recipients.map(bnToUint256)),
-			};
-		});
-	}
+	// getMessageRecipients(mailer: IEVMMailerContractLink, message: IEVMMessage) {
+	// 	return this.wrapper.cache.contractOperation(mailer, async (contract, _, blockLimit) => {
+	// 		const events = await getMultipleEvents<ContentRecipientsEvent>(
+	// 			contract,
+	// 			contract.filters.ContentRecipients('0x' + message.$$meta.contentId),
+	// 			blockLimit,
+	// 			message.$$meta.contentId,
+	// 		);
+	// 		return {
+	// 			contentId: bnToUint256(events[0]?.args.contentId),
+	// 			sender: events[0]?.args.sender || ethers.constants.AddressZero,
+	// 			recipients: events.flatMap(e => e.args.recipients.map(bnToUint256)),
+	// 		};
+	// 	});
+	// }
 
 	async retrieveMailHistoryDesc(
 		mailer: IEVMMailerContractLink,
