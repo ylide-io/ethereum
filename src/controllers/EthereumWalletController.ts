@@ -708,7 +708,13 @@ export class EthereumWalletController extends AbstractWalletController {
 		me: IGenericAccount,
 		feedId: Uint256,
 		contentData: Uint8Array,
-		options?: { network?: EVMNetwork; value?: BigNumber; isPersonal?: boolean },
+		options?: {
+			network?: EVMNetwork;
+			value?: BigNumber;
+			isPersonal?: boolean;
+			isGenericFeed?: boolean;
+			extraPayment?: BigNumber;
+		},
 	): Promise<SendBroadcastResult> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Broadcast message', options);
@@ -717,21 +723,38 @@ export class EthereumWalletController extends AbstractWalletController {
 		const uniqueId = Math.floor(Math.random() * 4 * 10 ** 9);
 		const chunks = MessageChunks.splitMessageChunks(contentData);
 
-		if (!(mailer.wrapper instanceof EthereumMailerV8Wrapper)) {
+		if (
+			!(mailer.wrapper instanceof EthereumMailerV8Wrapper) &&
+			!(mailer.wrapper instanceof EthereumMailerV9Wrapper)
+		) {
 			throw new Error('Broadcasts are supported only in MailerV8');
 		}
 
 		if (chunks.length === 1) {
-			const { messages } = await mailer.wrapper.broadcast.sendBroadcast(
-				mailer.link,
-				this.signer,
-				me.address,
-				options?.isPersonal || false,
-				feedId,
-				uniqueId,
-				chunks[0],
-				options?.value || BigNumber.from(0),
-			);
+			const { messages } =
+				mailer.wrapper instanceof EthereumMailerV8Wrapper
+					? await mailer.wrapper.broadcast.sendBroadcast(
+							mailer.link,
+							this.signer,
+							me.address,
+							options?.isPersonal || false,
+							feedId,
+							uniqueId,
+							chunks[0],
+							options?.value || BigNumber.from(0),
+					  )
+					: await mailer.wrapper.broadcast.sendBroadcast(
+							mailer.link,
+							this.signer,
+							me.address,
+							options?.isPersonal || false,
+							options?.isGenericFeed || false,
+							options?.extraPayment || BigNumber.from(0),
+							feedId,
+							uniqueId,
+							chunks[0],
+							options?.value || BigNumber.from(0),
+					  );
 
 			return { pushes: messages.map(msg => ({ push: msg })) };
 		} else {
@@ -751,18 +774,34 @@ export class EthereumWalletController extends AbstractWalletController {
 					options?.value || BigNumber.from(0),
 				);
 			}
-			const { messages } = await mailer.wrapper.broadcast.sendBroadcastHeader(
-				mailer.link,
-				this.signer,
-				me.address,
-				options?.isPersonal || false,
-				feedId,
-				uniqueId,
-				firstBlockNumber,
-				chunks.length,
-				blockLock,
-				options?.value || BigNumber.from(0),
-			);
+			const { messages } =
+				mailer.wrapper instanceof EthereumMailerV8Wrapper
+					? await mailer.wrapper.broadcast.sendBroadcastHeader(
+							mailer.link,
+							this.signer,
+							me.address,
+							options?.isPersonal || false,
+							feedId,
+							uniqueId,
+							firstBlockNumber,
+							chunks.length,
+							blockLock,
+							options?.value || BigNumber.from(0),
+					  )
+					: await mailer.wrapper.broadcast.sendBroadcastHeader(
+							mailer.link,
+							this.signer,
+							me.address,
+							options?.isPersonal || false,
+							options?.isGenericFeed || false,
+							options?.extraPayment || BigNumber.from(0),
+							feedId,
+							uniqueId,
+							firstBlockNumber,
+							chunks.length,
+							blockLock,
+							options?.value || BigNumber.from(0),
+					  );
 
 			return { pushes: messages.map(msg => ({ push: msg })) };
 		}
