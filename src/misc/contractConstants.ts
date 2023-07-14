@@ -429,8 +429,8 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 			{
 				id: 75,
 				type: EVMMailerContractType.EVMMailerV9,
-				address: '0xffe0ee1310e173f136154545fc8a128ade897942',
-				creationBlock: 28939887,
+				address: '0x20c4d070d51f9036bffc7f7a560c44a4dddf5c0d',
+				creationBlock: 28941319,
 				verified: false,
 			},
 		],

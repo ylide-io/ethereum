@@ -122,6 +122,10 @@ export const processMailPushEvent = (
 		$$meta: {
 			contentId: bnToUint256(event.event.parsed.contentId),
 			index: BlockNumberRingBufferIndex.decodeIndexValue(bnToUint256(event.event.parsed.previousFeedEventsIndex)),
+			supplement: {
+				contractAddress: event.event.parsed.supplement.contractAddress,
+				contractType: event.event.parsed.supplement.contractType,
+			},
 			...event,
 		},
 	};

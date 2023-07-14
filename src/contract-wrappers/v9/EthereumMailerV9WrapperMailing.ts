@@ -12,7 +12,7 @@ import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../cont
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
 import type { ContractType, IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
 import type { IEventPosition } from '../../misc/utils';
-import { bnToUint256, getMultipleEvents, parseOutLogs, processMailPushEvent } from '../../misc/utils';
+import { bnToUint256, parseOutLogs, processMailPushEvent } from '../../misc/utils';
 import type { EthereumMailerV9Wrapper } from './EthereumMailerV9Wrapper';
 
 export class EthereumMailerV9WrapperMailing {
@@ -47,6 +47,10 @@ export class EthereumMailerV9WrapperMailing {
 	};
 
 	constructor(public readonly wrapper: EthereumMailerV9Wrapper) {}
+
+	processMailPushEvent(mailer: IEVMMailerContractLink, event: IEVMEnrichedEvent<MailPushEventObject>): IEVMMessage {
+		return processMailPushEvent(mailer, event);
+	}
 
 	async createMailingFeed(
 		mailer: IEVMMailerContractLink,
