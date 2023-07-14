@@ -42,6 +42,7 @@ export class EthereumMailerV9WrapperBroadcast {
 				index: BlockNumberRingBufferIndex.decodeIndexValue(
 					bnToUint256(event.event.parsed.previousFeedEventsIndex),
 				),
+				extraPayment: event.event.parsed.extraPayment.toString(),
 				...event,
 			},
 		};

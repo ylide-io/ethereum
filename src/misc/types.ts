@@ -71,6 +71,7 @@ export interface IEVMMeta extends IEVMEnrichedEvent {
 	contentId: Uint256;
 	index: number[];
 	supplement?: IYlideMailer.SupplementStruct;
+	extraPayment?: string;
 }
 
 export enum EVMMailerContractType {
