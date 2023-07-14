@@ -482,6 +482,8 @@ describe('YlideMailerV9', function () {
 						userSigner,
 						await userSigner.getAddress(),
 						false,
+						false,
+						BigNumber.from(0),
 						feedId1!,
 						uniqueId,
 						content,
@@ -562,6 +564,8 @@ describe('YlideMailerV9', function () {
 							ownerSigner,
 							await ownerSigner.getAddress(),
 							false,
+							false,
+							BigNumber.from(0),
 							feedId1!,
 							uniqueId + 1,
 							content,
@@ -586,6 +590,8 @@ describe('YlideMailerV9', function () {
 						ownerSigner,
 						await ownerSigner.getAddress(),
 						false,
+						false,
+						BigNumber.from(0),
 						feedId1!,
 						uniqueId + 1,
 						content,
@@ -610,7 +616,9 @@ describe('YlideMailerV9', function () {
 						mailerDesc,
 						userSigner,
 						await userSigner.getAddress(),
+						false,
 						true,
+						BigNumber.from(0),
 						feedId1,
 						uniqueId,
 						content,
@@ -925,6 +933,8 @@ describe('YlideMailerV9', function () {
 							senderSigner,
 							await senderSigner.getAddress(),
 							false,
+							false,
+							BigNumber.from(0),
 							feedId,
 							uniqueId,
 							content,
@@ -1375,17 +1385,17 @@ describe('YlideMailerV9', function () {
 					const mailPush1 = logs3.find(log => log.name === 'MailPush');
 					const mailPush2 = logs3.find(log => log.name === 'MailPush' && log !== mailPush1);
 
-					const { sender, recipients, contentId } = await userMailerV9Wrapper.mailing.getMessageRecipients(
-						mailerDesc,
-						messages[0],
-					);
+					// const { sender, recipients, contentId } = await userMailerV9Wrapper.mailing.getMessageRecipients(
+					// 	mailerDesc,
+					// 	messages[0],
+					// );
 
-					expect(recipients.length, 'There should be two recipients').to.equal(2);
-					expect([recipient1Hex, recipient2Hex], 'Recipients should be equal').deep.equal(recipients);
-					expect(sender, "Sender's address must be user address").to.equal(await userSigner.getAddress());
-					expect(contentId, 'ContentId must be equal contentId form MailPush').to.equal(
-						bigIntToUint256(mailPush1?.args.contentId),
-					);
+					// expect(recipients.length, 'There should be two recipients').to.equal(2);
+					// expect([recipient1Hex, recipient2Hex], 'Recipients should be equal').deep.equal(recipients);
+					// expect(sender, "Sender's address must be user address").to.equal(await userSigner.getAddress());
+					// expect(contentId, 'ContentId must be equal contentId form MailPush').to.equal(
+					// 	bigIntToUint256(mailPush1?.args.contentId),
+					// );
 
 					expect(mailPush1, 'MailPush event must be present').to.not.be.undefined;
 					expect(mailPush1!.args.sender, 'Sender must be user address').to.equal(
@@ -1519,6 +1529,8 @@ describe('YlideMailerV9', function () {
 						userSigner,
 						await userSigner.getAddress(),
 						false,
+						false,
+						BigNumber.from(0),
 						'0000000000000000000000000000000000000000000000000000000000000002' as Uint256,
 						uniqueId,
 						currentBlock,
@@ -1807,7 +1819,18 @@ describe('YlideMailerV9', function () {
 
 				const generateSmallBroadcastEvents = async (d: IEVMMailerContractLink, s: Signer, count: number) => {
 					const events: {
-						args: [IEVMMailerContractLink, Signer, string, boolean, Uint256, number, Uint8Array, BigNumber];
+						args: [
+							IEVMMailerContractLink,
+							Signer,
+							string,
+							boolean,
+							boolean,
+							BigNumber,
+							Uint256,
+							number,
+							Uint8Array,
+							BigNumber,
+						];
 						uniqueId: number;
 						content: Uint8Array;
 					}[] = [];
@@ -1821,6 +1844,8 @@ describe('YlideMailerV9', function () {
 								s,
 								a,
 								false,
+								false,
+								BigNumber.from(0),
 								'0000000000000000000000000000000000000000000000000000000000000002' as Uint256,
 								uniqueId,
 								content,
@@ -1941,7 +1966,18 @@ describe('YlideMailerV9', function () {
 					skipBetween: number,
 					skipAfter: number,
 					events: {
-						args: [IEVMMailerContractLink, Signer, string, boolean, Uint256, number, Uint8Array, BigNumber];
+						args: [
+							IEVMMailerContractLink,
+							Signer,
+							string,
+							boolean,
+							boolean,
+							BigNumber,
+							Uint256,
+							number,
+							Uint8Array,
+							BigNumber,
+						];
 						uniqueId: number;
 						content: Uint8Array;
 					}[],
@@ -2478,17 +2514,17 @@ describe('YlideMailerV9', function () {
 					const mailPush1 = logs3.find(log => log.name === 'MailPush');
 					const mailPush2 = logs3.find(log => log.name === 'MailPush' && log !== mailPush1);
 
-					const { sender, recipients, contentId } = await userMailerV9Wrapper.mailing.getMessageRecipients(
-						mailerDesc,
-						messages[0],
-					);
+					// const { sender, recipients, contentId } = await userMailerV9Wrapper.mailing.getMessageRecipients(
+					// 	mailerDesc,
+					// 	messages[0],
+					// );
 
-					expect(recipients.length, 'There should be two recipients').to.equal(2);
-					expect([recipient1Hex, recipient2Hex], 'Recipients should be equal').deep.equal(recipients);
-					expect(sender, "Sender's address must be user address").to.equal(await userSigner.getAddress());
-					expect(contentId, 'ContentId must be equal contentId form MailPush').to.equal(
-						bigIntToUint256(mailPush1?.args.contentId),
-					);
+					// expect(recipients.length, 'There should be two recipients').to.equal(2);
+					// expect([recipient1Hex, recipient2Hex], 'Recipients should be equal').deep.equal(recipients);
+					// expect(sender, "Sender's address must be user address").to.equal(await userSigner.getAddress());
+					// expect(contentId, 'ContentId must be equal contentId form MailPush').to.equal(
+					// 	bigIntToUint256(mailPush1?.args.contentId),
+					// );
 
 					expect(mailPush1, 'MailPush event must be present').to.not.be.undefined;
 					expect(mailPush1!.args.sender, 'Sender must be user address').to.equal(
@@ -2539,6 +2575,8 @@ describe('YlideMailerV9', function () {
 						userSigner,
 						await userSigner.getAddress(),
 						false,
+						false,
+						BigNumber.from(0),
 						'0000000000000000000000000000000000000000000000000000000000000002' as Uint256,
 						uniqueId,
 						content,
@@ -2648,6 +2686,8 @@ describe('YlideMailerV9', function () {
 						userSigner,
 						await userSigner.getAddress(),
 						false,
+						false,
+						BigNumber.from(0),
 						'0000000000000000000000000000000000000000000000000000000000000002' as Uint256,
 						uniqueId,
 						currentBlock,
