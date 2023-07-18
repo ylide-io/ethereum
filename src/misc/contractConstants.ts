@@ -88,10 +88,17 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 26912436,
 				verified: true,
 			},
+			{
+				id: 88,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0xc5835584d4415b249bd86e389dfdb6fe8abd3fe3',
+				creationBlock: 30065377,
+				verified: true,
+			},
 		],
 		payContracts: [],
 		currentRegistryId: 49,
-		currentMailerId: 62,
+		currentMailerId: 88,
 	},
 	[EVMNetwork.POLYGON]: {
 		registryContracts: [
@@ -327,6 +334,13 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				type: EVMMailerContractType.EVMMailerV8,
 				address: '0xdfee2128e3d441078dc286171f27f612b35fd7bd',
 				creationBlock: 7632826,
+				verified: true,
+			},
+			{
+				id: 89,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0xb195e6f456b350de42b14a4f2aceea34e696cb75',
+				creationBlock: 9314304,
 				verified: true,
 			},
 		],
