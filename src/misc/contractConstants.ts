@@ -1,7 +1,7 @@
 import type { IEVMNetworkContracts } from './types';
 import { EVMMailerContractType, EVMNetwork, EVMRegistryContractType } from './types';
 
-// last contract id: 74, next id is 75
+// last contract id: 87, next id is 88
 export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 	[EVMNetwork.LOCAL_HARDHAT]: {
 		registryContracts: [
@@ -44,10 +44,17 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 15883991,
 				verified: false,
 			},
+			{
+				id: 76,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0xa08756ba4a3844b42414ee50e908ee6221ef299c',
+				creationBlock: 15883991,
+				verified: false,
+			},
 		],
 		payContracts: [],
 		currentRegistryId: 3,
-		currentMailerId: 4,
+		currentMailerId: 76,
 	},
 	[EVMNetwork.BNBCHAIN]: {
 		registryContracts: [
@@ -132,10 +139,17 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 40935809,
 				verified: true,
 			},
+			{
+				id: 80,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0x16d07ba71761d7e2a542e8086214482bfc58fc71',
+				creationBlock: 45211795,
+				verified: true,
+			},
 		],
 		payContracts: [],
 		currentRegistryId: 46,
-		currentMailerId: 60,
+		currentMailerId: 80,
 	},
 	[EVMNetwork.AVALANCHE]: {
 		registryContracts: [
@@ -176,10 +190,17 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 28091033,
 				verified: true,
 			},
+			{
+				id: 78,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0xd7b5bf96f6932c03ffb53c847cc96e124893737e',
+				creationBlock: 32745264,
+				verified: true,
+			},
 		],
 		payContracts: [],
 		currentRegistryId: 51,
-		currentMailerId: 10,
+		currentMailerId: 78,
 	},
 	[EVMNetwork.OPTIMISM]: {
 		registryContracts: [
@@ -213,10 +234,17 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 84831676,
 				verified: true,
 			},
+			{
+				id: 79,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0xd7b5bf96f6932c03ffb53c847cc96e124893737e',
+				creationBlock: 107025717,
+				verified: false,
+			},
 		],
 		payContracts: [],
 		currentRegistryId: 52,
-		currentMailerId: 63,
+		currentMailerId: 79,
 	},
 	[EVMNetwork.ARBITRUM]: {
 		registryContracts: [
@@ -257,10 +285,17 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 75236429,
 				verified: true,
 			},
+			{
+				id: 77,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0xd7b5bf96f6932c03ffb53c847cc96e124893737e',
+				creationBlock: 112331897,
+				verified: true,
+			},
 		],
 		payContracts: [],
 		currentRegistryId: 50,
-		currentMailerId: 70,
+		currentMailerId: 77,
 	},
 	[EVMNetwork.CRONOS]: {
 		registryContracts: [
@@ -345,10 +380,17 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 58705545,
 				verified: true,
 			},
+			{
+				id: 81,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0xdccb65bc05619fcc2e870dcc8b98eb2bd2fdfee5',
+				creationBlock: 65987322,
+				verified: true,
+			},
 		],
 		payContracts: [],
 		currentRegistryId: 44,
-		currentMailerId: 59,
+		currentMailerId: 81,
 	},
 	[EVMNetwork.KLAYTN]: {
 		registryContracts: [
@@ -382,10 +424,17 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 118264716,
 				verified: true,
 			},
+			{
+				id: 82,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0xa6b0345fe964cf538595b18ef9bf6d4e044c5bf7',
+				creationBlock: 127691989,
+				verified: true,
+			},
 		],
 		payContracts: [],
 		currentRegistryId: 71,
-		currentMailerId: 64,
+		currentMailerId: 82,
 	},
 	[EVMNetwork.GNOSIS]: {
 		registryContracts: [
@@ -431,7 +480,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				type: EVMMailerContractType.EVMMailerV9,
 				address: '0x20c4d070d51f9036bffc7f7a560c44a4dddf5c0d',
 				creationBlock: 28941319,
-				verified: false,
+				verified: true,
 			},
 		],
 		payContracts: [],
@@ -470,10 +519,17 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 88434691,
 				verified: true,
 			},
+			{
+				id: 83,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0xa6b0345fe964cf538595b18ef9bf6d4e044c5bf7',
+				creationBlock: 96730952,
+				verified: true,
+			},
 		],
 		payContracts: [],
 		currentRegistryId: 53,
-		currentMailerId: 65,
+		currentMailerId: 83,
 	},
 	[EVMNetwork.CELO]: {
 		registryContracts: [
@@ -507,10 +563,17 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 18501533,
 				verified: true,
 			},
+			{
+				id: 84,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0xa6b0345fe964cf538595b18ef9bf6d4e044c5bf7',
+				creationBlock: 20396519,
+				verified: true,
+			},
 		],
 		payContracts: [],
 		currentRegistryId: 54,
-		currentMailerId: 66,
+		currentMailerId: 84,
 	},
 	[EVMNetwork.MOONBEAM]: {
 		registryContracts: [
@@ -544,10 +607,17 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 3248907,
 				verified: true,
 			},
+			{
+				id: 85,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0xa6b0345fe964cf538595b18ef9bf6d4e044c5bf7',
+				creationBlock: 4017199,
+				verified: true,
+			},
 		],
 		payContracts: [],
 		currentRegistryId: 55,
-		currentMailerId: 67,
+		currentMailerId: 85,
 	},
 	[EVMNetwork.MOONRIVER]: {
 		registryContracts: [
@@ -581,10 +651,17 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 3929745,
 				verified: true,
 			},
+			{
+				id: 86,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0xa6b0345fe964cf538595b18ef9bf6d4e044c5bf7',
+				creationBlock: 4695862,
+				verified: true,
+			},
 		],
 		payContracts: [],
 		currentRegistryId: 56,
-		currentMailerId: 68,
+		currentMailerId: 86,
 	},
 	[EVMNetwork.METIS]: {
 		registryContracts: [
@@ -618,10 +695,17 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 				creationBlock: 5203646,
 				verified: true,
 			},
+			{
+				id: 87,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0xa6b0345fe964cf538595b18ef9bf6d4e044c5bf7',
+				creationBlock: 7218787,
+				verified: true,
+			},
 		],
 		payContracts: [],
 		currentRegistryId: 57,
-		currentMailerId: 69,
+		currentMailerId: 87,
 	},
 	[EVMNetwork.ASTAR]: {
 		registryContracts: [
