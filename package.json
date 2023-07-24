@@ -4,7 +4,7 @@
 	"publishConfig": {
 		"access": "public"
 	},
-	"version": "0.8.0-beta.54",
+	"version": "0.8.0-beta.55",
 	"description": "Ylide Protocol SDK implementation for EVM-based blockchains",
 	"main": "lib/index.js",
 	"types": "lib/index.d.ts",
@@ -41,7 +41,7 @@
 		"@ethersproject/properties": "5.7.0",
 		"@ethersproject/providers": "5.7.2",
 		"@ylide/ethereum-contracts": "0.8.0-beta.20",
-		"@ylide/sdk": "0.8.0-beta.22",
+		"@ylide/sdk": "0.8.0-beta.23",
 		"@ylide/smart-buffer": "0.0.11",
 		"ethers": "5.7.2",
 		"eventemitter3": "5.0.1",
