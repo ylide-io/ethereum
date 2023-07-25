@@ -1038,6 +1038,12 @@ export const evmWalletFactories: Record<string, WalletControllerFactory> = {
 		async () => new Web3Provider((window as any).trustwallet, 'any').getSigner(),
 		async () => (window as any).trustwallet,
 	),
+	frontier: getWalletFactory(
+		'frontier',
+		async () => !!(window as any).frontier?.ethereum,
+		async () => new Web3Provider((window as any).frontier.ethereum, 'any').getSigner(),
+		async () => (window as any).frontier.ethereum,
+	),
 	generic: getWalletFactory(
 		'generic',
 		async () => !!(window as any).ethereum,
@@ -1048,7 +1054,7 @@ export const evmWalletFactories: Record<string, WalletControllerFactory> = {
 		'metamask',
 		async () =>
 			(window as any).ethereum &&
-			((window as any).ethereum.isMetaMask ||
+			(((window as any).ethereum.isMetaMask && !(window as any).ethereum.isFrontier) ||
 				((window as any).ethereum.providers?.length &&
 					(window as any).ethereum.providers.find((p: any) => p.isMetaMask))),
 		async () => {
