@@ -1,5 +1,8 @@
 import { AbstractNameService } from '@ylide/sdk';
-import { EthereumBlockchainController } from './EthereumBlockchainController';
+import type { EthereumBlockchainController } from './EthereumBlockchainController';
+
+// Why we use this? Because we want to be able to change ENS contract address, which is not possible in ethers.js
+import { ENS } from '@ensdomains/ensjs';
 
 export class EthereumNameService extends AbstractNameService {
 	constructor(public readonly controller: EthereumBlockchainController, public readonly contractAddress: string) {
@@ -10,22 +13,42 @@ export class EthereumNameService extends AbstractNameService {
 		return name.toLowerCase().endsWith('.eth');
 	}
 
-	resolve(name: string): Promise<string | null> {
-		return this.controller.executeWeb3Op(w3 => {
-			w3.eth.ens.registryAddress = this.contractAddress;
-			return w3.eth.ens.getAddress(name);
-			// const ens = new ENS({ provider: w3, ensAddress: this.contractAddress });
-			// return ens.name(name).getAddress();
-		});
+	async resolve(name: string): Promise<string | null> {
+		try {
+			return this.controller.blockchainReader.retryableOperation(async w3 => {
+				const ens = new ENS({
+					// TODO: "getContractAddress": () => this.contractAddress,
+				});
+				await ens.setProvider(w3 as any);
+				const result = await ens.getAddr(name);
+				if (typeof result === 'string') {
+					return result;
+				} else if (typeof result === 'undefined') {
+					return null;
+				} else {
+					return result.addr;
+				}
+			});
+		} catch (err) {
+			return null;
+		}
 	}
 
-	reverseResolve(address: string): Promise<string | null> {
-		return this.controller.executeWeb3Op(async w3 => {
+	async reverseResolve(address: string): Promise<string | null> {
+		try {
+			return this.controller.blockchainReader.retryableOperation(async w3 => {
+				const ens = new ENS();
+				await ens.setProvider(w3 as any);
+				const result = await ens.getName(address);
+				if (result) {
+					return result.name;
+				} else {
+					return null;
+				}
+				// return w3.lookupAddress(address);
+			});
+		} catch (err) {
 			return null;
-			// w3.eth.ens.registryAddress = this.contractAddress;
-			// return w3.eth.ens.;
-			// const ens = new ENS({ provider: w3, ensAddress: this.contractAddress });
-			// return (await ens.getName(address)).name;
-		});
+		}
 	}
 }
