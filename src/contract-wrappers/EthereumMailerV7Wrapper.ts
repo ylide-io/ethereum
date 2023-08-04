@@ -16,7 +16,7 @@ import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage 
 import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../misc/constants';
 import type { IEventPosition } from '../misc/utils';
 import { decodeEvmMsgId, encodeEvmMsgId } from '../misc/evmMsgId';
-import SmartBuffer from '@ylide/smart-buffer';
+import { SmartBuffer } from '@ylide/smart-buffer';
 import type { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
 import type { EventParsed } from '../controllers/helpers/ethersHelper';
 import { ethersEventToInternalEvent } from '../controllers/helpers/ethersHelper';

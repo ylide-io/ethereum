@@ -9,7 +9,7 @@ import type { YlideMailerV9 } from '@ylide/ethereum-contracts';
 import { YlideMailerV9__factory } from '@ylide/ethereum-contracts';
 import type { Uint256 } from '@ylide/sdk';
 import { bigIntToUint256, YLIDE_MAIN_FEED_ID } from '@ylide/sdk';
-import SmartBuffer from '@ylide/smart-buffer';
+import { SmartBuffer } from '@ylide/smart-buffer';
 import { expect } from 'chai';
 import type { ContractReceipt, ContractTransaction, Signer } from 'ethers';
 import { BigNumber } from 'ethers';
@@ -44,21 +44,21 @@ describe('YlideMailerV9', function () {
 			beneficiarySigner = await hre.ethers.getSigner('0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC');
 			userSigner = await hre.ethers.getSigner('0x70997970C51812dc3A010C7d01b50e0d17dc79C8');
 
-			readerForOwner = EthereumBlockchainReader.createEthereumBlockchainReader([
+			readerForOwner = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: ownerSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
-			readerForBeneficiary = EthereumBlockchainReader.createEthereumBlockchainReader([
+			readerForBeneficiary = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: beneficiarySigner.provider!,
 					blockLimit: 100,
 				},
 			]);
-			readerForUser = EthereumBlockchainReader.createEthereumBlockchainReader([
+			readerForUser = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: userSigner.provider!,

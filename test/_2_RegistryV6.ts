@@ -8,11 +8,11 @@ import { describe, it, before } from 'mocha';
 import type { YlideRegistryV6 } from '@ylide/ethereum-contracts';
 import { YlideRegistryV6__factory } from '@ylide/ethereum-contracts';
 import hre from 'hardhat';
-import SmartBuffer from '@ylide/smart-buffer';
+import { SmartBuffer } from '@ylide/smart-buffer';
 import nacl from 'tweetnacl';
 import { EthereumBlockchainReader } from '../src/controllers/helpers/EthereumBlockchainReader';
 import { EthereumRegistryV6Wrapper } from '../src/contract-wrappers/EthereumRegistryV6Wrapper';
-import { PublicKey, PublicKeyType, YlidePublicKeyVersion } from '@ylide/sdk';
+import { PublicKey, PublicKeyType, YlideKeyVersion } from '@ylide/sdk';
 import type { IEVMRegistryContractLink } from '../src';
 import { EVMRegistryContractType } from '../src';
 import { expect } from 'chai';
@@ -51,42 +51,42 @@ describe('YlideRegistryV6', function () {
 			newUserSigner = new hre.ethers.Wallet(nacl.randomBytes(32), hre.ethers.provider);
 			referrerSigner = new hre.ethers.Wallet(nacl.randomBytes(32), hre.ethers.provider);
 
-			readerForOwner = EthereumBlockchainReader.createEthereumBlockchainReader([
+			readerForOwner = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: ownerSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
-			readerForUser = EthereumBlockchainReader.createEthereumBlockchainReader([
+			readerForUser = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: userSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
-			readerForHistoryUser = EthereumBlockchainReader.createEthereumBlockchainReader([
+			readerForHistoryUser = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: historyUserSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
-			readerForBonucer = EthereumBlockchainReader.createEthereumBlockchainReader([
+			readerForBonucer = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: bonucerSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
-			readerForNewUser = EthereumBlockchainReader.createEthereumBlockchainReader([
+			readerForNewUser = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: newUserSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
-			readerForReferrer = EthereumBlockchainReader.createEthereumBlockchainReader([
+			readerForReferrer = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: referrerSigner.provider!,
@@ -226,12 +226,8 @@ describe('YlideRegistryV6', function () {
 						registryDesc,
 						userSigner,
 						await userSigner.getAddress(),
-						{
-							publicKey: PublicKey.fromBytes(PublicKeyType.YLIDE, publicKeyBytes),
-							keyVersion: YlidePublicKeyVersion.KEY_V2,
-							timestamp: 1,
-							registrar: 11,
-						},
+						new PublicKey(PublicKeyType.YLIDE, YlideKeyVersion.KEY_V2, publicKeyBytes),
+						11,
 					);
 					const readKey = await userRegistryV6Wrapper.getPublicKeyByAddress(
 						registryDesc,
@@ -239,8 +235,8 @@ describe('YlideRegistryV6', function () {
 					);
 
 					expect(readKey, 'Read key must not be null').to.not.be.null;
-					expect(readKey!.keyVersion, 'Key versions mismatch').to.equal(YlidePublicKeyVersion.KEY_V2);
-					expect(readKey!.publicKey.bytes.toString(), 'Key bytes mismatch').to.equal(
+					expect(readKey!.publicKey.keyVersion, 'Key versions mismatch').to.equal(YlideKeyVersion.KEY_V2);
+					expect(readKey!.publicKey.keyBytes.toString(), 'Key bytes mismatch').to.equal(
 						publicKeyBytes.toString(),
 					);
 					expect(readKey!.publicKey.type, 'Key types mismatch').to.equal(PublicKeyType.YLIDE);
@@ -255,12 +251,8 @@ describe('YlideRegistryV6', function () {
 						registryDesc,
 						historyUserSigner,
 						await historyUserSigner.getAddress(),
-						{
-							publicKey: PublicKey.fromBytes(PublicKeyType.YLIDE, publicKeyBytes),
-							keyVersion: YlidePublicKeyVersion.KEY_V2,
-							timestamp: 1,
-							registrar: 101,
-						},
+						new PublicKey(PublicKeyType.YLIDE, YlideKeyVersion.KEY_V2, publicKeyBytes),
+						101,
 					);
 
 					await mine(129);
@@ -269,12 +261,8 @@ describe('YlideRegistryV6', function () {
 						registryDesc,
 						historyUserSigner,
 						await historyUserSigner.getAddress(),
-						{
-							publicKey: PublicKey.fromBytes(PublicKeyType.YLIDE, publicKeyBytes),
-							keyVersion: YlidePublicKeyVersion.KEY_V2,
-							timestamp: 1,
-							registrar: 102,
-						},
+						new PublicKey(PublicKeyType.YLIDE, YlideKeyVersion.KEY_V2, publicKeyBytes),
+						102,
 					);
 
 					await mine(129);
@@ -283,12 +271,8 @@ describe('YlideRegistryV6', function () {
 						registryDesc,
 						historyUserSigner,
 						await historyUserSigner.getAddress(),
-						{
-							publicKey: PublicKey.fromBytes(PublicKeyType.YLIDE, publicKeyBytes),
-							keyVersion: YlidePublicKeyVersion.KEY_V2,
-							timestamp: 1,
-							registrar: 103,
-						},
+						new PublicKey(PublicKeyType.YLIDE, YlideKeyVersion.KEY_V2, publicKeyBytes),
+						103,
 					);
 
 					await mine(129);
@@ -297,12 +281,8 @@ describe('YlideRegistryV6', function () {
 						registryDesc,
 						historyUserSigner,
 						await historyUserSigner.getAddress(),
-						{
-							publicKey: PublicKey.fromBytes(PublicKeyType.YLIDE, publicKeyBytes),
-							keyVersion: YlidePublicKeyVersion.KEY_V2,
-							timestamp: 1,
-							registrar: 104,
-						},
+						new PublicKey(PublicKeyType.YLIDE, YlideKeyVersion.KEY_V2, publicKeyBytes),
+						104,
 					);
 
 					await mine(129);
@@ -311,12 +291,8 @@ describe('YlideRegistryV6', function () {
 						registryDesc,
 						historyUserSigner,
 						await historyUserSigner.getAddress(),
-						{
-							publicKey: PublicKey.fromBytes(PublicKeyType.YLIDE, publicKeyBytes),
-							keyVersion: YlidePublicKeyVersion.KEY_V2,
-							timestamp: 1,
-							registrar: 105,
-						},
+						new PublicKey(PublicKeyType.YLIDE, YlideKeyVersion.KEY_V2, publicKeyBytes),
+						105,
 					);
 
 					await mine(129);
@@ -329,40 +305,40 @@ describe('YlideRegistryV6', function () {
 					expect(keys.length, 'Keys length mismatch').to.equal(5);
 
 					expect(keys[0], 'Read key must not be null').to.not.be.null;
-					expect(keys[0]!.keyVersion, 'Key versions mismatch').to.equal(YlidePublicKeyVersion.KEY_V2);
-					expect(keys[0]!.publicKey.bytes.toString(), 'Key bytes mismatch').to.equal(
+					expect(keys[0]!.publicKey.keyVersion, 'Key versions mismatch').to.equal(YlideKeyVersion.KEY_V2);
+					expect(keys[0]!.publicKey.keyBytes.toString(), 'Key bytes mismatch').to.equal(
 						publicKeyBytes.toString(),
 					);
 					expect(keys[0]!.publicKey.type, 'Key types mismatch').to.equal(PublicKeyType.YLIDE);
 					expect(keys[0]!.registrar, 'Registrar mismatch').to.equal(105);
 
 					expect(keys[1], 'Read key must not be null').to.not.be.null;
-					expect(keys[1]!.keyVersion, 'Key versions mismatch').to.equal(YlidePublicKeyVersion.KEY_V2);
-					expect(keys[1]!.publicKey.bytes.toString(), 'Key bytes mismatch').to.equal(
+					expect(keys[1]!.publicKey.keyVersion, 'Key versions mismatch').to.equal(YlideKeyVersion.KEY_V2);
+					expect(keys[1]!.publicKey.keyBytes.toString(), 'Key bytes mismatch').to.equal(
 						publicKeyBytes.toString(),
 					);
 					expect(keys[1]!.publicKey.type, 'Key types mismatch').to.equal(PublicKeyType.YLIDE);
 					expect(keys[1]!.registrar, 'Registrar mismatch').to.equal(104);
 
 					expect(keys[2], 'Read key must not be null').to.not.be.null;
-					expect(keys[2]!.keyVersion, 'Key versions mismatch').to.equal(YlidePublicKeyVersion.KEY_V2);
-					expect(keys[2]!.publicKey.bytes.toString(), 'Key bytes mismatch').to.equal(
+					expect(keys[2]!.publicKey.keyVersion, 'Key versions mismatch').to.equal(YlideKeyVersion.KEY_V2);
+					expect(keys[2]!.publicKey.keyBytes.toString(), 'Key bytes mismatch').to.equal(
 						publicKeyBytes.toString(),
 					);
 					expect(keys[2]!.publicKey.type, 'Key types mismatch').to.equal(PublicKeyType.YLIDE);
 					expect(keys[2]!.registrar, 'Registrar mismatch').to.equal(103);
 
 					expect(keys[3], 'Read key must not be null').to.not.be.null;
-					expect(keys[3]!.keyVersion, 'Key versions mismatch').to.equal(YlidePublicKeyVersion.KEY_V2);
-					expect(keys[3]!.publicKey.bytes.toString(), 'Key bytes mismatch').to.equal(
+					expect(keys[3]!.publicKey.keyVersion, 'Key versions mismatch').to.equal(YlideKeyVersion.KEY_V2);
+					expect(keys[3]!.publicKey.keyBytes.toString(), 'Key bytes mismatch').to.equal(
 						publicKeyBytes.toString(),
 					);
 					expect(keys[3]!.publicKey.type, 'Key types mismatch').to.equal(PublicKeyType.YLIDE);
 					expect(keys[3]!.registrar, 'Registrar mismatch').to.equal(102);
 
 					expect(keys[4], 'Read key must not be null').to.not.be.null;
-					expect(keys[4]!.keyVersion, 'Key versions mismatch').to.equal(YlidePublicKeyVersion.KEY_V2);
-					expect(keys[4]!.publicKey.bytes.toString(), 'Key bytes mismatch').to.equal(
+					expect(keys[4]!.publicKey.keyVersion, 'Key versions mismatch').to.equal(YlideKeyVersion.KEY_V2);
+					expect(keys[4]!.publicKey.keyBytes.toString(), 'Key bytes mismatch').to.equal(
 						publicKeyBytes.toString(),
 					);
 					expect(keys[4]!.publicKey.type, 'Key types mismatch').to.equal(PublicKeyType.YLIDE);
@@ -412,8 +388,8 @@ describe('YlideRegistryV6', function () {
 					);
 
 					expect(readKey, 'Read key must not be null').to.not.be.null;
-					expect(readKey!.keyVersion, 'Key versions mismatch').to.equal(YlidePublicKeyVersion.KEY_V2);
-					expect(readKey!.publicKey.bytes.toString(), 'Key bytes mismatch').to.equal(
+					expect(readKey!.publicKey.keyVersion, 'Key versions mismatch').to.equal(YlideKeyVersion.KEY_V2);
+					expect(readKey!.publicKey.keyBytes.toString(), 'Key bytes mismatch').to.equal(
 						publicKeyBytes.toString(),
 					);
 					expect(readKey!.publicKey.type, 'Key types mismatch').to.equal(PublicKeyType.YLIDE);
@@ -457,7 +433,7 @@ describe('YlideRegistryV6', function () {
 						{ v: ref_v, r: ref_r, s: ref_s },
 						await referrerSigner.getAddress(),
 						ref_publicKey,
-						YlidePublicKeyVersion.KEY_V2,
+						YlideKeyVersion.KEY_V2,
 						18,
 						timeLock2,
 						'0x0000000000000000000000000000000000000000',
@@ -471,8 +447,10 @@ describe('YlideRegistryV6', function () {
 					);
 
 					expect(ref_readKey, 'Read refKey must not be null').to.not.be.null;
-					expect(ref_readKey!.keyVersion, 'RefKey versions mismatch').to.equal(YlidePublicKeyVersion.KEY_V2);
-					expect(ref_readKey!.publicKey.bytes.toString(), 'RefKey bytes mismatch').to.equal(
+					expect(ref_readKey!.publicKey.keyVersion, 'RefKey versions mismatch').to.equal(
+						YlideKeyVersion.KEY_V2,
+					);
+					expect(ref_readKey!.publicKey.keyBytes.toString(), 'RefKey bytes mismatch').to.equal(
 						ref_publicKey.toString(),
 					);
 					expect(ref_readKey!.publicKey.type, 'RefKey types mismatch').to.equal(PublicKeyType.YLIDE);
@@ -500,7 +478,7 @@ describe('YlideRegistryV6', function () {
 						{ v, r, s },
 						await newUserSigner.getAddress(),
 						publicKeyBytes,
-						YlidePublicKeyVersion.KEY_V2,
+						YlideKeyVersion.KEY_V2,
 						19,
 						timeLock,
 						await referrerSigner.getAddress(),
@@ -514,8 +492,8 @@ describe('YlideRegistryV6', function () {
 					);
 
 					expect(readKey, 'Read key must not be null').to.not.be.null;
-					expect(readKey!.keyVersion, 'Key versions mismatch').to.equal(YlidePublicKeyVersion.KEY_V2);
-					expect(readKey!.publicKey.bytes.toString(), 'Key bytes mismatch').to.equal(
+					expect(readKey!.publicKey.keyVersion, 'Key versions mismatch').to.equal(YlideKeyVersion.KEY_V2);
+					expect(readKey!.publicKey.keyBytes.toString(), 'Key bytes mismatch').to.equal(
 						publicKeyBytes.toString(),
 					);
 					expect(readKey!.publicKey.type, 'Key types mismatch').to.equal(PublicKeyType.YLIDE);

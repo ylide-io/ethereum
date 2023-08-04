@@ -1,7 +1,6 @@
 import type {
 	AbstractNameService,
 	BlockchainControllerFactory,
-	ExternalYlidePublicKey,
 	IBlockchainSourceSubject,
 	IExtraEncryptionStrateryBulk,
 	IExtraEncryptionStrateryEntry,
@@ -11,6 +10,7 @@ import type {
 	ISourceSubject,
 	LowLevelMessagesSource,
 	MessageKey,
+	RemotePublicKey,
 	Uint256,
 } from '@ylide/sdk';
 import { AbstractBlockchainController, BlockchainSourceType, hexToUint256, YlideCore } from '@ylide/sdk';
@@ -142,6 +142,8 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		this.chainId = EVM_CHAINS[options.network];
 
 		this.blockchainReader = EthereumBlockchainReader.createEthereumBlockchainReader(
+			this.blockchainGroup(),
+			EVM_NAMES[options.network],
 			options.rpcs ||
 				EVM_RPCS[options.network].map(rpc => ({
 					// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -439,14 +441,14 @@ export class EthereumBlockchainController extends AbstractBlockchainController {
 		}
 	}
 
-	async extractPublicKeyFromAddress(address: string): Promise<ExternalYlidePublicKey | null> {
+	async extractPublicKeyFromAddress(address: string): Promise<RemotePublicKey | null> {
 		const raw = await Promise.all(this.registries.map(reg => reg.wrapper.getPublicKeyByAddress(reg.link, address)));
-		const active = raw.filter(r => r !== null) as ExternalYlidePublicKey[];
+		const active = raw.filter(r => r !== null) as RemotePublicKey[];
 		active.sort((a, b) => b.timestamp - a.timestamp);
 		return active.length ? active[0] : null;
 	}
 
-	async extractPublicKeysHistoryByAddress(address: string): Promise<ExternalYlidePublicKey[]> {
+	async extractPublicKeysHistoryByAddress(address: string): Promise<RemotePublicKey[]> {
 		const raw = (
 			await Promise.all(this.registries.map(reg => reg.wrapper.getPublicKeysHistoryForAddress(reg.link, address)))
 		).flat();

@@ -1,9 +1,8 @@
 import { ethers } from 'ethers';
 import type { YlideRegistryV5 } from '@ylide/ethereum-contracts';
 import { YlideRegistryV5__factory } from '@ylide/ethereum-contracts';
-import type { ExternalYlidePublicKey } from '@ylide/sdk';
-import { PublicKey, PublicKeyType } from '@ylide/sdk';
-import SmartBuffer from '@ylide/smart-buffer';
+import { PublicKey, PublicKeyType, RemotePublicKey } from '@ylide/sdk';
+import { SmartBuffer } from '@ylide/smart-buffer';
 import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
 import type { IEVMEnrichedEvent, IEVMRegistryContractLink } from '../misc/types';
 import { ContractCache } from './ContractCache';
@@ -25,23 +24,20 @@ export class EthereumRegistryV5Wrapper {
 		return (await factory.deploy(previousContractAddress)).address;
 	}
 
-	processKeyAttachedEvent(event: IEVMEnrichedEvent<KeyAttachedEventObject>): {
-		address: string;
-		key: ExternalYlidePublicKey;
-	} {
+	processKeyAttachedEvent(event: IEVMEnrichedEvent<KeyAttachedEventObject>): RemotePublicKey {
 		const { publicKey, keyVersion, addr } = event.event.parsed;
-		return {
-			address: addr,
-			key: {
-				keyVersion: keyVersion.toNumber(),
-				publicKey: PublicKey.fromBytes(
-					PublicKeyType.YLIDE,
-					SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '').padStart(64, '0')).bytes,
-				),
-				timestamp: event.block.timestamp,
-				registrar: 0,
-			},
-		};
+		return new RemotePublicKey(
+			this.blockchainReader.blockchainGroup,
+			this.blockchainReader.blockchain,
+			addr.toLowerCase(),
+			new PublicKey(
+				PublicKeyType.YLIDE,
+				keyVersion.toNumber(),
+				SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '').padStart(64, '0')).bytes,
+			),
+			event.block.timestamp,
+			0,
+		);
 	}
 
 	async getOwner(registry: IEVMRegistryContractLink): Promise<string> {
@@ -60,32 +56,32 @@ export class EthereumRegistryV5Wrapper {
 		return await contract.transferOwnership(owner, { from });
 	}
 
-	async getPublicKeyByAddress(
-		registry: IEVMRegistryContractLink,
-		address: string,
-	): Promise<ExternalYlidePublicKey | null> {
+	async getPublicKeyByAddress(registry: IEVMRegistryContractLink, address: string): Promise<RemotePublicKey | null> {
 		return await this.cache.contractOperation(registry, async contract => {
 			const [entry, contractVersion, contractAddress] = await contract.functions.getPublicKey(address);
 			const { publicKey, block, timestamp, keyVersion } = entry;
 			if (keyVersion.toNumber() === 0) {
 				return null;
 			}
-			return {
-				keyVersion: keyVersion.toNumber(),
-				publicKey: PublicKey.fromBytes(
+			return new RemotePublicKey(
+				this.blockchainReader.blockchainGroup,
+				this.blockchainReader.blockchain,
+				address.toLowerCase(),
+				new PublicKey(
 					PublicKeyType.YLIDE,
+					keyVersion.toNumber(),
 					SmartBuffer.ofHexString(publicKey.toHexString().replace('0x', '').padStart(64, '0')).bytes,
 				),
-				timestamp: timestamp.toNumber(),
-				registrar: 0,
-			};
+				timestamp.toNumber(),
+				0,
+			);
 		});
 	}
 
 	async getPublicKeysHistoryForAddress(
 		registry: IEVMRegistryContractLink,
 		address: string,
-	): Promise<ExternalYlidePublicKey[]> {
+	): Promise<RemotePublicKey[]> {
 		const currentKey = await this.getPublicKeyByAddress(registry, address);
 		return currentKey ? [currentKey] : [];
 	}
@@ -94,10 +90,11 @@ export class EthereumRegistryV5Wrapper {
 		registry: IEVMRegistryContractLink,
 		signer: ethers.Signer,
 		from: string,
-		publicKey: ExternalYlidePublicKey,
+		publicKey: PublicKey,
+		registrar: number,
 	): Promise<ethers.ContractTransaction> {
 		const contract = this.cache.getContract(registry.address, signer);
-		return await contract.attachPublicKey(publicKey.publicKey.bytes, publicKey.keyVersion, { from });
+		return await contract.attachPublicKey(publicKey.keyBytes, publicKey.keyVersion, { from });
 	}
 
 	async getBonuces(registry: IEVMRegistryContractLink): Promise<{ newcomer: string; referrer: string }> {

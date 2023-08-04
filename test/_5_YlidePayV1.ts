@@ -77,7 +77,7 @@ describe('YlidePayV1', () => {
 		};
 		firstBlockNumber = await ethers.provider.getBlockNumber();
 
-		readerForOwner = EthereumBlockchainReader.createEthereumBlockchainReader([
+		readerForOwner = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
 			{
 				chainId: 31337,
 				rpcUrlOrProvider: owner.provider || '',

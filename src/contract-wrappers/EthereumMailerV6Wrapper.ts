@@ -1,6 +1,6 @@
 import type { ethers } from 'ethers';
 import { BigNumber } from 'ethers';
-import SmartBuffer from '@ylide/smart-buffer';
+import { SmartBuffer } from '@ylide/smart-buffer';
 import type { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
 import type { YlideMailerV6 } from '@ylide/ethereum-contracts';
 import { YlideMailerV6__factory } from '@ylide/ethereum-contracts';

@@ -2,7 +2,7 @@ import type { TypedEvent } from '@ylide/ethereum-contracts/lib/common';
 import type { MailPushEventObject as MailPushEventObjectV9 } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
 import type { Uint256 } from '@ylide/sdk';
 import { YlideCore } from '@ylide/sdk';
-import SmartBuffer from '@ylide/smart-buffer';
+import { SmartBuffer } from '@ylide/smart-buffer';
 import type { Contract, ethers } from 'ethers';
 import { BigNumber } from 'ethers';
 import { BlockNumberRingBufferIndex } from '../controllers/misc/BlockNumberRingBufferIndex';

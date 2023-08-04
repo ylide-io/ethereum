@@ -26,7 +26,7 @@ export interface IInternalRPCDescriptor {
 export class EthereumBlockchainReader {
 	private blocksCache: Record<string, BlockWithTransactions> = {};
 
-	static createEthereumBlockchainReader(rpcs: IRPCDescriptor[]) {
+	static createEthereumBlockchainReader(blockchainGroup: string, blockchain: string, rpcs: IRPCDescriptor[]) {
 		const internalRPCs: IInternalRPCDescriptor[] = rpcs.map(rpc => {
 			let provider;
 			if (typeof rpc.rpcUrlOrProvider === 'string') {
@@ -57,10 +57,14 @@ export class EthereumBlockchainReader {
 			};
 		});
 
-		return new EthereumBlockchainReader(internalRPCs);
+		return new EthereumBlockchainReader(blockchainGroup, blockchain, internalRPCs);
 	}
 
-	private constructor(private readonly rpcs: IInternalRPCDescriptor[]) {
+	private constructor(
+		public readonly blockchainGroup: string,
+		public readonly blockchain: string,
+		private readonly rpcs: IInternalRPCDescriptor[],
+	) {
 		//
 	}
 

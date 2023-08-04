@@ -7,7 +7,7 @@ import type {
 	MailPushEventObject,
 } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV8';
 import type { Uint256 } from '@ylide/sdk';
-import SmartBuffer from '@ylide/smart-buffer';
+import { SmartBuffer } from '@ylide/smart-buffer';
 import type { BigNumber } from 'ethers';
 import { ethers } from 'ethers';
 import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers/helpers/ethersHelper';
