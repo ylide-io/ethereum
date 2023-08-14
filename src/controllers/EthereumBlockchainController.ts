@@ -572,4 +572,5 @@ export const evmBlockchainFactories: Record<EVMNetwork, BlockchainControllerFact
 	[EVMNetwork.METIS]: getBlockchainFactory(EVMNetwork.METIS),
 	[EVMNetwork.ASTAR]: getBlockchainFactory(EVMNetwork.ASTAR),
 	[EVMNetwork.SHARDEUM]: getBlockchainFactory(EVMNetwork.SHARDEUM),
+	// [EVMNetwork.ZETA]: getBlockchainFactory(EVMNetwork.ZETA),
 };

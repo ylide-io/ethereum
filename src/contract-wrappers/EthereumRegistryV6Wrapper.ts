@@ -233,7 +233,7 @@ export class EthereumRegistryV6Wrapper {
 		});
 	}
 
-	async attachPublicKeyByAdminCalldata(
+	attachPublicKeyByAdminCalldataSync(
 		registry: IEVMRegistryContractLink,
 		signer: ethers.Signer,
 		from: string,
@@ -245,10 +245,9 @@ export class EthereumRegistryV6Wrapper {
 		timestampLock: number,
 		referrer: string | null,
 		payBonus: boolean,
-		value: string,
-	): Promise<{ data: string }> {
+	): Uint8Array {
 		const contract = this.cache.getContract(registry.address, signer);
-		const { data } = await contract.populateTransaction.attachPublicKeyByAdmin(
+		const hex = contract.interface.encodeFunctionData('attachPublicKeyByAdmin', [
 			txSignature.v,
 			txSignature.r,
 			txSignature.s,
@@ -259,12 +258,8 @@ export class EthereumRegistryV6Wrapper {
 			timestampLock,
 			referrer || '0x0000000000000000000000000000000000000000',
 			payBonus,
-			{ value, from },
-		);
-		if (!data) {
-			throw new Error('No data');
-		}
-		return { data };
+		]);
+		return SmartBuffer.ofHexString(hex.startsWith('0x') ? hex.slice(2) : hex).bytes;
 	}
 
 	async attachPublicKeyByAdminGas(

@@ -25,6 +25,7 @@ export interface IInternalRPCDescriptor {
 
 export class EthereumBlockchainReader {
 	private blocksCache: Record<string, BlockWithTransactions> = {};
+	private blocksCacheByNumber: Record<number, BlockWithTransactions> = {};
 
 	static createEthereumBlockchainReader(blockchainGroup: string, blockchain: string, rpcs: IRPCDescriptor[]) {
 		const internalRPCs: IInternalRPCDescriptor[] = rpcs.map(rpc => {
@@ -120,6 +121,13 @@ export class EthereumBlockchainReader {
 		return block;
 	}
 
+	async getBlockByBlockNumber(blockNumber: number) {
+		if (this.blocksCacheByNumber[blockNumber]) return this.blocksCacheByNumber[blockNumber];
+		const block = await this.retryableOperation(rpc => rpc.getBlockWithTransactions(blockNumber));
+		this.blocksCacheByNumber[blockNumber] = block;
+		return block;
+	}
+
 	async getBalance(address: string): Promise<{ original: string; numeric: number; textual: string; e18: string }> {
 		return await this.retryableOperation(async rpc => {
 			const bn = await rpc.getBalance(address);
@@ -136,30 +144,46 @@ export class EthereumBlockchainReader {
 		if (!msgs.length) {
 			return [];
 		}
-		const blockHashes = msgs.map(e => e.blockHash).filter((e, i, a) => a.indexOf(e) === i);
-		const blocks = await this.retryableOperation(async (rpc, blockLimit, latestNotSupported, batchNotSupported) => {
-			const txcs = new Semaphore(3);
-			return await Promise.all(
-				blockHashes.map(async blockHash => {
-					const release = await txcs.acquire();
-					try {
-						return await this.getBlockByHash(blockHash);
-					} catch (err) {
-						// console.log('err: ', err);
-						throw err;
-					} finally {
-						release();
-					}
-				}),
-			);
-		});
-		const blockMap: Record<string, BlockWithTransactions> = blocks.reduce(
-			(p, c) => ({
-				...p,
-				[c.hash]: c,
-			}),
-			{},
-		);
+		let blocks: BlockWithTransactions[];
+		if (this.blockchain !== 'SHARDEUM') {
+			const blockHashes = msgs.map(e => e.blockHash).filter((e, i, a) => a.indexOf(e) === i);
+			blocks = await this.retryableOperation(async (rpc, blockLimit, latestNotSupported, batchNotSupported) => {
+				const txcs = new Semaphore(3);
+				return await Promise.all(
+					blockHashes.map(async blockHash => {
+						const release = await txcs.acquire();
+						try {
+							return await this.getBlockByHash(blockHash);
+						} catch (err) {
+							// console.log('err: ', err);
+							throw err;
+						} finally {
+							release();
+						}
+					}),
+				);
+			});
+		} else {
+			const blockNumbers = msgs
+				.map(e => String(e.blockNumber).substring(0, String(e.blockNumber).length - 1))
+				.filter((e, i, a) => a.indexOf(e) === i);
+			blocks = await this.retryableOperation(async (rpc, blockLimit, latestNotSupported, batchNotSupported) => {
+				const txcs = new Semaphore(3);
+				return await Promise.all(
+					blockNumbers.map(async blockNumber => {
+						const release = await txcs.acquire();
+						try {
+							return await this.getBlockByBlockNumber(Number(blockNumber));
+						} catch (err) {
+							// console.log('err: ', err);
+							throw err;
+						} finally {
+							release();
+						}
+					}),
+				);
+			});
+		}
 		const txMap: Record<string, Transaction> = {};
 		for (const block of blocks) {
 			for (const tx of block.transactions) {
@@ -168,7 +192,8 @@ export class EthereumBlockchainReader {
 		}
 
 		return msgs.map(ev => ({
-			block: ethersBlockToInternalBlock(blockMap[ev.blockHash]),
+			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+			block: ethersBlockToInternalBlock(blocks.find(b => b.hash === ev.blockHash)!),
 			tx: ethersTxToInternalTx(txMap[ev.transactionHash]),
 			event: ev,
 		}));

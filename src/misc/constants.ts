@@ -34,6 +34,7 @@ export const EVM_NAMES: Record<EVMNetwork, string> = {
 	[EVMNetwork.METIS]: 'METIS',
 	[EVMNetwork.ASTAR]: 'ASTAR',
 	[EVMNetwork.SHARDEUM]: 'SHARDEUM',
+	// [EVMNetwork.ZETA]: 'ZETA',
 };
 
 export const EVM_ENS: Record<EVMNetwork, string | null> = {
@@ -56,6 +57,7 @@ export const EVM_ENS: Record<EVMNetwork, string | null> = {
 	[EVMNetwork.METIS]: null,
 	[EVMNetwork.CRONOS]: null,
 	[EVMNetwork.SHARDEUM]: null,
+	// [EVMNetwork.ZETA]: null,
 };
 
 export const EVM_CHAINS: Record<EVMNetwork, number> = {
@@ -78,6 +80,7 @@ export const EVM_CHAINS: Record<EVMNetwork, number> = {
 	[EVMNetwork.METIS]: 1088,
 	[EVMNetwork.ASTAR]: 592,
 	[EVMNetwork.SHARDEUM]: 8081,
+	// [EVMNetwork.ZETA]: 7001,
 };
 
 export const EVM_CHAIN_ID_TO_NETWORK: Record<number, EVMNetwork> = Object.keys(EVM_CHAINS)
@@ -191,6 +194,12 @@ export const EVM_RPCS: Record<
 	],
 	[EVMNetwork.METIS]: [{ rpc: 'https://andromeda.metis.io/?owner=1088', blockLimit: 10000 }],
 	[EVMNetwork.SHARDEUM]: [{ rpc: 'https://dapps.shardeum.org	', blockLimit: 10000 }],
+	// [EVMNetwork.ZETA]: [
+	// 	{
+	// 		rpc: 'https://api.mainnet.zetachain.com/evm',
+	// 		blockLimit: 10000,
+	// 	},
+	// ],
 };
 
 export const EVM_CHUNK_SIZES: Record<EVMNetwork, number> = {
@@ -213,4 +222,5 @@ export const EVM_CHUNK_SIZES: Record<EVMNetwork, number> = {
 	[EVMNetwork.METIS]: 15 * 1024,
 	[EVMNetwork.ASTAR]: 15 * 1024,
 	[EVMNetwork.SHARDEUM]: 15 * 1024,
+	// [EVMNetwork.ZETA]: 15 * 1024,
 };

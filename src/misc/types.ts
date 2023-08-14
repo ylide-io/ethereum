@@ -22,7 +22,10 @@ export enum EVMNetwork {
 	MOONRIVER, //  = 'MOONRIVER',
 	METIS, //  = 'METIS',
 	ASTAR, //  = 'ASTAR',
+
+	// in test:
 	SHARDEUM, //  = 'SHARDEUM',
+	// ZETA, //  = 'ZETA',
 }
 
 export interface IEVMBlock {

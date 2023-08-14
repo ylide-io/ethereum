@@ -346,7 +346,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		],
 		payContracts: [],
 		currentRegistryId: 48,
-		currentMailerId: 61,
+		currentMailerId: 89,
 	},
 	[EVMNetwork.FANTOM]: {
 		registryContracts: [
@@ -767,4 +767,11 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		currentRegistryId: 73,
 		currentMailerId: 74,
 	},
+	// [EVMNetwork.ZETA]: {
+	// 	registryContracts: [],
+	// 	mailerContracts: [],
+	// 	payContracts: [],
+	// 	currentRegistryId: 0,
+	// 	currentMailerId: 0,
+	// },
 };
