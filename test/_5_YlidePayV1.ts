@@ -14,15 +14,9 @@ import type { providers } from 'ethers';
 import { BigNumber } from 'ethers';
 import { ethers, network } from 'hardhat';
 import type { IEVMMailerContractLink, IEVMYlidePayContractLink } from '../src';
-import {
-	ContractType,
-	EVMMailerContractType,
-	EVMYlidePayContractType,
-	EthereumBlockchainReader,
-	bnToUint256,
-} from '../src';
-import { EthereumPayV1Wrapper } from '../src/contract-wrappers/EthereumPayV1Wrapper';
-import { EthereumMailerV9Wrapper } from '../src/contract-wrappers/v9';
+import { ContractType, EVMMailerContractType, EVMYlidePayContractType, EVMBlockchainReader, bnToUint256 } from '../src';
+import { EVMPayV1Wrapper } from '../src/contract-wrappers/EVMPayV1Wrapper';
+import { EVMMailerV9Wrapper } from '../src/contract-wrappers/v9';
 
 describe('YlidePayV1', () => {
 	let owner: SignerWithAddress;
@@ -51,7 +45,7 @@ describe('YlidePayV1', () => {
 	const partsCount = 4;
 	const blockCountLock = 20;
 
-	let readerForOwner: EthereumBlockchainReader;
+	let readerForOwner: EVMBlockchainReader;
 
 	let mailerDesc: IEVMMailerContractLink;
 
@@ -77,7 +71,7 @@ describe('YlidePayV1', () => {
 		};
 		firstBlockNumber = await ethers.provider.getBlockNumber();
 
-		readerForOwner = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
+		readerForOwner = EVMBlockchainReader.createEVMBlockchainReader('evm', 'ETHEREUM', [
 			{
 				chainId: 31337,
 				rpcUrlOrProvider: owner.provider || '',
@@ -104,8 +98,8 @@ describe('YlidePayV1', () => {
 	});
 
 	it('Send erc20 and erc721', async () => {
-		const mailerWrapper = new EthereumMailerV9Wrapper(readerForOwner);
-		const payWrapper = new EthereumPayV1Wrapper(readerForOwner);
+		const mailerWrapper = new EVMMailerV9Wrapper(readerForOwner);
+		const payWrapper = new EVMPayV1Wrapper(readerForOwner);
 
 		await mailerWrapper.globals.setIsYlide(mailerDesc, owner, owner.address, [ylidePay.address], [true]);
 

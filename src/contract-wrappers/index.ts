@@ -1,11 +1,11 @@
 export * from './ContractCache';
 
-export * from './EthereumMailerV6Wrapper';
-export * from './EthereumMailerV7Wrapper';
+export * from './EVMMailerV6Wrapper';
+export * from './EVMMailerV7Wrapper';
 export * from './v8';
 export * from './v9';
 
-export * from './EthereumRegistryV3Wrapper';
-export * from './EthereumRegistryV4Wrapper';
-export * from './EthereumRegistryV5Wrapper';
-export * from './EthereumRegistryV6Wrapper';
+export * from './EVMRegistryV3Wrapper';
+export * from './EVMRegistryV4Wrapper';
+export * from './EVMRegistryV5Wrapper';
+export * from './EVMRegistryV6Wrapper';

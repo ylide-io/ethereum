@@ -1,52 +1,48 @@
-import type { YlideMailerV9 } from '@ylide/ethereum-contracts';
-import { YlideMailerV9__factory } from '@ylide/ethereum-contracts';
-import type { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
-import type { TokenAttachmentEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlidePayV1';
 import type { ethers } from 'ethers';
-import type { EthereumBlockchainReader } from '../../controllers/helpers/EthereumBlockchainReader';
-import type { EventParsed } from '../../controllers/helpers/ethersHelper';
-import { ethersEventToInternalEvent } from '../../controllers/helpers/ethersHelper';
+import type { YlideMailerV8 } from '@ylide/ethereum-contracts';
+import { YlideMailerV8__factory } from '@ylide/ethereum-contracts';
+import type { EVMBlockchainReader } from '../../controllers/helpers/EVMBlockchainReader';
 import { BlockNumberRingBufferIndex } from '../../controllers/misc/BlockNumberRingBufferIndex';
-import { validateMessage } from '../../misc/evmMsgId';
 import type { IEVMEnrichedEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
 import type { IEventPosition } from '../../misc/utils';
 import { bnToUint256 } from '../../misc/utils';
+import { validateMessage } from '../../misc/evmMsgId';
+import type { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
+import type { EventParsed } from '../../controllers/helpers/ethersHelper';
+import { ethersEventToInternalEvent } from '../../controllers/helpers/ethersHelper';
 import { ContractCache } from '../ContractCache';
-import { EthereumMailerV9WrapperBroadcast } from './EthereumMailerV9WrapperBroadcast';
-import { EthereumMailerV9WrapperContent } from './EthereumMailerV9WrapperContent';
-import { EthereumMailerV9WrapperGlobals } from './EthereumMailerV9WrapperGlobals';
-import { EthereumMailerV9WrapperMailing } from './EthereumMailerV9WrapperMailing';
+import { EVMMailerV8WrapperBroadcast } from './EVMMailerV8WrapperBroadcast';
+import { EVMMailerV8WrapperContent } from './EVMMailerV8WrapperContent';
+import { EVMMailerV8WrapperGlobals } from './EVMMailerV8WrapperGlobals';
+import { EVMMailerV8WrapperMailing } from './EVMMailerV8WrapperMailing';
 
-export class EthereumMailerV9Wrapper {
-	public readonly cache: ContractCache<YlideMailerV9>;
+export class EVMMailerV8Wrapper {
+	public readonly cache: ContractCache<YlideMailerV8>;
 
-	public readonly globals: EthereumMailerV9WrapperGlobals;
-	public readonly mailing: EthereumMailerV9WrapperMailing;
-	public readonly broadcast: EthereumMailerV9WrapperBroadcast;
-	public readonly content: EthereumMailerV9WrapperContent;
+	public readonly globals: EVMMailerV8WrapperGlobals;
+	public readonly mailing: EVMMailerV8WrapperMailing;
+	public readonly broadcast: EVMMailerV8WrapperBroadcast;
+	public readonly content: EVMMailerV8WrapperContent;
 
-	constructor(public readonly blockchainReader: EthereumBlockchainReader) {
-		this.cache = new ContractCache(YlideMailerV9__factory, blockchainReader);
+	constructor(public readonly blockchainReader: EVMBlockchainReader) {
+		this.cache = new ContractCache(YlideMailerV8__factory, blockchainReader);
 
-		this.globals = new EthereumMailerV9WrapperGlobals(this);
-		this.mailing = new EthereumMailerV9WrapperMailing(this);
-		this.broadcast = new EthereumMailerV9WrapperBroadcast(this);
-		this.content = new EthereumMailerV9WrapperContent(this);
+		this.globals = new EVMMailerV8WrapperGlobals(this);
+		this.mailing = new EVMMailerV8WrapperMailing(this);
+		this.broadcast = new EVMMailerV8WrapperBroadcast(this);
+		this.content = new EVMMailerV8WrapperContent(this);
 	}
 
 	static async deploy(signer: ethers.Signer, from: string) {
-		const factory = new YlideMailerV9__factory(signer);
+		const factory = new YlideMailerV8__factory(signer);
 		return (await factory.deploy()).address;
 	}
 
 	async retrieveHistoryDesc<T extends TypedEvent>(
 		mailer: IEVMMailerContractLink,
 		getBaseIndex: () => Promise<number[]>,
-		getFilter: (contract: YlideMailerV9) => TypedEventFilter<T>,
-		processEvent: (
-			event: IEVMEnrichedEvent<EventParsed<T>>,
-			tokenAttachmentEvents?: TokenAttachmentEventObject[],
-		) => IEVMMessage,
+		getFilter: (contract: YlideMailerV8) => TypedEventFilter<T>,
+		processEvent: (event: IEVMEnrichedEvent<EventParsed<T>>) => IEVMMessage,
 		fromMessage: IEVMMessage | null,
 		includeFromMessage: boolean,
 		toMessage: IEVMMessage | null,

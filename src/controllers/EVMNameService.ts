@@ -1,11 +1,11 @@
 import { AbstractNameService } from '@ylide/sdk';
-import type { EthereumBlockchainController } from './EthereumBlockchainController';
+import type { EVMBlockchainController } from './EVMBlockchainController';
 
 // Why we use this? Because we want to be able to change ENS contract address, which is not possible in ethers.js
 import { ENS } from '@ensdomains/ensjs';
 
-export class EthereumNameService extends AbstractNameService {
-	constructor(public readonly controller: EthereumBlockchainController, public readonly contractAddress: string) {
+export class EVMNameService extends AbstractNameService {
+	constructor(public readonly controller: EVMBlockchainController, public readonly contractAddress: string) {
 		super();
 	}
 

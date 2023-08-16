@@ -10,8 +10,8 @@ import { YlideRegistryV6__factory } from '@ylide/ethereum-contracts';
 import hre from 'hardhat';
 import { SmartBuffer } from '@ylide/smart-buffer';
 import nacl from 'tweetnacl';
-import { EthereumBlockchainReader } from '../src/controllers/helpers/EthereumBlockchainReader';
-import { EthereumRegistryV6Wrapper } from '../src/contract-wrappers/EthereumRegistryV6Wrapper';
+import { EVMBlockchainReader } from '../src/controllers/helpers/EVMBlockchainReader';
+import { EVMRegistryV6Wrapper } from '../src/contract-wrappers/EVMRegistryV6Wrapper';
 import { PublicKey, PublicKeyType, YlideKeyVersion } from '@ylide/sdk';
 import type { IEVMRegistryContractLink } from '../src';
 import { EVMRegistryContractType } from '../src';
@@ -26,7 +26,7 @@ describe('YlideRegistryV6', function () {
 		await registryFactory.deploy();
 	});
 
-	describe('EthereumBlockchainReader', async function () {
+	describe('EVMBlockchainReader', async function () {
 		let ownerSigner: Signer;
 		let userSigner: Signer;
 		let historyUserSigner: Signer;
@@ -34,12 +34,12 @@ describe('YlideRegistryV6', function () {
 		let newUserSigner: Signer;
 		let referrerSigner: Signer;
 
-		let readerForOwner: EthereumBlockchainReader;
-		let readerForUser: EthereumBlockchainReader;
-		let readerForHistoryUser: EthereumBlockchainReader;
-		let readerForBonucer: EthereumBlockchainReader;
-		let readerForNewUser: EthereumBlockchainReader;
-		let readerForReferrer: EthereumBlockchainReader;
+		let readerForOwner: EVMBlockchainReader;
+		let readerForUser: EVMBlockchainReader;
+		let readerForHistoryUser: EVMBlockchainReader;
+		let readerForBonucer: EVMBlockchainReader;
+		let readerForNewUser: EVMBlockchainReader;
+		let readerForReferrer: EVMBlockchainReader;
 
 		before(async function () {
 			await mine(202);
@@ -51,42 +51,42 @@ describe('YlideRegistryV6', function () {
 			newUserSigner = new hre.ethers.Wallet(nacl.randomBytes(32), hre.ethers.provider);
 			referrerSigner = new hre.ethers.Wallet(nacl.randomBytes(32), hre.ethers.provider);
 
-			readerForOwner = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
+			readerForOwner = EVMBlockchainReader.createEVMBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: ownerSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
-			readerForUser = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
+			readerForUser = EVMBlockchainReader.createEVMBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: userSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
-			readerForHistoryUser = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
+			readerForHistoryUser = EVMBlockchainReader.createEVMBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: historyUserSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
-			readerForBonucer = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
+			readerForBonucer = EVMBlockchainReader.createEVMBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: bonucerSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
-			readerForNewUser = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
+			readerForNewUser = EVMBlockchainReader.createEVMBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: newUserSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
-			readerForReferrer = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
+			readerForReferrer = EVMBlockchainReader.createEVMBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: referrerSigner.provider!,
@@ -94,7 +94,7 @@ describe('YlideRegistryV6', function () {
 				},
 			]);
 		});
-		describe('EthereumRegistryV6Wrapper', async function () {
+		describe('EVMRegistryV6Wrapper', async function () {
 			let registryFactory: YlideRegistryV6__factory;
 			let registry: YlideRegistryV6;
 			let registryDesc: IEVMRegistryContractLink;
@@ -112,7 +112,7 @@ describe('YlideRegistryV6', function () {
 			});
 			describe('Misceallenous', function () {
 				it('Set & get owner', async function () {
-					const ownerRegistryV6Wrapper = new EthereumRegistryV6Wrapper(readerForOwner);
+					const ownerRegistryV6Wrapper = new EVMRegistryV6Wrapper(readerForOwner);
 
 					const ownerBeforeTxToSet = await ownerRegistryV6Wrapper.getOwner(registryDesc);
 
@@ -134,7 +134,7 @@ describe('YlideRegistryV6', function () {
 					);
 				});
 				it('Set & get & remove bonucer', async function () {
-					const ownerRegistryV6Wrapper = new EthereumRegistryV6Wrapper(readerForOwner);
+					const ownerRegistryV6Wrapper = new EVMRegistryV6Wrapper(readerForOwner);
 
 					const isBonucerBeforeTxToSet = await ownerRegistryV6Wrapper.getIsBonucer(
 						registryDesc,
@@ -171,7 +171,7 @@ describe('YlideRegistryV6', function () {
 					expect(isBonucerAfterTxToRemove, 'Is bonucer after tx to remove must be false').to.be.false;
 				});
 				it('Set & get bonuces', async function () {
-					const ownerRegistryV6Wrapper = new EthereumRegistryV6Wrapper(readerForOwner);
+					const ownerRegistryV6Wrapper = new EVMRegistryV6Wrapper(readerForOwner);
 
 					const bonusesBeforeTxToSet = await ownerRegistryV6Wrapper.getBonuces(registryDesc);
 
@@ -219,7 +219,7 @@ describe('YlideRegistryV6', function () {
 			});
 			describe('Keys management', function () {
 				it('Attach & extract public key', async function () {
-					const userRegistryV6Wrapper = new EthereumRegistryV6Wrapper(readerForUser);
+					const userRegistryV6Wrapper = new EVMRegistryV6Wrapper(readerForUser);
 
 					const publicKeyBytes = nacl.randomBytes(32);
 					const tx = await userRegistryV6Wrapper.attachPublicKey(
@@ -243,7 +243,7 @@ describe('YlideRegistryV6', function () {
 					expect(readKey!.registrar, 'Registrar mismatch').to.equal(11);
 				});
 				it('Attach multiple keys & extract public key history', async function () {
-					const historyUserRegistryV6Wrapper = new EthereumRegistryV6Wrapper(readerForHistoryUser);
+					const historyUserRegistryV6Wrapper = new EVMRegistryV6Wrapper(readerForHistoryUser);
 
 					const publicKeyBytes = nacl.randomBytes(32);
 
@@ -345,9 +345,9 @@ describe('YlideRegistryV6', function () {
 					expect(keys[4]!.registrar, 'Registrar mismatch').to.equal(101);
 				});
 				it('Attach & extract public key by admin (without bonuces)', async function () {
-					const ownerRegistryV6Wrapper = new EthereumRegistryV6Wrapper(readerForOwner);
-					const bonucerRegistryV6Wrapper = new EthereumRegistryV6Wrapper(readerForBonucer);
-					const newUserRegistryV6Wrapper = new EthereumRegistryV6Wrapper(readerForNewUser);
+					const ownerRegistryV6Wrapper = new EVMRegistryV6Wrapper(readerForOwner);
+					const bonucerRegistryV6Wrapper = new EVMRegistryV6Wrapper(readerForBonucer);
+					const newUserRegistryV6Wrapper = new EVMRegistryV6Wrapper(readerForNewUser);
 
 					const txToSetBonucer = await ownerRegistryV6Wrapper.addBonucer(
 						registryDesc,
@@ -396,10 +396,10 @@ describe('YlideRegistryV6', function () {
 					expect(readKey!.registrar, 'Registrar mismatch').to.equal(17);
 				});
 				it('Attach & extract public key by admin (with bonuces & referrer)', async function () {
-					const bonucerRegistryV6Wrapper = new EthereumRegistryV6Wrapper(readerForBonucer);
-					const newUserRegistryV6Wrapper = new EthereumRegistryV6Wrapper(readerForNewUser);
-					const referrerRegistryV6Wrapper = new EthereumRegistryV6Wrapper(readerForReferrer);
-					const ownerRegistryV6Wrapper = new EthereumRegistryV6Wrapper(readerForOwner);
+					const bonucerRegistryV6Wrapper = new EVMRegistryV6Wrapper(readerForBonucer);
+					const newUserRegistryV6Wrapper = new EVMRegistryV6Wrapper(readerForNewUser);
+					const referrerRegistryV6Wrapper = new EVMRegistryV6Wrapper(readerForReferrer);
+					const ownerRegistryV6Wrapper = new EVMRegistryV6Wrapper(readerForOwner);
 
 					const txToSetBonucer = await ownerRegistryV6Wrapper.addBonucer(
 						registryDesc,

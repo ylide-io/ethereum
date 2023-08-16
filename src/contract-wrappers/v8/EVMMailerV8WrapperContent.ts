@@ -5,16 +5,16 @@ import type {
 } from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV8';
 import type { IMessageContent, IMessageCorruptedContent } from '@ylide/sdk';
 import type { ethers } from 'ethers';
-import type { GenericMessageContentEventObject } from '../../controllers/helpers/EthereumContentReader';
-import { EthereumContentReader } from '../../controllers/helpers/EthereumContentReader';
+import type { GenericMessageContentEventObject } from '../../controllers/helpers/EVMContentReader';
+import { EVMContentReader } from '../../controllers/helpers/EVMContentReader';
 import { ethersEventToInternalEvent } from '../../controllers/helpers/ethersHelper';
 import { getMultipleEvents } from '../../misc';
 import { decodeContentId } from '../../misc/contentId';
 import type { IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
-import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
+import type { EVMMailerV8Wrapper } from './EVMMailerV8Wrapper';
 
-export class EthereumMailerV8WrapperContent {
-	constructor(public readonly wrapper: EthereumMailerV8Wrapper) {
+export class EVMMailerV8WrapperContent {
+	constructor(public readonly wrapper: EVMMailerV8Wrapper) {
 		//
 	}
 
@@ -84,8 +84,8 @@ export class EthereumMailerV8WrapperContent {
 			const enrichedEvents = await this.wrapper.blockchainReader.enrichEvents(
 				events.map(e => ethersEventToInternalEvent(e, this.processMessageContentEvent.bind(this))),
 			);
-			const content = EthereumContentReader.processMessageContent(message.msgId, enrichedEvents);
-			return EthereumContentReader.verifyMessageContent(message, content);
+			const content = EVMContentReader.processMessageContent(message.msgId, enrichedEvents);
+			return EVMContentReader.verifyMessageContent(message, content);
 		});
 	}
 }

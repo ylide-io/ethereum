@@ -1,38 +1,38 @@
 import type { ethers } from 'ethers';
 import { BigNumber } from 'ethers';
-import type { YlideMailerV7 } from '@ylide/ethereum-contracts';
-import { YlideMailerV7__factory } from '@ylide/ethereum-contracts';
-import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
+import { SmartBuffer } from '@ylide/smart-buffer';
+import type { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
+import type { YlideMailerV6 } from '@ylide/ethereum-contracts';
+import { YlideMailerV6__factory } from '@ylide/ethereum-contracts';
+import type { EVMBlockchainReader } from '../controllers/helpers/EVMBlockchainReader';
 import type { IMessageContent, IMessageCorruptedContent, Uint256 } from '@ylide/sdk';
-import type { LogDescription } from '@ethersproject/abi';
-import { BlockNumberRingBufferIndex } from '../controllers/misc/BlockNumberRingBufferIndex';
 import type {
 	MailContentEvent,
 	MailPushEvent,
 	MailPushEventObject,
 	MailContentEventObject,
-} from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV7';
+} from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV6';
+import type { LogDescription } from '@ethersproject/abi';
+import { BlockNumberRingBufferIndex } from '../controllers/misc/BlockNumberRingBufferIndex';
 import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../misc/types';
 import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../misc/constants';
 import type { IEventPosition } from '../misc/utils';
 import { decodeEvmMsgId, encodeEvmMsgId } from '../misc/evmMsgId';
-import { SmartBuffer } from '@ylide/smart-buffer';
-import type { TypedEvent, TypedEventFilter } from '@ylide/ethereum-contracts/lib/common';
 import type { EventParsed } from '../controllers/helpers/ethersHelper';
 import { ethersEventToInternalEvent } from '../controllers/helpers/ethersHelper';
-import type { GenericMessageContentEventObject } from '../controllers/helpers/EthereumContentReader';
-import { EthereumContentReader } from '../controllers/helpers/EthereumContentReader';
+import type { GenericMessageContentEventObject } from '../controllers/helpers/EVMContentReader';
+import { EVMContentReader } from '../controllers/helpers/EVMContentReader';
 import { ContractCache } from './ContractCache';
 
-export class EthereumMailerV7Wrapper {
-	public readonly cache: ContractCache<YlideMailerV7>;
+export class EVMMailerV6Wrapper {
+	public readonly cache: ContractCache<YlideMailerV6>;
 
-	constructor(public readonly blockchainReader: EthereumBlockchainReader) {
-		this.cache = new ContractCache(YlideMailerV7__factory, blockchainReader);
+	constructor(public readonly blockchainReader: EVMBlockchainReader) {
+		this.cache = new ContractCache(YlideMailerV6__factory, blockchainReader);
 	}
 
 	static async deploy(signer: ethers.Signer, from: string) {
-		const factory = new YlideMailerV7__factory(signer);
+		const factory = new YlideMailerV6__factory(signer);
 		return (await factory.deploy()).address;
 	}
 
@@ -101,7 +101,7 @@ export class EthereumMailerV7Wrapper {
 	async retrieveHistoryDesc<T extends TypedEvent>(
 		mailer: IEVMMailerContractLink,
 		getBaseIndex: () => Promise<number[]>,
-		getFilter: (contract: YlideMailerV7) => TypedEventFilter<T>,
+		getFilter: (contract: YlideMailerV6) => TypedEventFilter<T>,
 		processEvent: (event: IEVMEnrichedEvent<EventParsed<T>>) => IEVMMessage,
 		fromMessage: IEVMMessage | null,
 		includeFromMessage: boolean,
@@ -159,25 +159,11 @@ export class EthereumMailerV7Wrapper {
 		});
 	}
 
-	async getRecipientMessagesCount(mailer: IEVMMailerContractLink, recipient: Uint256): Promise<number> {
-		return await this.cache.contractOperation(mailer, async contract => {
-			const [bn] = await contract.functions.recipientMessagesCount(`0x${recipient}`);
-			return bn.toNumber();
-		});
-	}
-
 	async getSenderToBroadcastIndex(mailer: IEVMMailerContractLink, sender: string): Promise<number[]> {
 		return await this.cache.contractOperation(mailer, async contract => {
 			const [bn] = await contract.functions.senderToBroadcastIndex(sender);
 			const index = bn.toHexString().replace('0x', '').padStart(64, '0') as Uint256;
 			return BlockNumberRingBufferIndex.decodeIndexValue(index);
-		});
-	}
-
-	async getBroadcastSenderMessagesCount(mailer: IEVMMailerContractLink, sender: string): Promise<number> {
-		return await this.cache.contractOperation(mailer, async contract => {
-			const [bn] = await contract.functions.broadcastMessagesCount(sender);
-			return bn.toNumber();
 		});
 	}
 
@@ -469,7 +455,7 @@ export class EthereumMailerV7Wrapper {
 		limit: number | null,
 	): Promise<IEVMMessage[]> {
 		const getBaseIndex: () => Promise<number[]> = async () => this.getRecipientToMailIndex(mailer, recipient);
-		const getFilter = (contract: YlideMailerV7) => contract.filters.MailPush(`0x${recipient}`);
+		const getFilter = (contract: YlideMailerV6) => contract.filters.MailPush(`0x${recipient}`);
 		const processEvent = (event: IEVMEnrichedEvent<MailPushEventObject>) =>
 			this.processMailPushEvent(mailer, event);
 		return await this.retrieveHistoryDesc<MailPushEvent>(
@@ -502,6 +488,7 @@ export class EthereumMailerV7Wrapper {
 		return await this.cache.contractOperation(mailer, async (contract, provider, blockLimit) => {
 			// const decodedContentId = decodeContentId(message.$$meta.contentId);
 			const events: MailContentEvent[] = [];
+			const partsCount = 0;
 			for (let i = message.$$meta.block.number; i >= mailer.creationBlock; i -= blockLimit) {
 				const newEvents = await contract.queryFilter(
 					contract.filters.MailContent('0x' + message.$$meta.contentId),
@@ -517,8 +504,8 @@ export class EthereumMailerV7Wrapper {
 			const enrichedEvents = await this.blockchainReader.enrichEvents(
 				events.map(e => ethersEventToInternalEvent(e, this.processMessageContentEvent.bind(this))),
 			);
-			const content = EthereumContentReader.processMessageContent(message.msgId, enrichedEvents);
-			return EthereumContentReader.verifyMessageContent(message, content);
+			const content = EVMContentReader.processMessageContent(message.msgId, enrichedEvents);
+			return EVMContentReader.verifyMessageContent(message, content);
 		});
 	}
 }

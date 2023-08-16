@@ -3,15 +3,15 @@ import type { YlideRegistryV5 } from '@ylide/ethereum-contracts';
 import { YlideRegistryV5__factory } from '@ylide/ethereum-contracts';
 import { PublicKey, PublicKeyType, RemotePublicKey } from '@ylide/sdk';
 import { SmartBuffer } from '@ylide/smart-buffer';
-import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
+import type { EVMBlockchainReader } from '../controllers/helpers/EVMBlockchainReader';
 import type { IEVMEnrichedEvent, IEVMRegistryContractLink } from '../misc/types';
 import { ContractCache } from './ContractCache';
 import type { KeyAttachedEventObject } from '@ylide/ethereum-contracts/lib/contracts/YlideRegistryV5';
 
-export class EthereumRegistryV5Wrapper {
+export class EVMRegistryV5Wrapper {
 	public readonly cache: ContractCache<YlideRegistryV5>;
 
-	constructor(public readonly blockchainReader: EthereumBlockchainReader) {
+	constructor(public readonly blockchainReader: EVMBlockchainReader) {
 		this.cache = new ContractCache(YlideRegistryV5__factory, blockchainReader);
 	}
 

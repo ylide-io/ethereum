@@ -3,7 +3,7 @@ import { MessageContentFailure } from '@ylide/sdk';
 import { SmartBuffer } from '@ylide/smart-buffer';
 
 import type { IEVMEnrichedEvent } from '../../misc/types';
-import type { EthereumBlockchainReader } from './EthereumBlockchainReader';
+import type { EVMBlockchainReader } from './EVMBlockchainReader';
 
 export interface GenericMessageContentEventObject {
 	contentId: string;
@@ -13,8 +13,8 @@ export interface GenericMessageContentEventObject {
 	content: string;
 }
 
-export class EthereumContentReader {
-	constructor(public readonly blockchainReader: EthereumBlockchainReader) {
+export class EVMContentReader {
+	constructor(public readonly blockchainReader: EVMBlockchainReader) {
 		//
 	}
 

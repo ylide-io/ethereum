@@ -23,11 +23,11 @@ export interface IInternalRPCDescriptor {
 	batchNotSupported: boolean;
 }
 
-export class EthereumBlockchainReader {
+export class EVMBlockchainReader {
 	private blocksCache: Record<string, BlockWithTransactions> = {};
 	private blocksCacheByNumber: Record<number, BlockWithTransactions> = {};
 
-	static createEthereumBlockchainReader(blockchainGroup: string, blockchain: string, rpcs: IRPCDescriptor[]) {
+	static createEVMBlockchainReader(blockchainGroup: string, blockchain: string, rpcs: IRPCDescriptor[]) {
 		const internalRPCs: IInternalRPCDescriptor[] = rpcs.map(rpc => {
 			let provider;
 			if (typeof rpc.rpcUrlOrProvider === 'string') {
@@ -58,7 +58,7 @@ export class EthereumBlockchainReader {
 			};
 		});
 
-		return new EthereumBlockchainReader(blockchainGroup, blockchain, internalRPCs);
+		return new EVMBlockchainReader(blockchainGroup, blockchain, internalRPCs);
 	}
 
 	private constructor(

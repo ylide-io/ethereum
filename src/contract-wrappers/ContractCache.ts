@@ -1,6 +1,6 @@
 import { WebSocketProvider } from '@ethersproject/providers';
 import type { ethers } from 'ethers';
-import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
+import type { EVMBlockchainReader } from '../controllers/helpers/EVMBlockchainReader';
 import type { IEVMMailerContractLink, IEVMRegistryContractLink, IEVMYlidePayContractLink } from '../misc/types';
 
 export type SigningContext = ethers.providers.Provider | ethers.Signer;
@@ -10,7 +10,7 @@ export class ContractCache<Contract = any> {
 
 	constructor(
 		public readonly factory: { connect: (address: string, provider: SigningContext) => Contract },
-		public readonly blockchainReader: EthereumBlockchainReader,
+		public readonly blockchainReader: EVMBlockchainReader,
 	) {
 		//
 	}

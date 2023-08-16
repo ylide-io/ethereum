@@ -1,10 +1,10 @@
 import type { ethers } from 'ethers';
 import { BigNumber } from 'ethers';
 import type { IEVMMailerContractLink } from '../../misc/types';
-import type { EthereumMailerV8Wrapper } from './EthereumMailerV8Wrapper';
+import type { EVMMailerV9Wrapper } from './EVMMailerV9Wrapper';
 
-export class EthereumMailerV8WrapperGlobals {
-	constructor(public readonly wrapper: EthereumMailerV8Wrapper) {
+export class EVMMailerV9WrapperGlobals {
+	constructor(public readonly wrapper: EVMMailerV9Wrapper) {
 		//
 	}
 
@@ -22,6 +22,24 @@ export class EthereumMailerV8WrapperGlobals {
 	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
 		const tx = await contract.transferOwnership(owner, { from });
+		const receipt = await tx.wait();
+		return { tx, receipt };
+	}
+
+	async getExtraTreasury(mailer: IEVMMailerContractLink): Promise<string> {
+		return await this.wrapper.cache.contractOperation(mailer, async contract => {
+			return await contract.extraTreasury();
+		});
+	}
+
+	async setExtraTreasury(
+		mailer: IEVMMailerContractLink,
+		signer: ethers.Signer,
+		from: string,
+		newExtraTreasury: string,
+	): Promise<{ tx: ethers.ContractTransaction; receipt: ethers.ContractReceipt }> {
+		const contract = this.wrapper.cache.getContract(mailer.address, signer);
+		const tx = await contract.setExtraTreasury(newExtraTreasury, { from });
 		const receipt = await tx.wait();
 		return { tx, receipt };
 	}
@@ -107,5 +125,24 @@ export class EthereumMailerV8WrapperGlobals {
 			const terminationBlock = await contract.terminationBlock();
 			return terminationBlock.toNumber();
 		});
+	}
+
+	async isYlide(mailer: IEVMMailerContractLink, contractAddresses: string): Promise<boolean> {
+		return await this.wrapper.cache.contractOperation(mailer, async (contract, provider) => {
+			return contract.isYlide(contractAddresses);
+		});
+	}
+
+	async setIsYlide(
+		mailer: IEVMMailerContractLink,
+		signer: ethers.Signer,
+		from: string,
+		contractAddresses: string[],
+		isSet: boolean[],
+	) {
+		const contract = this.wrapper.cache.getContract(mailer.address, signer);
+		const tx = await contract.setIsYlide(contractAddresses, isSet, { from });
+		const receipt = await tx.wait();
+		return { tx, receipt };
 	}
 }

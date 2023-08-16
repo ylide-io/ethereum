@@ -1,13 +1,13 @@
 import { GenericMessagesSource } from '@ylide/sdk';
-import type { EthereumMailerV8Wrapper } from '../contract-wrappers/v8/EthereumMailerV8Wrapper';
-import type { EthereumBlockchainController } from '../controllers/EthereumBlockchainController';
+import type { EVMMailerV8Wrapper } from '../contract-wrappers/v8/EVMMailerV8Wrapper';
+import type { EVMBlockchainController } from '../controllers/EVMBlockchainController';
 import type { IEVMMailerContractLink, IHistorySource } from '../misc/types';
 
 export class EVMMailerV8Source extends GenericMessagesSource {
 	constructor(
-		private readonly controller: EthereumBlockchainController,
+		private readonly controller: EVMBlockchainController,
 		private readonly mailer: IEVMMailerContractLink,
-		private readonly wrapper: EthereumMailerV8Wrapper,
+		private readonly wrapper: EVMMailerV8Wrapper,
 		private readonly source: IHistorySource,
 	) {
 		super(

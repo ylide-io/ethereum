@@ -1,10 +1,10 @@
-export * from './EthereumBlockchainController';
-export * from './EthereumNameService';
-export * from './EthereumWalletController';
+export * from './EVMBlockchainController';
+export * from './EVMNameService';
+export * from './EVMWalletController';
 
 export * from './helpers/BetterWebSocketProvider';
-export * from './helpers/EthereumBlockchainReader';
-export * from './helpers/EthereumContentReader';
+export * from './helpers/EVMBlockchainReader';
+export * from './helpers/EVMContentReader';
 export * from './helpers/ethersHelper';
 
 export * from './misc/BlockNumberRingBufferIndex';

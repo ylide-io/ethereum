@@ -5,17 +5,17 @@ import type { KeyAttachedEvent, KeyAttachedEventObject } from '@ylide/ethereum-c
 import type { Uint256 } from '@ylide/sdk';
 import { RemotePublicKey, PublicKey, PublicKeyType } from '@ylide/sdk';
 import { SmartBuffer } from '@ylide/smart-buffer';
-import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
+import type { EVMBlockchainReader } from '../controllers/helpers/EVMBlockchainReader';
 import type { IEVMEnrichedEvent, IEVMRegistryContractLink } from '../misc/types';
 import type { IEventPosition } from '../misc/utils';
 import { ContractCache } from './ContractCache';
 import { BlockNumberRingBufferIndex } from '../controllers/misc/BlockNumberRingBufferIndex';
 import { ethersEventToInternalEvent } from '../controllers/helpers/ethersHelper';
 
-export class EthereumRegistryV6Wrapper {
+export class EVMRegistryV6Wrapper {
 	public readonly cache: ContractCache<YlideRegistryV6>;
 
-	constructor(public readonly blockchainReader: EthereumBlockchainReader) {
+	constructor(public readonly blockchainReader: EVMBlockchainReader) {
 		this.cache = new ContractCache(YlideRegistryV6__factory, blockchainReader);
 	}
 

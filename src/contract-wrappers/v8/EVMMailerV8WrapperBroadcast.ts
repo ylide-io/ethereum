@@ -1,8 +1,8 @@
-import type { YlideMailerV9 } from '@ylide/ethereum-contracts';
+import type { YlideMailerV8 } from '@ylide/ethereum-contracts';
 import type {
 	BroadcastPushEvent,
 	BroadcastPushEventObject,
-} from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV9';
+} from '@ylide/ethereum-contracts/lib/contracts/YlideMailerV8';
 import type { Uint256 } from '@ylide/sdk';
 import type { BigNumber, ethers } from 'ethers';
 import { ethersEventToInternalEvent, ethersLogToInternalEvent } from '../../controllers/helpers/ethersHelper';
@@ -11,10 +11,10 @@ import { EVM_CONTRACT_TO_NETWORK, EVM_NAMES } from '../../misc/constants';
 import { encodeEvmMsgId } from '../../misc/evmMsgId';
 import type { IEVMEnrichedEvent, IEVMEvent, IEVMMailerContractLink, IEVMMessage } from '../../misc/types';
 import { bnToUint256, parseOutLogs } from '../../misc/utils';
-import type { EthereumMailerV9Wrapper } from './EthereumMailerV9Wrapper';
+import type { EVMMailerV8Wrapper } from './EVMMailerV8Wrapper';
 
-export class EthereumMailerV9WrapperBroadcast {
-	constructor(public readonly wrapper: EthereumMailerV9Wrapper) {
+export class EVMMailerV8WrapperBroadcast {
+	constructor(public readonly wrapper: EVMMailerV8Wrapper) {
 		//
 	}
 
@@ -42,7 +42,6 @@ export class EthereumMailerV9WrapperBroadcast {
 				index: BlockNumberRingBufferIndex.decodeIndexValue(
 					bnToUint256(event.event.parsed.previousFeedEventsIndex),
 				),
-				extraPayment: event.event.parsed.extraPayment.toString(),
 				...event,
 			},
 		};
@@ -193,7 +192,7 @@ export class EthereumMailerV9WrapperBroadcast {
 	): Promise<IEVMMessage[]> {
 		const getBaseIndex: () => Promise<number[]> = async () =>
 			(await this.getBroadcastFeedParams(mailer, feedId)).messagesIndex;
-		const getFilter = (contract: YlideMailerV9) => contract.filters.BroadcastPush(null, `0x${feedId}`);
+		const getFilter = (contract: YlideMailerV8) => contract.filters.BroadcastPush(null, `0x${feedId}`);
 		const processEvent = (event: IEVMEnrichedEvent<BroadcastPushEventObject>) =>
 			this.processBroadcastPushEvent(mailer, event);
 		return await this.wrapper.retrieveHistoryDesc<BroadcastPushEvent>(
@@ -239,8 +238,6 @@ export class EthereumMailerV9WrapperBroadcast {
 		signer: ethers.Signer,
 		from: string,
 		isPersonal: boolean,
-		isGenericFeed: boolean,
-		extraPayment: ethers.BigNumber,
 		feedId: Uint256,
 		uniqueId: number,
 		content: Uint8Array,
@@ -253,15 +250,7 @@ export class EthereumMailerV9WrapperBroadcast {
 		messages: IEVMMessage[];
 	}> {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.sendBroadcast(
-			isPersonal,
-			isGenericFeed,
-			extraPayment,
-			`0x${feedId}`,
-			uniqueId,
-			content,
-			{ from, value },
-		);
+		const tx = await contract.sendBroadcast(isPersonal, `0x${feedId}`, uniqueId, content, { from, value });
 		const receipt = await tx.wait();
 		const {
 			logs,
@@ -271,7 +260,7 @@ export class EthereumMailerV9WrapperBroadcast {
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<BroadcastPushEventObject>(
 			broadcastPushEvents,
 		);
-		const messages = await Promise.all(enriched.map(e => this.processBroadcastPushEvent(mailer, e)));
+		const messages = enriched.map(e => this.processBroadcastPushEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
 	}
 
@@ -280,8 +269,6 @@ export class EthereumMailerV9WrapperBroadcast {
 		signer: ethers.Signer,
 		from: string,
 		isPersonal: boolean,
-		isGenericFeed: boolean,
-		extraPayment: ethers.BigNumber,
 		feedId: Uint256,
 		uniqueId: number,
 		firstBlockNumber: number,
@@ -298,8 +285,6 @@ export class EthereumMailerV9WrapperBroadcast {
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
 		const tx = await contract.sendBroadcastHeader(
 			isPersonal,
-			isGenericFeed,
-			extraPayment,
 			`0x${feedId}`,
 			uniqueId,
 			firstBlockNumber,
@@ -316,7 +301,7 @@ export class EthereumMailerV9WrapperBroadcast {
 		const enriched = await this.wrapper.blockchainReader.enrichEvents<BroadcastPushEventObject>(
 			broadcastPushEvents,
 		);
-		const messages = await Promise.all(enriched.map(e => this.processBroadcastPushEvent(mailer, e)));
+		const messages = enriched.map(e => this.processBroadcastPushEvent(mailer, e));
 		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
 	}
 }

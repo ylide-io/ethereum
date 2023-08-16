@@ -9,15 +9,15 @@ import type { Uint256 } from '@ylide/sdk';
 import type { Contract, ethers } from 'ethers';
 import { BigNumber } from 'ethers';
 import { ethersLogToInternalEvent } from '../controllers';
-import type { EthereumBlockchainReader } from '../controllers/helpers/EthereumBlockchainReader';
+import type { EVMBlockchainReader } from '../controllers/helpers/EVMBlockchainReader';
 import type { IEVMEvent, IEVMMailerContractLink, IEVMMessage, IEVMYlidePayContractLink } from '../misc';
 import { getMultipleEvents, isSentSender, parseOutLogs, processMailPushEvent } from '../misc';
 import { ContractCache } from './ContractCache';
 
-export class EthereumPayV1Wrapper {
+export class EVMPayV1Wrapper {
 	public readonly cache: ContractCache<YlidePayV1>;
 
-	constructor(public readonly blockchainReader: EthereumBlockchainReader) {
+	constructor(public readonly blockchainReader: EVMBlockchainReader) {
 		this.cache = new ContractCache(YlidePayV1__factory, blockchainReader);
 	}
 

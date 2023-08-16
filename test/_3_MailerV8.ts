@@ -17,8 +17,8 @@ import hre from 'hardhat';
 import { before, describe, it } from 'mocha';
 import type { IEVMMailerContractLink, IEVMMessage } from '../src';
 import { EVMMailerContractType } from '../src';
-import { EthereumMailerV8Wrapper } from '../src/contract-wrappers/v8/EthereumMailerV8Wrapper';
-import { EthereumBlockchainReader } from '../src/controllers/helpers/EthereumBlockchainReader';
+import { EVMMailerV8Wrapper } from '../src/contract-wrappers/v8/EVMMailerV8Wrapper';
+import { EVMBlockchainReader } from '../src/controllers/helpers/EVMBlockchainReader';
 import { constructPersonalFeedId } from '../src/misc/constructFeedId';
 import { decodeContentId } from '../src/misc/contentId';
 
@@ -30,35 +30,35 @@ describe('YlideMailerV8', function () {
 		await mailerFactory.deploy();
 	});
 
-	describe('EthereumBlockchainReader', async function () {
+	describe('EVMBlockchainReader', async function () {
 		let ownerSigner: Signer;
 		let beneficiarySigner: Signer;
 		let userSigner: Signer;
 
-		let readerForOwner: EthereumBlockchainReader;
-		let readerForBeneficiary: EthereumBlockchainReader;
-		let readerForUser: EthereumBlockchainReader;
+		let readerForOwner: EVMBlockchainReader;
+		let readerForBeneficiary: EVMBlockchainReader;
+		let readerForUser: EVMBlockchainReader;
 
 		before(async function () {
 			ownerSigner = await hre.ethers.getSigner('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
 			beneficiarySigner = await hre.ethers.getSigner('0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC');
 			userSigner = await hre.ethers.getSigner('0x70997970C51812dc3A010C7d01b50e0d17dc79C8');
 
-			readerForOwner = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
+			readerForOwner = EVMBlockchainReader.createEVMBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: ownerSigner.provider!,
 					blockLimit: 100,
 				},
 			]);
-			readerForBeneficiary = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
+			readerForBeneficiary = EVMBlockchainReader.createEVMBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: beneficiarySigner.provider!,
 					blockLimit: 100,
 				},
 			]);
-			readerForUser = EthereumBlockchainReader.createEthereumBlockchainReader('evm', 'ETHEREUM', [
+			readerForUser = EVMBlockchainReader.createEVMBlockchainReader('evm', 'ETHEREUM', [
 				{
 					chainId: 31337,
 					rpcUrlOrProvider: userSigner.provider!,
@@ -66,7 +66,7 @@ describe('YlideMailerV8', function () {
 				},
 			]);
 		});
-		describe('EthereumMailerV8Wrapper', async function () {
+		describe('EVMMailerV8Wrapper', async function () {
 			let mailerFactory;
 			let mailer: YlideMailerV8;
 			let mailerDesc: IEVMMailerContractLink;
@@ -84,7 +84,7 @@ describe('YlideMailerV8', function () {
 			});
 			describe('Misceallenous', function () {
 				it('Set & get owner', async function () {
-					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
+					const ownerMailerV8Wrapper = new EVMMailerV8Wrapper(readerForOwner);
 
 					const ownerBeforeTxToSet = await ownerMailerV8Wrapper.globals.getOwner(mailerDesc);
 
@@ -106,7 +106,7 @@ describe('YlideMailerV8', function () {
 					);
 				});
 				it('Set & get beneficiary', async function () {
-					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
+					const ownerMailerV8Wrapper = new EVMMailerV8Wrapper(readerForOwner);
 
 					const beneficiaryBeforeTxToSet = await ownerMailerV8Wrapper.globals.getBeneficiary(mailerDesc);
 
@@ -128,7 +128,7 @@ describe('YlideMailerV8', function () {
 					);
 				});
 				it('Set & get fees', async function () {
-					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
+					const ownerMailerV8Wrapper = new EVMMailerV8Wrapper(readerForOwner);
 
 					const feesBeforeTxToSet = await ownerMailerV8Wrapper.globals.getFees(mailerDesc);
 					expect(
@@ -168,7 +168,7 @@ describe('YlideMailerV8', function () {
 					).to.equal(3);
 				});
 				it('Set & get prices', async function () {
-					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
+					const ownerMailerV8Wrapper = new EVMMailerV8Wrapper(readerForOwner);
 
 					const pricesBeforeTxToSet = await ownerMailerV8Wrapper.globals.getPrices(mailerDesc);
 
@@ -205,7 +205,7 @@ describe('YlideMailerV8', function () {
 			});
 			describe('Feed management', function () {
 				it('Create & manage mailing feed', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					const { feedId } = await userMailerV8Wrapper.mailing.createMailingFeed(
 						mailerDesc,
@@ -266,8 +266,8 @@ describe('YlideMailerV8', function () {
 					);
 				});
 				it('Create & send and receive messages in mailing feed', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
-					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
+					const ownerMailerV8Wrapper = new EVMMailerV8Wrapper(readerForOwner);
 
 					const { feedId } = await userMailerV8Wrapper.mailing.createMailingFeed(
 						mailerDesc,
@@ -346,7 +346,7 @@ describe('YlideMailerV8', function () {
 					expect(msgs[0].key.join(','), 'Key must be 1,2,3,4,5,6').to.equal('1,2,3,4,5,6');
 				});
 				it('Create & manage broadcast feed', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					const { feedId: feedId1 } = await userMailerV8Wrapper.broadcast.createBroadcastFeed(
 						mailerDesc,
@@ -458,8 +458,8 @@ describe('YlideMailerV8', function () {
 					);
 				});
 				it('Create & send and receive broadcast', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
-					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
+					const ownerMailerV8Wrapper = new EVMMailerV8Wrapper(readerForOwner);
 
 					const { feedId: feedId1 } = await userMailerV8Wrapper.broadcast.createBroadcastFeed(
 						mailerDesc,
@@ -610,8 +610,8 @@ describe('YlideMailerV8', function () {
 					expect(receipt3.status, 'Receipt status must be 1').to.equal(1);
 				});
 				it('Send and receive personal broadcast', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
-					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
+					const ownerMailerV8Wrapper = new EVMMailerV8Wrapper(readerForOwner);
 
 					const feedId1 = '0000000000000000000000000000000000000000000000000000000000001234' as Uint256;
 
@@ -694,7 +694,7 @@ describe('YlideMailerV8', function () {
 					expect(retrievedContent.content.join(','), 'Content must be 8,7,8,7,8,7').to.equal('8,7,8,7,8,7');
 				});
 				it('Create priced feeds', async function () {
-					const ownerMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForOwner);
+					const ownerMailerV8Wrapper = new EVMMailerV8Wrapper(readerForOwner);
 
 					const txToSet = await ownerMailerV8Wrapper.globals.setPrices(
 						mailerDesc,
@@ -816,7 +816,7 @@ describe('YlideMailerV8', function () {
 				// sendMessageContentPart
 
 				const sendAndVerifySmallMail = async (
-					mailerV8Wrapper: EthereumMailerV8Wrapper,
+					mailerV8Wrapper: EVMMailerV8Wrapper,
 					senderSigner: Signer,
 					feedId: Uint256,
 					value: number,
@@ -914,7 +914,7 @@ describe('YlideMailerV8', function () {
 				};
 
 				const sendAndVerifySmallBroadcast = async (
-					mailerV8Wrapper: EthereumMailerV8Wrapper,
+					mailerV8Wrapper: EVMMailerV8Wrapper,
 					senderSigner: Signer,
 					feedId: Uint256,
 					value: number,
@@ -999,7 +999,7 @@ describe('YlideMailerV8', function () {
 				};
 
 				it('Send small mail', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					const result = await sendAndVerifySmallMail(userMailerV8Wrapper, userSigner, YLIDE_MAIN_FEED_ID, 0);
 					if (!result) {
@@ -1012,7 +1012,7 @@ describe('YlideMailerV8', function () {
 					).to.equal(0);
 				});
 				it('Send small mail with global fee, no feed fee', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					// just some test build-in feed
 					const feedId = '0000000000000000000000000000000000000000000000000000000000000003' as Uint256;
@@ -1077,7 +1077,7 @@ describe('YlideMailerV8', function () {
 					expect(zoneBeneficiaryBalance3.e18, 'Zone beneficiary balance must still be 0').to.equal('0');
 				});
 				it('Send small mail with no global fee, but with feed fee', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					// just some test build-in feed
 					const feedId = '0000000000000000000000000000000000000000000000000000000000000003' as Uint256;
@@ -1146,7 +1146,7 @@ describe('YlideMailerV8', function () {
 					expect(zoneBeneficiaryBalance3.e18, 'Zone beneficiary balance must be 7').to.equal('7');
 				});
 				it('Send small mail with with global fee and with feed fee', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					// just some test build-in feed
 					const feedId = '0000000000000000000000000000000000000000000000000000000000000003' as Uint256;
@@ -1221,7 +1221,7 @@ describe('YlideMailerV8', function () {
 					expect(zoneBeneficiaryBalance3.e18, 'Zone beneficiary balance must still be 17').to.equal('17');
 				});
 				it('Send bulk mail', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					const uniqueId = 123;
 					const recipient1Hex = '1234567890123456789012345678901234567890123456789012345678901234' as Uint256;
@@ -1295,7 +1295,7 @@ describe('YlideMailerV8', function () {
 					expect(messageContent!.args.partIdx, 'partIdx must be 0').to.equal(0);
 				});
 				it('Send multipart mail', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					const uniqueId = 123;
 					const recipient1Hex = '1234567890123456789012345678901234567890123456789012345678901234' as Uint256;
@@ -1440,7 +1440,7 @@ describe('YlideMailerV8', function () {
 					expect(contentId2.blockCountLock, 'Block count lock must be 100').to.equal(100);
 				});
 				it('Send broadcast', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					const result = await sendAndVerifySmallBroadcast(
 						userMailerV8Wrapper,
@@ -1458,7 +1458,7 @@ describe('YlideMailerV8', function () {
 					).to.equal(0);
 				});
 				it('Send multipart broadcast', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					const uniqueId = 123;
 					const content1 = new Uint8Array([8, 7, 8, 7, 8, 7]);
@@ -1560,7 +1560,7 @@ describe('YlideMailerV8', function () {
 					expect(contentId1.blockCountLock, 'Block count lock must be 100').to.equal(100);
 				});
 				it('Send small broadcast with global fee, no feed fee', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					// just some test build-in feed
 					const feedId = '0000000000000000000000000000000000000000000000000000000000000002' as Uint256;
@@ -1625,7 +1625,7 @@ describe('YlideMailerV8', function () {
 					expect(zoneBeneficiaryBalance3.e18, 'Zone beneficiary balance must still be 0').to.equal('0');
 				});
 				it('Send small broadcast with no global fee, but with feed fee', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					// just some test build-in feed
 					const feedId = '0000000000000000000000000000000000000000000000000000000000000002' as Uint256;
@@ -1694,7 +1694,7 @@ describe('YlideMailerV8', function () {
 					expect(zoneBeneficiaryBalance3.e18, 'Zone beneficiary balance must be 7').to.equal('7');
 				});
 				it('Send small broadcast with with global fee and with feed fee', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					// just some test build-in feed
 					const feedId = '0000000000000000000000000000000000000000000000000000000000000002' as Uint256;
@@ -1848,7 +1848,7 @@ describe('YlideMailerV8', function () {
 				};
 
 				const getMailHFactory =
-					(r: Uint256, m: EthereumMailerV8Wrapper) =>
+					(r: Uint256, m: EVMMailerV8Wrapper) =>
 					(
 						fromMessage: IEVMMessage | null,
 						includeFromMessage: boolean,
@@ -1868,7 +1868,7 @@ describe('YlideMailerV8', function () {
 						);
 
 				const getBroadcastHFactory =
-					(m: EthereumMailerV8Wrapper) =>
+					(m: EVMMailerV8Wrapper) =>
 					(
 						fromMessage: IEVMMessage | null,
 						includeFromMessage: boolean,
@@ -1913,7 +1913,7 @@ describe('YlideMailerV8', function () {
 				};
 
 				const publishMails = async (
-					m: EthereumMailerV8Wrapper,
+					m: EVMMailerV8Wrapper,
 					skipBefore: number,
 					skipBetween: number,
 					skipAfter: number,
@@ -1950,7 +1950,7 @@ describe('YlideMailerV8', function () {
 				};
 
 				const publishBroadcasts = async (
-					m: EthereumMailerV8Wrapper,
+					m: EVMMailerV8Wrapper,
 					skipBefore: number,
 					skipBetween: number,
 					skipAfter: number,
@@ -1982,7 +1982,7 @@ describe('YlideMailerV8', function () {
 					let rEvents: any;
 
 					this.beforeEach(async () => {
-						userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+						userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 						recipientHex = '0000000000000000000000000000000000000000000000000000000000000123' as Uint256;
 						getH = getMailHFactory(recipientHex, userMailerV8Wrapper);
 						events = await generateSmallMailEvents(mailerDesc, userSigner, recipientHex, 50);
@@ -2136,7 +2136,7 @@ describe('YlideMailerV8', function () {
 					let rEvents: any;
 
 					this.beforeEach(async () => {
-						userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+						userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 						sender = await userSigner.getAddress();
 						getH = getBroadcastHFactory(userMailerV8Wrapper);
 						events = await generateSmallBroadcastEvents(mailerDesc, userSigner, 50);
@@ -2284,7 +2284,7 @@ describe('YlideMailerV8', function () {
 			});
 			describe('Reading content', async () => {
 				it('Send small mail', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					const uniqueId = 123;
 					const recipientHex = '1234567890123456789012345678901234567890123456789012345678901234' as Uint256;
@@ -2324,7 +2324,7 @@ describe('YlideMailerV8', function () {
 					expect(messageContent?.args.partIdx, 'partIdx must be 0').to.equal(0);
 				});
 				it('Send bulk mail', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					const uniqueId = 123;
 					const recipient1Hex = '1234567890123456789012345678901234567890123456789012345678901234' as Uint256;
@@ -2398,7 +2398,7 @@ describe('YlideMailerV8', function () {
 					expect(messageContent!.args.partIdx, 'partIdx must be 0').to.equal(0);
 				});
 				it('Send multipart mail', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					const uniqueId = 123;
 					const recipient1Hex = '1234567890123456789012345678901234567890123456789012345678901234' as Uint256;
@@ -2543,7 +2543,7 @@ describe('YlideMailerV8', function () {
 					expect(contentId2.blockCountLock, 'Block count lock must be 100').to.equal(100);
 				});
 				it('Send broadcast', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					const uniqueId = 123;
 					const content = new Uint8Array([8, 7, 8, 7, 8, 7]);
@@ -2587,7 +2587,7 @@ describe('YlideMailerV8', function () {
 					expect(messageContent!.args.partIdx, 'partIdx must be 0').to.equal(0);
 				});
 				it('Send multipart broadcast', async function () {
-					const userMailerV8Wrapper = new EthereumMailerV8Wrapper(readerForUser);
+					const userMailerV8Wrapper = new EVMMailerV8Wrapper(readerForUser);
 
 					const uniqueId = 123;
 					const content1 = new Uint8Array([8, 7, 8, 7, 8, 7]);
