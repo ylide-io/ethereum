@@ -189,12 +189,6 @@ export class EVMBlockchainController extends AbstractBlockchainController {
 		this.contentReader = new EVMContentReader(this.blockchainReader);
 	}
 
-	private verboseLog(...args: any[]) {
-		if (this._isVerbose) {
-			console.log('[Y-SDK]', ...args);
-		}
-	}
-
 	private verboseLogTick(...args: any[]) {
 		if (this._isVerbose) {
 			console.log('[Y-ETH-SDK]', ...args);

@@ -70,7 +70,7 @@ export class EVMWalletController extends AbstractWalletController {
 	readonly blockchainReader: EVMBlockchainReader;
 	readonly signer: JsonRpcSigner;
 
-	private readonly onNetworkSwitchRequest: NetworkSwitchHandler;
+	private readonly onNetworkSwitchRequest: NetworkSwitchHandler | undefined;
 
 	private readonly _wallet: string;
 
@@ -105,6 +105,7 @@ export class EVMWalletController extends AbstractWalletController {
 			};
 			onNetworkSwitchRequest?: NetworkSwitchHandler;
 			onSwitchAccountRequest?: SwitchAccountCallback;
+			strictMode?: boolean;
 		} = {},
 	) {
 		super(options);
@@ -126,7 +127,7 @@ export class EVMWalletController extends AbstractWalletController {
 
 		this.onSwitchAccountRequest = options?.onSwitchAccountRequest || null;
 
-		if (!options || !options.onNetworkSwitchRequest) {
+		if (options.strictMode && !options.onNetworkSwitchRequest) {
 			throw new Error(
 				'You have to pass valid onNetworkSwitchRequest param to the options of EVMWalletController constructor',
 			);
@@ -380,11 +381,21 @@ export class EVMWalletController extends AbstractWalletController {
 
 	private async ensureNetworkOptions(reason: string, options?: { network?: EVMNetwork }) {
 		if (!options || typeof options.network === 'undefined' || !EVM_CONTRACTS[options.network]) {
-			throw new Error(`Please, pass network param in options in order to execute this request`);
+			if (this.options.strictMode) {
+				throw new Error(`Please, pass network param in options in order to execute this request`);
+			} else {
+				options = {
+					...(options || {}),
+					network: await this.getCurrentNetwork(),
+				};
+			}
+		}
+		if (!options.network) {
+			throw new Error('Network is not defined');
 		}
 		const { network: expectedNetwork } = options;
 		const network = await this.getCurrentNetwork();
-		if (expectedNetwork !== network) {
+		if (expectedNetwork !== network && this.onNetworkSwitchRequest) {
 			await this.onNetworkSwitchRequest(reason, network, expectedNetwork, EVM_CHAINS[network]);
 		}
 		const newNetwork = await this.getCurrentNetwork();
