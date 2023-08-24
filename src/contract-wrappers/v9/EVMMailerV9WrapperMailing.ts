@@ -182,6 +182,7 @@ export class EVMMailerV9WrapperMailing {
 			{ feedId: `0x${feedId}`, uniqueId, recipients: recipients.map(r => `0x${r}`), keys, content },
 			{ from, value },
 		);
+		console.log('tx done: ', tx, 'start waiting');
 		const receipt = await tx.wait();
 		const {
 			logs,

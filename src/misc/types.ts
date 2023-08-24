@@ -25,7 +25,7 @@ export enum EVMNetwork {
 
 	// in test:
 	SHARDEUM, //  = 'SHARDEUM',
-	// ZETA, //  = 'ZETA',
+	ZETA, //  = 'ZETA',
 }
 
 export interface IEVMBlock {

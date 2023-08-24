@@ -184,6 +184,7 @@ export class EVMMailerV8WrapperMailing {
 			content,
 			{ from, value },
 		);
+		console.log('tx done: ', tx, 'start waiting');
 		const receipt = await tx.wait();
 		const {
 			logs,

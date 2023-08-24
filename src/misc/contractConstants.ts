@@ -1,7 +1,7 @@
 import type { IEVMNetworkContracts } from './types';
 import { EVMMailerContractType, EVMNetwork, EVMRegistryContractType } from './types';
 
-// last contract id: 87, next id is 88
+// last contract id: 89, next id is 90
 export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 	[EVMNetwork.LOCAL_HARDHAT]: {
 		registryContracts: [
@@ -767,11 +767,27 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 		currentRegistryId: 73,
 		currentMailerId: 74,
 	},
-	// [EVMNetwork.ZETA]: {
-	// 	registryContracts: [],
-	// 	mailerContracts: [],
-	// 	payContracts: [],
-	// 	currentRegistryId: 0,
-	// 	currentMailerId: 0,
-	// },
+	[EVMNetwork.ZETA]: {
+		registryContracts: [
+			{
+				id: 88,
+				type: EVMRegistryContractType.EVMRegistryV6,
+				address: '0x28d9bb1aed64c115dd70e886c546ee0420623bc2',
+				creationBlock: 1324353,
+				verified: false,
+			},
+		],
+		mailerContracts: [
+			{
+				id: 89,
+				type: EVMMailerContractType.EVMMailerV9,
+				address: '0x79935f5d685452c361058c0fe5a50b803aa214a1',
+				creationBlock: 1324362,
+				verified: false,
+			},
+		],
+		payContracts: [],
+		currentRegistryId: 88,
+		currentMailerId: 89,
+	},
 };
