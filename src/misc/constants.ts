@@ -196,21 +196,21 @@ export const EVM_RPCS: Record<
 		},
 	],
 	[EVMNetwork.METIS]: [{ rpc: 'https://andromeda.metis.io/?owner=1088', blockLimit: 10000 }],
-	[EVMNetwork.BASE]: [{ rpc: 'https://base.blockpi.network/v1/rpc/public', blockLimit: 10000 }],
+	[EVMNetwork.BASE]: [{ rpc: 'https://base.blockpi.network/v1/rpc/public', blockLimit: 1000 }],
 	[EVMNetwork.ZETA]: [
 		{
 			rpc: 'https://zetachain-athens-evm.blockpi.network/v1/rpc/public',
-			blockLimit: 10000,
+			blockLimit: 1000,
 		},
 	],
 	[EVMNetwork.LINEA]: [
 		{
 			rpc: 'https://linea.blockpi.network/v1/rpc/public',
-			blockLimit: 10000,
+			blockLimit: 1000,
 		},
 		{
 			rpc: 'https://rpc.linea.build',
-			blockLimit: 10000,
+			blockLimit: 1000,
 		}
 	],
 };
