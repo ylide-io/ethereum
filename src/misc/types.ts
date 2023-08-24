@@ -24,8 +24,9 @@ export enum EVMNetwork {
 	ASTAR, //  = 'ASTAR',
 
 	// in test:
-	SHARDEUM, //  = 'SHARDEUM',
+	BASE, //  = 'BASE',
 	ZETA, //  = 'ZETA',
+	LINEA, // = 'LINEA',
 }
 
 export interface IEVMBlock {
