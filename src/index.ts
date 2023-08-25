@@ -31,6 +31,8 @@ export const evm: ConnectorScope = {
 		evmBlockchainFactories[EVMNetwork.MOONBEAM],
 		evmBlockchainFactories[EVMNetwork.MOONRIVER],
 		evmBlockchainFactories[EVMNetwork.METIS],
+		evmBlockchainFactories[EVMNetwork.BASE],
 		evmBlockchainFactories[EVMNetwork.ZETA],
+		evmBlockchainFactories[EVMNetwork.LINEA],
 	],
 };
