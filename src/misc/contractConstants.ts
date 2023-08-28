@@ -793,7 +793,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 	[EVMNetwork.ZETA]: {
 		registryContracts: [
 			{
-				id: 88,
+				id: 100,
 				type: EVMRegistryContractType.EVMRegistryV6,
 				address: '0x28d9bb1aed64c115dd70e886c546ee0420623bc2',
 				creationBlock: 1324353,
@@ -810,7 +810,7 @@ export const EVM_CONTRACTS: Record<EVMNetwork, IEVMNetworkContracts> = {
 			},
 		],
 		payContracts: [],
-		currentRegistryId: 88,
+		currentRegistryId: 100,
 		currentMailerId: 89,
 	},
 	[EVMNetwork.LINEA]: {
