@@ -168,15 +168,16 @@ export class EVMMailerV8WrapperMailing {
 		keys: Uint8Array[],
 		content: Uint8Array,
 		value: ethers.BigNumber,
-	): Promise<{
-		tx: ethers.ContractTransaction;
-		receipt: ethers.ContractReceipt;
-		logs: ethers.utils.LogDescription[];
-		mailPushEvents: IEVMEvent<MailPushEventObject>[];
-		messages: IEVMMessage[];
-	}> {
+	) {
+		// : Promise<{
+		// 	tx: ethers.ContractTransaction;
+		// 	receipt: ethers.ContractReceipt;
+		// 	logs: ethers.utils.LogDescription[];
+		// 	mailPushEvents: IEVMEvent<MailPushEventObject>[];
+		// 	messages: IEVMMessage[];
+		// }>
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.sendBulkMail(
+		return contract.sendBulkMail(
 			`0x${feedId}`,
 			uniqueId,
 			recipients.map(r => `0x${r}`),
@@ -184,16 +185,16 @@ export class EVMMailerV8WrapperMailing {
 			content,
 			{ from, value },
 		);
-		console.log('tx done: ', tx, 'start waiting');
-		const receipt = await tx.wait();
-		const {
-			logs,
-			byName: { MailPush },
-		} = parseOutLogs(contract, receipt.logs);
-		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
-		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
-		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
+		// console.log('tx done: ', tx, 'start waiting');
+		// const receipt = await tx.wait();
+		// const {
+		// 	logs,
+		// 	byName: { MailPush },
+		// } = parseOutLogs(contract, receipt.logs);
+		// const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
+		// const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
+		// const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
+		// return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
 	async addMailRecipients(
@@ -208,15 +209,16 @@ export class EVMMailerV8WrapperMailing {
 		recipients: Uint256[],
 		keys: Uint8Array[],
 		value: ethers.BigNumber,
-	): Promise<{
-		tx: ethers.ContractTransaction;
-		receipt: ethers.ContractReceipt;
-		logs: ethers.utils.LogDescription[];
-		mailPushEvents: IEVMEvent<MailPushEventObject>[];
-		messages: IEVMMessage[];
-	}> {
+	) {
+		// : Promise<{
+		// 	tx: ethers.ContractTransaction;
+		// 	receipt: ethers.ContractReceipt;
+		// 	logs: ethers.utils.LogDescription[];
+		// 	mailPushEvents: IEVMEvent<MailPushEventObject>[];
+		// 	messages: IEVMMessage[];
+		// }>
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.addMailRecipients(
+		return contract.addMailRecipients(
 			`0x${feedId}`,
 			uniqueId,
 			firstBlockNumber,
@@ -226,15 +228,15 @@ export class EVMMailerV8WrapperMailing {
 			keys,
 			{ from, value },
 		);
-		const receipt = await tx.wait();
-		const {
-			logs,
-			byName: { MailPush },
-		} = parseOutLogs(contract, receipt.logs);
-		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
-		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
-		const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
+		// const receipt = await tx.wait();
+		// const {
+		// 	logs,
+		// 	byName: { MailPush },
+		// } = parseOutLogs(contract, receipt.logs);
+		// const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
+		// const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
+		// const messages = enriched.map(e => this.processMailPushEvent(mailer, e));
+		// return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
 	async getMailPushEvent(

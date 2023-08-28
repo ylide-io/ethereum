@@ -78,15 +78,16 @@ export class EVMPayV1Wrapper {
 		value: ethers.BigNumber,
 		signatureArgs: IYlideMailer.SignatureArgsStruct,
 		paymentArgs: YlidePayV1.TransferInfoStruct[],
-	): Promise<{
-		tx: ethers.ContractTransaction;
-		receipt: ethers.ContractReceipt;
-		logs: ethers.utils.LogDescription[];
-		mailPushEvents: IEVMEvent<MailPushEventObject>[];
-		messages: IEVMMessage[];
-	}> {
+	) {
+		// : Promise<{
+		// 	tx: ethers.ContractTransaction;
+		// 	receipt: ethers.ContractReceipt;
+		// 	logs: ethers.utils.LogDescription[];
+		// 	mailPushEvents: IEVMEvent<MailPushEventObject>[];
+		// 	messages: IEVMMessage[];
+		// }>
 		const c = this.cache.getContract(payer.address, signer);
-		const tx = await c.sendBulkMailWithToken(
+		return await c.sendBulkMailWithToken(
 			{
 				feedId: `0x${feedId}`,
 				uniqueId,
@@ -99,16 +100,16 @@ export class EVMPayV1Wrapper {
 			paymentArgs,
 			{ from, value },
 		);
-		const receipt = await tx.wait();
-		const {
-			logs,
-			byName: { MailPush },
-		} = parseOutLogs(mailerContract, receipt.logs);
+		// const receipt = await tx.wait();
+		// const {
+		// 	logs,
+		// 	byName: { MailPush },
+		// } = parseOutLogs(mailerContract, receipt.logs);
 
-		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
-		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
-		const messages = enriched.map(e => processMailPushEvent(mailer, e));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
+		// const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
+		// const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
+		// const messages = enriched.map(e => processMailPushEvent(mailer, e));
+		// return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
 	async addMailRecipientsWithToken(
@@ -127,15 +128,16 @@ export class EVMPayV1Wrapper {
 		value: ethers.BigNumber,
 		signatureArgs: IYlideMailer.SignatureArgsStruct,
 		paymentArgs: YlidePayV1.TransferInfoStruct[],
-	): Promise<{
-		tx: ethers.ContractTransaction;
-		receipt: ethers.ContractReceipt;
-		logs: ethers.utils.LogDescription[];
-		mailPushEvents: IEVMEvent<MailPushEventObject>[];
-		messages: IEVMMessage[];
-	}> {
+	) {
+		// : Promise<{
+		// 	tx: ethers.ContractTransaction;
+		// 	receipt: ethers.ContractReceipt;
+		// 	logs: ethers.utils.LogDescription[];
+		// 	mailPushEvents: IEVMEvent<MailPushEventObject>[];
+		// 	messages: IEVMMessage[];
+		// }>
 		const c = this.cache.getContract(payer.address, signer);
-		const tx = await c.addMailRecipientsWithToken(
+		return c.addMailRecipientsWithToken(
 			{
 				feedId: `0x${feedId}`,
 				uniqueId,
@@ -149,15 +151,15 @@ export class EVMPayV1Wrapper {
 			paymentArgs,
 			{ from, value },
 		);
-		const receipt = await tx.wait();
-		const {
-			logs,
-			byName: { MailPush },
-		} = parseOutLogs(mailerContract, receipt.logs);
-		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
-		const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
-		const messages = enriched.map(e => processMailPushEvent(mailer, e));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
+		// const receipt = await tx.wait();
+		// const {
+		// 	logs,
+		// 	byName: { MailPush },
+		// } = parseOutLogs(mailerContract, receipt.logs);
+		// const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
+		// const enriched = await this.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
+		// const messages = enriched.map(e => processMailPushEvent(mailer, e));
+		// return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
 	getTokenAttachments(

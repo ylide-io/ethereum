@@ -170,29 +170,30 @@ export class EVMMailerV9WrapperMailing {
 		keys: Uint8Array[],
 		content: Uint8Array,
 		value: ethers.BigNumber,
-	): Promise<{
-		tx: ethers.ContractTransaction;
-		receipt: ethers.ContractReceipt;
-		logs: ethers.utils.LogDescription[];
-		mailPushEvents: IEVMEvent<MailPushEventObject>[];
-		messages: IEVMMessage[];
-	}> {
+	) {
+		// : Promise<{
+		// 	tx: ethers.ContractTransaction;
+		// 	receipt: ethers.ContractReceipt;
+		// 	logs: ethers.utils.LogDescription[];
+		// 	mailPushEvents: IEVMEvent<MailPushEventObject>[];
+		// 	messages: IEVMMessage[];
+		// }>
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract['sendBulkMail((uint256,uint256,uint256[],bytes[],bytes))'](
+		return contract['sendBulkMail((uint256,uint256,uint256[],bytes[],bytes))'](
 			{ feedId: `0x${feedId}`, uniqueId, recipients: recipients.map(r => `0x${r}`), keys, content },
 			{ from, value },
 		);
-		console.log('tx done: ', tx, 'start waiting');
-		const receipt = await tx.wait();
-		const {
-			logs,
-			byName: { MailPush },
-		} = parseOutLogs(contract, receipt.logs);
+		// console.log('tx done: ', tx, 'start waiting');
+		// const receipt = await tx.wait();
+		// const {
+		// 	logs,
+		// 	byName: { MailPush },
+		// } = parseOutLogs(contract, receipt.logs);
 
-		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
-		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
-		const messages = enriched.map(e => processMailPushEvent(mailer, e));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
+		// const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
+		// const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
+		// const messages = enriched.map(e => processMailPushEvent(mailer, e));
+		// return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
 	async addMailRecipients(
@@ -207,15 +208,16 @@ export class EVMMailerV9WrapperMailing {
 		recipients: Uint256[],
 		keys: Uint8Array[],
 		value: ethers.BigNumber,
-	): Promise<{
-		tx: ethers.ContractTransaction;
-		receipt: ethers.ContractReceipt;
-		logs: ethers.utils.LogDescription[];
-		mailPushEvents: IEVMEvent<MailPushEventObject>[];
-		messages: IEVMMessage[];
-	}> {
+	) {
+		// : Promise<{
+		// 	tx: ethers.ContractTransaction;
+		// 	receipt: ethers.ContractReceipt;
+		// 	logs: ethers.utils.LogDescription[];
+		// 	mailPushEvents: IEVMEvent<MailPushEventObject>[];
+		// 	messages: IEVMMessage[];
+		// }>
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract['addMailRecipients((uint256,uint256,uint256,uint16,uint16,uint256[],bytes[]))'](
+		return contract['addMailRecipients((uint256,uint256,uint256,uint16,uint16,uint256[],bytes[]))'](
 			{
 				feedId: `0x${feedId}`,
 				uniqueId,
@@ -227,15 +229,15 @@ export class EVMMailerV9WrapperMailing {
 			},
 			{ from, value },
 		);
-		const receipt = await tx.wait();
-		const {
-			logs,
-			byName: { MailPush },
-		} = parseOutLogs(contract, receipt.logs);
-		const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
-		const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
-		const messages = enriched.map(e => processMailPushEvent(mailer, e));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
+		// const receipt = await tx.wait();
+		// const {
+		// 	logs,
+		// 	byName: { MailPush },
+		// } = parseOutLogs(contract, receipt.logs);
+		// const mailPushEvents = MailPush.map(l => ethersLogToInternalEvent<MailPushEventObject>(l));
+		// const enriched = await this.wrapper.blockchainReader.enrichEvents<MailPushEventObject>(mailPushEvents);
+		// const messages = enriched.map(e => processMailPushEvent(mailer, e));
+		// return { tx, receipt, logs: logs.map(l => l.logDescription), mailPushEvents, messages };
 	}
 
 	async getMailPushEvent(

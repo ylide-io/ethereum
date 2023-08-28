@@ -2,19 +2,19 @@ import type { JsonRpcSigner } from '@ethersproject/providers';
 import { Web3Provider } from '@ethersproject/providers';
 import type {
 	MessageKey,
-	SendBroadcastResult,
-	SendMailResult,
 	SwitchAccountCallback,
 	Uint256,
 	WalletControllerFactory,
 	EncryptionPublicKey,
 	AbstractFaucetService,
+	SendingProcess,
 } from '@ylide/sdk';
 import {
 	AbstractWalletController,
 	MessageChunks,
 	PublicKey,
 	PublicKeyType,
+	SendingProcessBuilder,
 	ServiceCode,
 	WalletEvent,
 	YLIDE_MAIN_FEED_ID,
@@ -56,6 +56,7 @@ import { EVMRegistryV6Wrapper } from '../contract-wrappers/EVMRegistryV6Wrapper'
 import { EVMMailerContractType } from '../misc';
 import { EVM_CONTRACTS } from '../misc/contractConstants';
 import { EVMFaucetService } from './EVMFaucetService';
+import type { IYlideMailer } from '@ylide/ethereum-contracts';
 
 export type NetworkSwitchHandler = (
 	reason: string,
@@ -512,7 +513,7 @@ export class EVMWalletController extends AbstractWalletController {
 		options?: { network?: EVMNetwork; value?: BigNumber },
 		generateSignature?: GenerateSignatureCallback,
 		payments?: YlidePayment,
-	): Promise<SendMailResult> {
+	): Promise<SendingProcess> {
 		await this.ensureAccount(me);
 		const network = await this.ensureNetworkOptions('Publish message', options);
 		const mailer = this.getMailerByNetwork(network);
@@ -520,6 +521,15 @@ export class EVMWalletController extends AbstractWalletController {
 		const uniqueId = Math.floor(Math.random() * 4 * 10 ** 9);
 		const chunkSize = EVM_CHUNK_SIZES[network];
 		const chunks = MessageChunks.splitMessageChunks(contentData, chunkSize);
+
+		const builder = new SendingProcessBuilder<
+			| {
+					type: 'transaction';
+					subtype: 'push' | 'content' | 'both';
+					tx: ethers.ContractTransaction;
+			  }
+			| { type: 'signature'; subtype: 'push' | 'content' | 'both' }
+		>();
 
 		if (
 			chunks.length === 1 &&
@@ -531,74 +541,207 @@ export class EVMWalletController extends AbstractWalletController {
 				throw new Error('FeedId is not supported');
 			}
 			console.log(`Sending small mail, chunk length: ${chunks[0].length} bytes`);
-			const { messages } = await mailer.wrapper.sendSmallMail(
-				mailer.link,
-				this.signer,
-				me.address,
-				uniqueId,
-				recipients[0].address,
-				recipients[0].messageKey.toBytes(),
-				chunks[0],
+			builder.chain(
+				'transaction',
+				'both',
+				{
+					wrapper: mailer.wrapper,
+					link: mailer.link,
+					signer: this.signer,
+					from: me.address,
+					uniqueId,
+					recipient: recipients[0].address,
+					messageKey: recipients[0].messageKey.toBytes(),
+					chunk: chunks[0],
+				},
+				async data => {
+					return data.wrapper.sendSmallMail(
+						data.link,
+						data.signer,
+						data.from,
+						data.uniqueId,
+						data.recipient,
+						data.messageKey,
+						data.chunk,
+					);
+				},
+				async tx => {
+					return { type: 'transaction', subtype: 'both', tx };
+				},
 			);
-			return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 		} else if (chunks.length === 1 && recipients.length < Math.ceil((15.5 * 1024 - chunks[0].byteLength) / 70)) {
 			if (mailer.wrapper instanceof EVMMailerV8Wrapper || mailer.wrapper instanceof EVMMailerV9Wrapper) {
-				let msgs: IEVMMessage[] = [];
+				// let msgs: IEVMMessage[] = [];
 				if (generateSignature && payments && mailer.wrapper instanceof EVMMailerV9Wrapper) {
 					if (payments.kind === TokenAttachmentContractType.Pay) {
 						console.log('Signing message for bulk mail with token (Pay)');
-						const signatureArgs = await generateSignature(uniqueId);
+						const boxedSignatureArgs: {
+							signatureArgs: IYlideMailer.SignatureArgsStruct | null;
+						} = { signatureArgs: null };
+						builder.chain(
+							'signature',
+							'both',
+							uniqueId,
+							async _uniqueId => {
+								return generateSignature(_uniqueId);
+							},
+							async _signatureArgs => {
+								boxedSignatureArgs.signatureArgs = _signatureArgs;
+								return { type: 'signature', subtype: 'both', tx: null };
+							},
+						);
+						// const signatureArgs = await generateSignature(uniqueId);
 						const payer = this.getPayerByMailerLinkAndNetwork(mailer.link, network);
 						console.log(`Sending bulk mail with token (Pay), chunk length: ${chunks[0].length} bytes`);
-						const { messages } = await payer.wrapper.sendBulkMailWithToken(
-							mailer.link,
-							mailer.wrapper.cache.getContract(mailer.link.address, this.signer),
-							payer.link,
-							this.signer,
-							me.address,
-							feedId,
-							uniqueId,
-							recipients.map(r => r.address),
-							recipients.map(r => r.messageKey.toBytes()),
-							chunks[0],
-							options?.value || BigNumber.from(0),
-							signatureArgs,
-							payments.args,
+						builder.chain(
+							'transaction',
+							'both',
+							{
+								wrapper: payer.wrapper,
+								link: mailer.link,
+								contract: mailer.wrapper.cache.getContract(mailer.link.address, this.signer),
+								payer: payer.link,
+								signer: this.signer,
+								from: me.address,
+								feedId,
+								uniqueId,
+								recipientAddresses: recipients.map(r => r.address),
+								recipientMessageKeys: recipients.map(r => r.messageKey.toBytes()),
+								chunk: chunks[0],
+								value: options?.value || BigNumber.from(0),
+								boxedSignatureArgs,
+								paymentArgs: payments.args,
+							},
+							async data => {
+								return await data.wrapper.sendBulkMailWithToken(
+									data.link,
+									data.contract,
+									data.payer,
+									data.signer,
+									data.from,
+									data.feedId,
+									data.uniqueId,
+									data.recipientAddresses,
+									data.recipientMessageKeys,
+									data.chunk,
+									data.value,
+									data.boxedSignatureArgs.signatureArgs!,
+									data.paymentArgs,
+								);
+							},
+							async tx => {
+								return { type: 'transaction', subtype: 'both', tx };
+							},
 						);
-						msgs = messages;
+						// const { messages } = await payer.wrapper.sendBulkMailWithToken(
+						// 	mailer.link,
+						// 	mailer.wrapper.cache.getContract(mailer.link.address, this.signer),
+						// 	payer.link,
+						// 	this.signer,
+						// 	me.address,
+						// 	feedId,
+						// 	uniqueId,
+						// 	recipients.map(r => r.address),
+						// 	recipients.map(r => r.messageKey.toBytes()),
+						// 	chunks[0],
+						// 	options?.value || BigNumber.from(0),
+						// 	signatureArgs,
+						// 	payments.args,
+						// );
+						// msgs = messages;
 					}
 					throw new Error('Unsupported payment type');
 				} else {
 					console.log(`Sending bulk mail, chunk length: ${chunks[0].length} bytes`);
-					const { messages } = await mailer.wrapper.mailing.sendBulkMail(
-						mailer.link,
-						this.signer,
-						me.address,
-						feedId,
-						uniqueId,
-						recipients.map(r => r.address),
-						recipients.map(r => r.messageKey.toBytes()),
-						chunks[0],
-						options?.value || BigNumber.from(0),
+					builder.chain(
+						'transaction',
+						'both',
+						{
+							wrapper: mailer.wrapper,
+							link: mailer.link,
+							signer: this.signer,
+							from: me.address,
+							feedId,
+							uniqueId,
+							recipientAddresses: recipients.map(r => r.address),
+							recipientMessageKeys: recipients.map(r => r.messageKey.toBytes()),
+							chunk: chunks[0],
+							value: options?.value || BigNumber.from(0),
+						},
+						async data => {
+							return await data.wrapper.mailing.sendBulkMail(
+								data.link,
+								data.signer,
+								data.from,
+								data.feedId,
+								data.uniqueId,
+								data.recipientAddresses,
+								data.recipientMessageKeys,
+								data.chunk,
+								data.value,
+							);
+						},
+						async tx => {
+							return { type: 'transaction', subtype: 'both', tx };
+						},
 					);
-					msgs = messages;
+					// const { messages } = await mailer.wrapper.mailing.sendBulkMail(
+					// 	mailer.link,
+					// 	this.signer,
+					// 	me.address,
+					// 	feedId,
+					// 	uniqueId,
+					// 	recipients.map(r => r.address),
+					// 	recipients.map(r => r.messageKey.toBytes()),
+					// 	chunks[0],
+					// 	options?.value || BigNumber.from(0),
+					// );
+					// msgs = messages;
 				}
-				return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
+				// return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 			} else {
 				if (feedId !== YLIDE_MAIN_FEED_ID) {
 					throw new Error('FeedId is not supported');
 				}
 				console.log(`Sending bulk mail, chunk length: ${chunks[0].length} bytes`);
-				const { messages } = await mailer.wrapper.sendBulkMail(
-					mailer.link,
-					this.signer,
-					me.address,
-					uniqueId,
-					recipients.map(r => r.address),
-					recipients.map(r => r.messageKey.toBytes()),
-					chunks[0],
+				builder.chain(
+					'transaction',
+					'both',
+					{
+						wrapper: mailer.wrapper,
+						link: mailer.link,
+						signer: this.signer,
+						from: me.address,
+						uniqueId,
+						recipientAddresses: recipients.map(r => r.address),
+						recipientMessageKeys: recipients.map(r => r.messageKey.toBytes()),
+						chunk: chunks[0],
+					},
+					async data => {
+						return data.wrapper.sendBulkMail(
+							data.link,
+							data.signer,
+							data.from,
+							data.uniqueId,
+							data.recipientAddresses,
+							data.recipientMessageKeys,
+							data.chunk,
+						);
+					},
+					async tx => {
+						return { type: 'transaction', subtype: 'both', tx };
+					},
 				);
-				return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
+				// const { messages } = await mailer.wrapper.sendBulkMail(
+				// 	mailer.link,
+				// 	this.signer,
+				// 	me.address,
+				// 	uniqueId,
+				// 	recipients.map(r => r.address),
+				// 	recipients.map(r => r.messageKey.toBytes()),
+				// 	chunks[0],
+				// );
+				// return { pushes: messages.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 			}
 		} else {
 			if (mailer.wrapper instanceof EVMMailerV8Wrapper || mailer.wrapper instanceof EVMMailerV9Wrapper) {
@@ -607,111 +750,329 @@ export class EVMWalletController extends AbstractWalletController {
 				// const msgId = await mailer.buildHash(me.address, uniqueId, firstBlockNumber);
 				for (let i = 0; i < chunks.length; i++) {
 					console.log(`Sending multi mail, current chunk length: ${chunks[i].length} bytes`);
-					const { tx, receipt, logs } = await mailer.wrapper.content.sendMessageContentPart(
-						mailer.link,
-						this.signer,
-						me.address,
-						uniqueId,
-						firstBlockNumber,
-						blockLock,
-						chunks.length,
-						i,
-						chunks[i],
-						options?.value || BigNumber.from(0),
+					builder.chain(
+						'transaction',
+						'content',
+						{
+							wrapper: mailer.wrapper,
+							link: mailer.link,
+							signer: this.signer,
+							from: me.address,
+							uniqueId,
+							firstBlockNumber,
+							blockLock,
+							chunkCount: chunks.length,
+							chunkIndex: i,
+							chunk: chunks[i],
+							value: options?.value || BigNumber.from(0),
+						},
+						async data => {
+							return await data.wrapper.content.sendMessageContentPart(
+								data.link,
+								data.signer,
+								data.from,
+								data.uniqueId,
+								data.firstBlockNumber,
+								data.blockLock,
+								data.chunkCount,
+								data.chunkIndex,
+								data.chunk,
+								data.value,
+							);
+						},
+						async tx => {
+							return { type: 'transaction', subtype: 'content', tx };
+						},
 					);
+					// const { tx, receipt, logs } = await mailer.wrapper.content.sendMessageContentPart(
+					// 	mailer.link,
+					// 	this.signer,
+					// 	me.address,
+					// 	uniqueId,
+					// 	firstBlockNumber,
+					// 	blockLock,
+					// 	chunks.length,
+					// 	i,
+					// 	chunks[i],
+					// 	options?.value || BigNumber.from(0),
+					// );
 				}
-				const msgs: IEVMMessage[] = [];
+				// const msgs: IEVMMessage[] = [];
 				if (generateSignature && payments && mailer.wrapper instanceof EVMMailerV9Wrapper) {
 					if (payments.kind === TokenAttachmentContractType.Pay) {
 						for (let i = 0; i < recipients.length; i += 210) {
 							const recs = recipients.slice(i, i + 210);
 							const paymentArgs = payments.args.slice(i, i + 210);
-							const signatureArgs = await generateSignature(
-								uniqueId,
-								firstBlockNumber,
-								chunks.length,
-								blockLock,
-								recs.map(r => `0x${r.address}`),
-								ethers.utils.concat(recs.map(r => r.messageKey.toBytes())),
+							const boxedSignatureArgs: {
+								signatureArgs: IYlideMailer.SignatureArgsStruct | null;
+							} = { signatureArgs: null };
+							builder.chain(
+								'signature',
+								'both',
+								{
+									uniqueId,
+									firstBlockNumber,
+									chunkCount: chunks.length,
+									blockLock,
+									recipientAddresses: recs.map(r => r.address),
+									messageKeysConcat: ethers.utils.concat(recs.map(r => r.messageKey.toBytes())),
+								},
+								async data => {
+									return generateSignature(
+										data.uniqueId,
+										data.firstBlockNumber,
+										data.chunkCount,
+										data.blockLock,
+										data.recipientAddresses,
+										data.messageKeysConcat,
+									);
+								},
+								async _signatureArgs => {
+									boxedSignatureArgs.signatureArgs = _signatureArgs;
+									return { type: 'signature', subtype: 'both', tx: null };
+								},
 							);
+							// const signatureArgs = await generateSignature(
+							// 	uniqueId,
+							// 	firstBlockNumber,
+							// 	chunks.length,
+							// 	blockLock,
+							// 	recs.map(r => `0x${r.address}`),
+							// 	ethers.utils.concat(recs.map(r => r.messageKey.toBytes())),
+							// );
 							const payer = this.getPayerByMailerLinkAndNetwork(mailer.link, network);
 							console.log(`Sending bulk mail with token (Pay), chunk length: ${chunks[0].length} bytes`);
-							const { messages } = await payer.wrapper.addMailRecipientsWithToken(
-								mailer.link,
-								mailer.wrapper.cache.getContract(mailer.link.address, this.signer),
-								payer.link,
-								this.signer,
-								me.address,
-								feedId,
-								uniqueId,
-								firstBlockNumber,
-								chunks.length,
-								blockLock,
-								recs.map(r => r.address),
-								recs.map(r => r.messageKey.toBytes()),
-								options?.value || BigNumber.from(0),
-								signatureArgs,
-								paymentArgs,
+							builder.chain(
+								'transaction',
+								'push',
+								{
+									wrapper: payer.wrapper,
+									link: mailer.link,
+									contract: mailer.wrapper.cache.getContract(mailer.link.address, this.signer),
+									payer: payer.link,
+									signer: this.signer,
+									from: me.address,
+									feedId,
+									uniqueId,
+									firstBlockNumber,
+									chunkCount: chunks.length,
+									blockLock,
+									recipientAddresses: recs.map(r => r.address),
+									recipientMessageKeys: recs.map(r => r.messageKey.toBytes()),
+									value: options?.value || BigNumber.from(0),
+									boxedSignatureArgs,
+									paymentArgs,
+								},
+								async data => {
+									return data.wrapper.addMailRecipientsWithToken(
+										data.link,
+										data.contract,
+										data.payer,
+										data.signer,
+										data.from,
+										data.feedId,
+										data.uniqueId,
+										data.firstBlockNumber,
+										data.chunkCount,
+										data.blockLock,
+										data.recipientAddresses,
+										data.recipientMessageKeys,
+										data.value,
+										data.boxedSignatureArgs.signatureArgs!,
+										data.paymentArgs,
+									);
+								},
+								async tx => {
+									return { type: 'transaction', subtype: 'push', tx };
+								},
 							);
-							msgs.push(...messages);
+							// const { messages } = await payer.wrapper.addMailRecipientsWithToken(
+							// 	mailer.link,
+							// 	mailer.wrapper.cache.getContract(mailer.link.address, this.signer),
+							// 	payer.link,
+							// 	this.signer,
+							// 	me.address,
+							// 	feedId,
+							// 	uniqueId,
+							// 	firstBlockNumber,
+							// 	chunks.length,
+							// 	blockLock,
+							// 	recs.map(r => r.address),
+							// 	recs.map(r => r.messageKey.toBytes()),
+							// 	options?.value || BigNumber.from(0),
+							// 	signatureArgs,
+							// 	paymentArgs,
+							// );
+							// msgs.push(...messages);
 						}
 					}
 					throw new Error('Unsupported payment type');
 				} else {
 					for (let i = 0; i < recipients.length; i += 210) {
 						const recs = recipients.slice(i, i + 210);
-						const { messages } = await mailer.wrapper.mailing.addMailRecipients(
-							mailer.link,
-							this.signer,
-							me.address,
-							feedId,
-							uniqueId,
-							firstBlockNumber,
-							chunks.length,
-							blockLock,
-							recs.map(r => r.address),
-							recs.map(r => r.messageKey.toBytes()),
-							options?.value || BigNumber.from(0),
+						builder.chain(
+							'transaction',
+							'push',
+							{
+								wrapper: mailer.wrapper,
+								link: mailer.link,
+								signer: this.signer,
+								from: me.address,
+								feedId,
+								uniqueId,
+								firstBlockNumber,
+								chunkCount: chunks.length,
+								blockLock,
+								recipientAddresses: recs.map(r => r.address),
+								recipientMessageKeys: recs.map(r => r.messageKey.toBytes()),
+								value: options?.value || BigNumber.from(0),
+							},
+							async data => {
+								return data.wrapper.mailing.addMailRecipients(
+									data.link,
+									data.signer,
+									data.from,
+									data.feedId,
+									data.uniqueId,
+									data.firstBlockNumber,
+									data.chunkCount,
+									data.blockLock,
+									data.recipientAddresses,
+									data.recipientMessageKeys,
+									data.value,
+								);
+							},
+							async tx => {
+								return { type: 'transaction', subtype: 'push', tx };
+							},
 						);
-						msgs.push(...messages);
+						// const { messages } = await mailer.wrapper.mailing.addMailRecipients(
+						// 	mailer.link,
+						// 	this.signer,
+						// 	me.address,
+						// 	feedId,
+						// 	uniqueId,
+						// 	firstBlockNumber,
+						// 	chunks.length,
+						// 	blockLock,
+						// 	recs.map(r => r.address),
+						// 	recs.map(r => r.messageKey.toBytes()),
+						// 	options?.value || BigNumber.from(0),
+						// );
+						// msgs.push(...messages);
 					}
 				}
 
-				return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
+				// return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 			} else {
 				const initTime = Math.floor(Date.now() / 1000) - 60;
 
 				for (let i = 0; i < chunks.length; i++) {
 					console.log(`Sending multi mail, current chunk length: ${chunks[i].length} bytes`);
-					await mailer.wrapper.sendMessageContentPart(
-						mailer.link,
-						this.signer,
-						me.address,
-						uniqueId,
-						initTime,
-						chunks.length,
-						i,
-						chunks[i],
+					builder.chain(
+						'transaction',
+						'content',
+						{
+							wrapper: mailer.wrapper,
+							link: mailer.link,
+							signer: this.signer,
+							from: me.address,
+							uniqueId,
+							initTime,
+							chunkCount: chunks.length,
+							chunkIndex: i,
+							chunk: chunks[i],
+						},
+						async data => {
+							return await data.wrapper.sendMessageContentPart(
+								data.link,
+								data.signer,
+								data.from,
+								data.uniqueId,
+								data.initTime,
+								data.chunkCount,
+								data.chunkIndex,
+								data.chunk,
+							);
+						},
+						async tx => {
+							return { type: 'transaction', subtype: 'content', tx };
+						},
 					);
+					// await mailer.wrapper.sendMessageContentPart(
+					// 	mailer.link,
+					// 	this.signer,
+					// 	me.address,
+					// 	uniqueId,
+					// 	initTime,
+					// 	chunks.length,
+					// 	i,
+					// 	chunks[i],
+					// );
 				}
 				const msgs: IEVMMessage[] = [];
 				for (let i = 0; i < recipients.length; i += 210) {
 					const recs = recipients.slice(i, i + 210);
-					const { messages } = await mailer.wrapper.addMailRecipients(
-						mailer.link,
-						this.signer,
-						me.address,
-						uniqueId,
-						initTime,
-						recs.map(r => r.address),
-						recs.map(r => r.messageKey.toBytes()),
+					builder.chain(
+						'transaction',
+						'push',
+						{
+							wrapper: mailer.wrapper,
+							link: mailer.link,
+							signer: this.signer,
+							from: me.address,
+							uniqueId,
+							initTime,
+							recipientAddresses: recs.map(r => r.address),
+							recipientMessageKeys: recs.map(r => r.messageKey.toBytes()),
+						},
+						async data => {
+							return await data.wrapper.addMailRecipients(
+								data.link,
+								data.signer,
+								data.from,
+								data.uniqueId,
+								data.initTime,
+								data.recipientAddresses,
+								data.recipientMessageKeys,
+							);
+						},
+						async tx => {
+							return { type: 'transaction', subtype: 'push', tx };
+						},
 					);
-					msgs.push(...messages);
+					// const { messages } = await mailer.wrapper.addMailRecipients(
+					// 	mailer.link,
+					// 	this.signer,
+					// 	me.address,
+					// 	uniqueId,
+					// 	initTime,
+					// 	recs.map(r => r.address),
+					// 	recs.map(r => r.messageKey.toBytes()),
+					// );
+					// msgs.push(...messages);
 				}
 
-				return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
+				// return { pushes: msgs.map(msg => ({ recipient: msg.recipientAddress, push: msg })) };
 			}
 		}
+
+		const sendingProcess = builder.compile(
+			results => {
+				const txs = results.filter(result => result.type === 'transaction') as {
+					type: 'transaction';
+					subtype: 'push' | 'content' | 'both';
+					tx: ethers.ContractTransaction;
+				}[];
+
+				return txs.map(result => ({ type: result.subtype, hash: result.tx.hash }));
+			},
+			async results => {
+				return { contentId: '', pushes: [] };
+			},
+		);
+
+		return sendingProcess;
 	}
 
 	async sendBroadcast(
@@ -725,7 +1086,7 @@ export class EVMWalletController extends AbstractWalletController {
 			isGenericFeed?: boolean;
 			extraPayment?: BigNumber;
 		},
-	): Promise<SendBroadcastResult> {
+	): Promise<SendingProcess> {
 		await this.ensureAccount(from);
 		const network = await this.ensureNetworkOptions('Broadcast message', options);
 		const mailer = this.getMailerByNetwork(network);
@@ -737,81 +1098,276 @@ export class EVMWalletController extends AbstractWalletController {
 			throw new Error('Broadcasts are supported only in MailerV8');
 		}
 
-		if (chunks.length === 1) {
-			const { messages } =
-				mailer.wrapper instanceof EVMMailerV8Wrapper
-					? await mailer.wrapper.broadcast.sendBroadcast(
-							mailer.link,
-							this.signer,
-							from.address,
-							options?.isPersonal || false,
-							feedId,
-							uniqueId,
-							chunks[0],
-							options?.value || BigNumber.from(0),
-					  )
-					: await mailer.wrapper.broadcast.sendBroadcast(
-							mailer.link,
-							this.signer,
-							from.address,
-							options?.isPersonal || false,
-							options?.isGenericFeed || false,
-							options?.extraPayment || BigNumber.from(0),
-							feedId,
-							uniqueId,
-							chunks[0],
-							options?.value || BigNumber.from(0),
-					  );
+		const builder = new SendingProcessBuilder<{
+			type: 'transaction';
+			subtype: 'push' | 'content' | 'both';
+			tx: ethers.ContractTransaction;
+		}>();
 
-			return { pushes: messages.map(msg => ({ push: msg })) };
+		if (chunks.length === 1) {
+			if (mailer.wrapper instanceof EVMMailerV8Wrapper) {
+				builder.chain(
+					'transaction',
+					'both',
+					{
+						wrapper: mailer.wrapper,
+						link: mailer.link,
+						signer: this.signer,
+						from: from.address,
+						isPersonal: options?.isPersonal || false,
+						feedId,
+						uniqueId,
+						chunk: chunks[0],
+						value: options?.value || BigNumber.from(0),
+					},
+					async data => {
+						return await data.wrapper.broadcast.sendBroadcast(
+							data.link,
+							data.signer,
+							data.from,
+							data.isPersonal,
+							data.feedId,
+							data.uniqueId,
+							data.chunk,
+							data.value,
+						);
+					},
+					async tx => {
+						return { type: 'transaction', subtype: 'both', tx };
+					},
+				);
+				// await mailer.wrapper.broadcast.sendBroadcast(
+				// 	mailer.link,
+				// 	this.signer,
+				// 	from.address,
+				// 	options?.isPersonal || false,
+				// 	feedId,
+				// 	uniqueId,
+				// 	chunks[0],
+				// 	options?.value || BigNumber.from(0),
+				// );
+			} else {
+				builder.chain(
+					'transaction',
+					'both',
+					{
+						wrapper: mailer.wrapper,
+						link: mailer.link,
+						signer: this.signer,
+						from: from.address,
+						isPersonal: options?.isPersonal || false,
+						isGenericFeed: options?.isGenericFeed || false,
+						extraPayment: options?.extraPayment || BigNumber.from(0),
+						feedId,
+						uniqueId,
+						chunk: chunks[0],
+						value: options?.value || BigNumber.from(0),
+					},
+					async data => {
+						return await data.wrapper.broadcast.sendBroadcast(
+							data.link,
+							data.signer,
+							data.from,
+							data.isPersonal,
+							data.isGenericFeed,
+							data.extraPayment,
+							data.feedId,
+							data.uniqueId,
+							data.chunk,
+							data.value,
+						);
+					},
+					async tx => {
+						return { type: 'transaction', subtype: 'both', tx };
+					},
+				);
+				// await mailer.wrapper.broadcast.sendBroadcast(
+				// 	mailer.link,
+				// 	this.signer,
+				// 	from.address,
+				// 	options?.isPersonal || false,
+				// 	options?.isGenericFeed || false,
+				// 	options?.extraPayment || BigNumber.from(0),
+				// 	feedId,
+				// 	uniqueId,
+				// 	chunks[0],
+				// 	options?.value || BigNumber.from(0),
+				// );
+			}
+
+			// return { pushes: messages.map(msg => ({ push: msg })) };
 		} else {
 			const firstBlockNumber = await this.signer.provider.getBlockNumber();
 			const blockLock = 600;
 			for (let i = 0; i < chunks.length; i++) {
-				const { tx, receipt, logs } = await mailer.wrapper.content.sendMessageContentPart(
-					mailer.link,
-					this.signer,
-					from.address,
-					uniqueId,
-					firstBlockNumber,
-					blockLock,
-					chunks.length,
-					i,
-					chunks[i],
-					options?.value || BigNumber.from(0),
+				builder.chain(
+					'transaction',
+					'content',
+					{
+						wrapper: mailer.wrapper,
+						link: mailer.link,
+						signer: this.signer,
+						from: from.address,
+						uniqueId,
+						firstBlockNumber,
+						blockLock,
+						chunkCount: chunks.length,
+						chunkIndex: i,
+						chunk: chunks[i],
+						value: options?.value || BigNumber.from(0),
+					},
+					async data => {
+						return await data.wrapper.content.sendMessageContentPart(
+							data.link,
+							data.signer,
+							data.from,
+							data.uniqueId,
+							data.firstBlockNumber,
+							data.blockLock,
+							data.chunkCount,
+							data.chunkIndex,
+							data.chunk,
+							data.value,
+						);
+					},
+					async tx => {
+						return { type: 'transaction', subtype: 'content', tx };
+					},
 				);
+				// await mailer.wrapper.content.sendMessageContentPart(
+				// 	mailer.link,
+				// 	this.signer,
+				// 	from.address,
+				// 	uniqueId,
+				// 	firstBlockNumber,
+				// 	blockLock,
+				// 	chunks.length,
+				// 	i,
+				// 	chunks[i],
+				// 	options?.value || BigNumber.from(0),
+				// );
 			}
-			const { messages } =
-				mailer.wrapper instanceof EVMMailerV8Wrapper
-					? await mailer.wrapper.broadcast.sendBroadcastHeader(
-							mailer.link,
-							this.signer,
-							from.address,
-							options?.isPersonal || false,
-							feedId,
-							uniqueId,
-							firstBlockNumber,
-							chunks.length,
-							blockLock,
-							options?.value || BigNumber.from(0),
-					  )
-					: await mailer.wrapper.broadcast.sendBroadcastHeader(
-							mailer.link,
-							this.signer,
-							from.address,
-							options?.isPersonal || false,
-							options?.isGenericFeed || false,
-							options?.extraPayment || BigNumber.from(0),
-							feedId,
-							uniqueId,
-							firstBlockNumber,
-							chunks.length,
-							blockLock,
-							options?.value || BigNumber.from(0),
-					  );
+			if (mailer.wrapper instanceof EVMMailerV8Wrapper) {
+				builder.chain(
+					'transaction',
+					'push',
+					{
+						wrapper: mailer.wrapper,
+						link: mailer.link,
+						signer: this.signer,
+						from: from.address,
+						isPersonal: options?.isPersonal || false,
+						feedId,
+						uniqueId,
+						firstBlockNumber,
+						chunkCount: chunks.length,
+						blockLock,
+						value: options?.value || BigNumber.from(0),
+					},
+					async data => {
+						return await data.wrapper.broadcast.sendBroadcastHeader(
+							data.link,
+							data.signer,
+							data.from,
+							data.isPersonal,
+							data.feedId,
+							data.uniqueId,
+							data.firstBlockNumber,
+							data.chunkCount,
+							data.blockLock,
+							data.value,
+						);
+					},
+					async tx => {
+						return { type: 'transaction', subtype: 'push', tx };
+					},
+				);
+				// await mailer.wrapper.broadcast.sendBroadcastHeader(
+				// 	mailer.link,
+				// 	this.signer,
+				// 	from.address,
+				// 	options?.isPersonal || false,
+				// 	feedId,
+				// 	uniqueId,
+				// 	firstBlockNumber,
+				// 	chunks.length,
+				// 	blockLock,
+				// 	options?.value || BigNumber.from(0),
+				// );
+			} else {
+				builder.chain(
+					'transaction',
+					'push',
+					{
+						wrapper: mailer.wrapper,
+						link: mailer.link,
+						signer: this.signer,
+						from: from.address,
+						isPersonal: options?.isPersonal || false,
+						isGenericFeed: options?.isGenericFeed || false,
+						extraPayment: options?.extraPayment || BigNumber.from(0),
+						feedId,
+						uniqueId,
+						firstBlockNumber,
+						chunkCount: chunks.length,
+						blockLock,
+						value: options?.value || BigNumber.from(0),
+					},
+					async data => {
+						return await data.wrapper.broadcast.sendBroadcastHeader(
+							data.link,
+							data.signer,
+							data.from,
+							data.isPersonal,
+							data.isGenericFeed,
+							data.extraPayment,
+							data.feedId,
+							data.uniqueId,
+							data.firstBlockNumber,
+							data.chunkCount,
+							data.blockLock,
+							data.value,
+						);
+					},
+					async tx => {
+						return { type: 'transaction', subtype: 'push', tx };
+					},
+				);
+				// await mailer.wrapper.broadcast.sendBroadcastHeader(
+				// 	mailer.link,
+				// 	this.signer,
+				// 	from.address,
+				// 	options?.isPersonal || false,
+				// 	options?.isGenericFeed || false,
+				// 	options?.extraPayment || BigNumber.from(0),
+				// 	feedId,
+				// 	uniqueId,
+				// 	firstBlockNumber,
+				// 	chunks.length,
+				// 	blockLock,
+				// 	options?.value || BigNumber.from(0),
+				// );
+			}
 
-			return { pushes: messages.map(msg => ({ push: msg })) };
+			// return { pushes: messages.map(msg => ({ push: msg })) };
 		}
+
+		const sendingProcess = builder.compile(
+			results => {
+				const txs = results.filter(result => result.type === 'transaction') as {
+					type: 'transaction';
+					subtype: 'push' | 'content' | 'both';
+					tx: ethers.ContractTransaction;
+				}[];
+
+				return txs.map(result => ({ type: result.subtype, hash: result.tx.hash }));
+			},
+			async results => {
+				return { contentId: '', pushes: [] };
+			},
+		);
+
+		return sendingProcess;
 	}
 
 	async signBulkMail(

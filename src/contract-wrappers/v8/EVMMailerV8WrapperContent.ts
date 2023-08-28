@@ -29,32 +29,28 @@ export class EVMMailerV8WrapperContent {
 		partIdx: number,
 		content: Uint8Array,
 		value: ethers.BigNumber,
-	): Promise<{
-		tx: ethers.ContractTransaction;
-		receipt: ethers.ContractReceipt;
-		logs: ethers.utils.LogDescription[];
-	}> {
+	) {
+		// : Promise<{
+		// 	tx: ethers.ContractTransaction;
+		// 	receipt: ethers.ContractReceipt;
+		// 	logs: ethers.utils.LogDescription[];
+		// }>
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.sendMessageContentPart(
-			uniqueId,
-			firstBlockNumber,
-			blockCountLock,
-			parts,
-			partIdx,
-			content,
-			{ from, value },
-		);
-		const receipt = await tx.wait();
-		const logs = receipt.logs
-			.map(l => {
-				try {
-					return contract.interface.parseLog(l);
-				} catch (err) {
-					return null;
-				}
-			})
-			.filter(l => !!l) as LogDescription[];
-		return { tx, receipt, logs };
+		return contract.sendMessageContentPart(uniqueId, firstBlockNumber, blockCountLock, parts, partIdx, content, {
+			from,
+			value,
+		});
+		// const receipt = await tx.wait();
+		// const logs = receipt.logs
+		// 	.map(l => {
+		// 		try {
+		// 			return contract.interface.parseLog(l);
+		// 		} catch (err) {
+		// 			return null;
+		// 		}
+		// 	})
+		// 	.filter(l => !!l) as LogDescription[];
+		// return { tx, receipt, logs };
 	}
 
 	processMessageContentEvent(args: MessageContentEventObject): GenericMessageContentEventObject {

@@ -245,34 +245,30 @@ export class EVMMailerV9WrapperBroadcast {
 		uniqueId: number,
 		content: Uint8Array,
 		value: ethers.BigNumber,
-	): Promise<{
-		tx: ethers.ContractTransaction;
-		receipt: ethers.ContractReceipt;
-		logs: ethers.utils.LogDescription[];
-		broadcastPushEvents: IEVMEvent<BroadcastPushEventObject>[];
-		messages: IEVMMessage[];
-	}> {
+	) {
+		// : Promise<{
+		// 	tx: ethers.ContractTransaction;
+		// 	receipt: ethers.ContractReceipt;
+		// 	logs: ethers.utils.LogDescription[];
+		// 	broadcastPushEvents: IEVMEvent<BroadcastPushEventObject>[];
+		// 	messages: IEVMMessage[];
+		// }>
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.sendBroadcast(
-			isPersonal,
-			isGenericFeed,
-			extraPayment,
-			`0x${feedId}`,
-			uniqueId,
-			content,
-			{ from, value },
-		);
-		const receipt = await tx.wait();
-		const {
-			logs,
-			byName: { BroadcastPush: events },
-		} = parseOutLogs(contract, receipt.logs);
-		const broadcastPushEvents = events.map(l => ethersLogToInternalEvent<BroadcastPushEventObject>(l));
-		const enriched = await this.wrapper.blockchainReader.enrichEvents<BroadcastPushEventObject>(
-			broadcastPushEvents,
-		);
-		const messages = await Promise.all(enriched.map(e => this.processBroadcastPushEvent(mailer, e)));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
+		return contract.sendBroadcast(isPersonal, isGenericFeed, extraPayment, `0x${feedId}`, uniqueId, content, {
+			from,
+			value,
+		});
+		// const receipt = await tx.wait();
+		// const {
+		// 	logs,
+		// 	byName: { BroadcastPush: events },
+		// } = parseOutLogs(contract, receipt.logs);
+		// const broadcastPushEvents = events.map(l => ethersLogToInternalEvent<BroadcastPushEventObject>(l));
+		// const enriched = await this.wrapper.blockchainReader.enrichEvents<BroadcastPushEventObject>(
+		// 	broadcastPushEvents,
+		// );
+		// const messages = await Promise.all(enriched.map(e => this.processBroadcastPushEvent(mailer, e)));
+		// return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
 	}
 
 	async sendBroadcastHeader(
@@ -288,15 +284,16 @@ export class EVMMailerV9WrapperBroadcast {
 		partsCount: number,
 		blockCountLock: number,
 		value: ethers.BigNumber,
-	): Promise<{
-		tx: ethers.ContractTransaction;
-		receipt: ethers.ContractReceipt;
-		logs: ethers.utils.LogDescription[];
-		broadcastPushEvents: IEVMEvent<BroadcastPushEventObject>[];
-		messages: IEVMMessage[];
-	}> {
+	) {
+		// : Promise<{
+		// 	tx: ethers.ContractTransaction;
+		// 	receipt: ethers.ContractReceipt;
+		// 	logs: ethers.utils.LogDescription[];
+		// 	broadcastPushEvents: IEVMEvent<BroadcastPushEventObject>[];
+		// 	messages: IEVMMessage[];
+		// }>
 		const contract = this.wrapper.cache.getContract(mailer.address, signer);
-		const tx = await contract.sendBroadcastHeader(
+		return contract.sendBroadcastHeader(
 			isPersonal,
 			isGenericFeed,
 			extraPayment,
@@ -307,16 +304,15 @@ export class EVMMailerV9WrapperBroadcast {
 			blockCountLock,
 			{ from, value },
 		);
-		const receipt = await tx.wait();
-		const {
-			logs,
-			byName: { BroadcastPush: events },
-		} = parseOutLogs(contract, receipt.logs);
-		const broadcastPushEvents = events.map(l => ethersLogToInternalEvent<BroadcastPushEventObject>(l));
-		const enriched = await this.wrapper.blockchainReader.enrichEvents<BroadcastPushEventObject>(
-			broadcastPushEvents,
-		);
-		const messages = await Promise.all(enriched.map(e => this.processBroadcastPushEvent(mailer, e)));
-		return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
+		// const receipt = await tx.wait();
+		// const {
+		// 	logs,
+		// 	byName: { BroadcastPush: events },
+		// } = parseOutLogs(contract, receipt.logs);
+		// const broadcastPushEvents = events.map(l => ethersLogToInternalEvent<BroadcastPushEventObject>(l));
+		// const enriched =
+		// 	await this.wrapper.blockchainReader.enrichEvents<BroadcastPushEventObject>(broadcastPushEvents);
+		// const messages = await Promise.all(enriched.map(e => this.processBroadcastPushEvent(mailer, e)));
+		// return { tx, receipt, logs: logs.map(l => l.logDescription), broadcastPushEvents, messages };
 	}
 }
