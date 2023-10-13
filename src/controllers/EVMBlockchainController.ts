@@ -281,7 +281,7 @@ export class EVMBlockchainController extends AbstractBlockchainController {
 		}
 
 		if (parsed.isBroadcast) {
-			if (!(mailer.wrapper instanceof EVMMailerV8Wrapper)) {
+			if (mailer.wrapper instanceof EVMMailerV6Wrapper || mailer.wrapper instanceof EVMMailerV7Wrapper) {
 				throw new Error('Broadcasts are only supported by mailer V8 and higher');
 			}
 			return await mailer.wrapper.broadcast.getBroadcastPushEvent(
@@ -318,7 +318,9 @@ export class EVMBlockchainController extends AbstractBlockchainController {
 			.filter(m => {
 				// only V8+ mailers support broadcasts
 				return (
-					subject.type === BlockchainSourceType.DIRECT || m.link.type === EVMMailerContractType.EVMMailerV8
+					subject.type === BlockchainSourceType.DIRECT ||
+					(m.link.type !== EVMMailerContractType.EVMMailerV6 &&
+						m.link.type !== EVMMailerContractType.EVMMailerV7)
 				);
 			})
 			.map(m => ({
