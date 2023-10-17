@@ -14,6 +14,8 @@ export const evm: ConnectorScope = {
 		evmWalletFactories.trustwallet,
 		evmWalletFactories.frontier,
 		evmWalletFactories.metamask,
+		evmWalletFactories.okx,
+		evmWalletFactories.walletconnect,
 	],
 	blockchainFactories: [
 		evmBlockchainFactories[EVMNetwork.ETHEREUM],
